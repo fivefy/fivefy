@@ -137,7 +137,6 @@ reviews:
     - "!**/build/**"
     - "!**/.idea/**"
     - "!**/generated/**"
-    - "!**/generated/**/Q*.java" # 생성된 QueryDSL Q클래스만 제외
     - "!scripts/datasets/**"     # 대용량 데이터셋 제외
     - "!scripts/csv_output/**"
 
