@@ -34,19 +34,13 @@ public class PopularChart {
     @Column(nullable = false)
     private LocalDateTime snapshotDate;
 
-    public PopularChart(Long trackId, Integer rank, Long playCount, LocalDateTime snapshotDate) {
-        this.trackId = trackId;
-        this.rank = rank;
-        this.playCount = playCount;
-        this.snapshotDate = snapshotDate;
-    }
-
     public static PopularChart create(Long trackId, Integer rank, Long playCount, LocalDateTime snapshotDate) {
-        return new PopularChart(trackId, rank, playCount, snapshotDate);
-    }
+        PopularChart chart = new PopularChart();
+        chart.trackId = trackId;
+        chart.rank = rank;
+        chart.playCount = playCount;
+        chart.snapshotDate = snapshotDate;
 
-    public void updateChart(Integer rank, Long playCount) {
-        this.rank = rank;
-        this.playCount = playCount;
+        return chart;
     }
 }
