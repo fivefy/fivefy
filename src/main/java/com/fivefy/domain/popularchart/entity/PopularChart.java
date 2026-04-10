@@ -1,4 +1,4 @@
-package com.fivefy.domain.entity;
+package com.fivefy.domain.popularchart.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
