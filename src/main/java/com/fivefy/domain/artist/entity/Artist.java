@@ -43,6 +43,15 @@ public class Artist extends BaseEntity {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    /**
+     * Creates a new Artist for the specified owner with the provided name, bio, and profile image and sets its status to ACTIVE.
+     *
+     * @param ownerUserId     the user ID that will own the artist
+     * @param name            the artist's display name
+     * @param bio             the artist's biography text, may be null
+     * @param profileImageUrl the URL of the artist's profile image, may be null
+     * @return                the newly created Artist instance with status set to `ArtistStatus.ACTIVE`
+     */
     public static Artist create(
             Long ownerUserId,
             String name,

@@ -49,6 +49,15 @@ public class ArtistApplication extends BaseEntity {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    /**
+     * Create a new ArtistApplication initialized with the provided requester details and a `PENDING` status.
+     *
+     * @param requesterUserId the ID of the user submitting the application
+     * @param requestedName   the requested artist/display name
+     * @param bio             the applicant's biography or profile text
+     * @param profileImageUrl optional URL of the applicant's profile image
+     * @return the newly created ArtistApplication with `status` set to `ApplicationStatus.PENDING`
+     */
     public static ArtistApplication create(
             Long requesterUserId,
             String requestedName,
