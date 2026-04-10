@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Getter
 @Entity
@@ -46,6 +47,8 @@ public class User extends BaseEntity {
     private LocalDateTime deletedAt;
 
     public static User create(String email, String encodedPassword, String name) {
+        validateNonNull(email, encodedPassword, name);
+
         User user = new User();
         user.email = email;
         user.password = encodedPassword;
@@ -54,5 +57,11 @@ public class User extends BaseEntity {
         user.status = UserStatus.ACTIVE;
 
         return user;
+    }
+
+    private static void validateNonNull(String email, String encodedPassword, String name) {
+        Objects.requireNonNull(email, "이메일은 필수입니다");
+        Objects.requireNonNull(encodedPassword, "비밀번호는 필수입니다");
+        Objects.requireNonNull(name, "이름은 필수입니다");
     }
 }
