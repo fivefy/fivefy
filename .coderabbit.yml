@@ -9,13 +9,13 @@ early_access: false
 # 리뷰 설정
 # ──────────────────────────────────────────────────
 reviews:
-  profile: "assertive"           # chill | assertive — 꼼꼼한 리뷰
+  profile: "chill"           # chill | assertive — 경량 리뷰로 속도 개선
   request_changes_workflow: false
   high_level_summary: true       # PR 상단에 변경사항 요약
   poem: false                    # 리뷰 마지막 시(poem) 비활성화
   review_status: true            # 리뷰 진행 상태 표시
-  collapse_walkthrough: false    # 파일별 변경 내용 펼쳐서 표시
-  sequence_diagrams: true        # 흐름 변경 시 시퀀스 다이어그램 자동 생성
+  collapse_walkthrough: true     # 파일별 변경 내용 접어서 표시 (속도 개선)
+  sequence_diagrams: false       # 시퀀스 다이어그램 비활성화 (속도 개선)
 
   auto_review:
     enabled: true
@@ -35,12 +35,19 @@ reviews:
   # ── 머지 전 체크 항목 ─────────────────────────────
   finishing_touches:
     docstrings:
-      enabled: true
+      enabled: false             # 비활성화 (속도 개선)
 
   abort_on_close: true           # PR 닫히면 진행 중인 리뷰 중단
 
   # ── 경로별 커스텀 리뷰 지시 ──────────────────────
   path_instructions:
+    # 전체 경로 공통 지시
+    - path: "**"
+      instructions: >
+        - 단순한 코드 스타일, 변수 네이밍 컨벤션, 들여쓰기 관련 지적은 절대 하지 마세요.
+        - 기능 동작에 지장이 없는 사소한 리팩토링 제안이나 '제안을 위한 제안'은 무시하세요.
+        - 치명적인 비즈니스 로직 결함, 보안 이슈, DB 성능(N+1 등) 문제에만 집중하세요.
+
     # 인증/보안 관련
     - path: "**/security/**"
       instructions: >
@@ -152,6 +159,6 @@ chat:
 knowledge_base:
   opt_out: false
   web_search:
-    enabled: true                # Spring Boot 4.0, QueryDSL 등 외부 문서 참조 허용
+    enabled: false               # 비활성화 (속도 개선)
   learnings:
     scope: auto                  # PR 히스토리에서 자동 학습
