@@ -1,7 +1,7 @@
 package com.fivefy.domain.order.entity;
 
 import com.fivefy.common.entity.BaseEntity;
-import com.fivefy.domain.order.enums.OrderEnum;
+import com.fivefy.domain.order.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -31,9 +31,9 @@ public class Order extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private OrderEnum status;
+    private OrderStatus status;
 
-    public Order(Long userId, Long trackId, Long totalAmount, String orderNumber, OrderEnum status) {
+    public Order(Long userId, Long trackId, Long totalAmount, String orderNumber, OrderStatus status) {
         this.userId = userId;
         this.trackId = trackId;
         this.totalAmount = totalAmount;
@@ -47,11 +47,11 @@ public class Order extends BaseEntity {
                 trackId,
                 totalAmount,
                 orderNumber,
-                OrderEnum.PENDING
+                OrderStatus.PENDING
         );
     }
 
-    public void updateStatus(OrderEnum status) {
+    public void updateStatus(OrderStatus status) {
         this.status = status;
     }
 
