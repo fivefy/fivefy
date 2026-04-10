@@ -35,7 +35,7 @@ public class Playback {
     private PlaybackStatus status;
 
     @Column(nullable = false)
-    private Integer playedDuration;
+    private int playedDuration;
 
     @Column(nullable = false)
     private LocalDateTime playedAt;
