@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 # CodeRabbit 설정 파일 — 음악 스트리밍 서비스
-# 위치: 프로젝트 루트 .coderabbit.yaml
+# 위치: 프로젝트 루트 .coderabbit.yml
 
 language: "ko-KR"
 early_access: false
@@ -131,13 +131,13 @@ reviews:
 
   # ── 리뷰에서 제외할 경로 ────────────────────────
   path_filters:
-    - "!**/*.lock"
-    - "!**/gradle/wrapper/**"
+    # lock 파일과 gradle-wrapper.properties 는 공급망 변경 검토를 위해 포함 권장
+    - "!**/gradle/wrapper/gradle-wrapper.jar"
     - "!**/.gradle/**"
     - "!**/build/**"
     - "!**/.idea/**"
     - "!**/generated/**"
-    - "!**/Q*.java"              # QueryDSL Q클래스 제외
+    - "!**/generated/**/Q*.java" # 생성된 QueryDSL Q클래스만 제외
     - "!scripts/datasets/**"     # 대용량 데이터셋 제외
     - "!scripts/csv_output/**"
 
