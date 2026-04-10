@@ -24,7 +24,7 @@ public class Order extends BaseEntity {
     private Long trackId;
 
     @Column(nullable = false)
-    private Integer totalAmount;
+    private Long totalAmount;
 
     @Column(nullable = false)
     private String orderNumber;
