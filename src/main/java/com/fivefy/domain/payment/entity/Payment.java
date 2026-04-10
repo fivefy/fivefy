@@ -31,10 +31,10 @@ public class Payment extends BaseEntity {
     @Column(nullable = false)
     private PaymentStatus status;
 
-    @Column(length = 100, nullable = false)
+    @Column(length = 100, nullable = false, unique = true)
     private String pgTransactionId;
 
-    @Column(length = 100, nullable = false)
+    @Column(length = 100, nullable = false, unique = true)
     private String idempotencyKey;
 
     @Column(length = 500)
@@ -50,7 +50,7 @@ public class Payment extends BaseEntity {
      * @param status            : 상태(결제 요청, 보류, 승인, 결제 완료, 실패, 취소, 환불)
      * @param pgTransactionId   : PG트랜젝션 ID - UUID 최대 글자 36자
      * @param refundReason      : 환불사유 (글자 500 제한), 결제면 null
-     * @param idempotencyKey    : 멱등키 - UUID 최대 글자 36자
+     * @param idempotencyKey    : 멱등키 - UUID 최대 글자 36자,
      * @param paidAt            : 결제 시각 : 환불이면 null
      * @param refundedAt        : 환불 시각 : 결제면 null
      */
