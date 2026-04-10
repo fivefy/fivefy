@@ -33,7 +33,7 @@ public class Order extends BaseEntity {
     @Column(nullable = false)
     private OrderEnum status;
 
-    public Order(Long userId, Long trackId, Integer totalAmount, String orderNumber, OrderEnum status) {
+    public Order(Long userId, Long trackId, Long totalAmount, String orderNumber, OrderEnum status) {
         this.userId = userId;
         this.trackId = trackId;
         this.totalAmount = totalAmount;
@@ -41,7 +41,7 @@ public class Order extends BaseEntity {
         this.status = status;
     }
 
-    public static Order create(Long userId, Long trackId, Integer totalAmount, String orderNumber) {
+    public static Order create(Long userId, Long trackId, Long totalAmount, String orderNumber) {
         return new Order(
                 userId,
                 trackId,
