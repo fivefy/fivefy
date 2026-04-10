@@ -1,7 +1,7 @@
 package com.fivefy.domain.album.entity;
 
 import com.fivefy.common.entity.BaseEntity;
-import com.fivefy.domain.artist.enums.ApplicationStatus;
+import com.fivefy.common.enums.ApplicationStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDateTime;
-import java.util.Objects;
 
 @Getter
 @Entity

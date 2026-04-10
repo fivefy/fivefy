@@ -1,4 +1,4 @@
-package com.fivefy.domain.artist.enums;
+package com.fivefy.common.enums;
 
 public enum ApplicationStatus {
     PENDING,
