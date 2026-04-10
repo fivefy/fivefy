@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Getter
 @Entity
@@ -41,6 +42,8 @@ public class Playback {
     private LocalDateTime playedAt;
 
     public static Playback create(Long trackId, Long userId, String sessionId, String deviceId) {
+        validateNonNull(trackId, userId, sessionId);
+
         Playback playback = new Playback();
         playback.trackId = trackId;
         playback.userId = userId;
@@ -52,5 +55,17 @@ public class Playback {
         playback.playedAt = LocalDateTime.now();
 
         return playback;
+    }
+
+    private static void validateNonNull(Long trackId, Long userId, String sessionId) {
+        if (trackId == null) {
+            throw new IllegalArgumentException("trackId는 필수입니다");
+        }
+        if (userId == null) {
+            throw new IllegalArgumentException("userId는 필수입니다");
+        }
+        if (sessionId == null) {
+            throw new IllegalArgumentException("sessionId는 필수입니다");
+        }
     }
 }
