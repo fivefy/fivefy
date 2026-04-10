@@ -7,6 +7,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import static com.fivefy.common.util.ValidationUtils.validateNonNull;
+
 @Entity
 @Getter
 @Table(name = "orders")
@@ -42,17 +44,21 @@ public class Order extends BaseEntity {
     }
 
     public static Order create(Long userId, Long trackId, Long totalAmount, String orderNumber) {
-        return new Order(
-                userId,
-                trackId,
-                totalAmount,
-                orderNumber,
-                OrderStatus.PENDING
-        );
-    }
+        validateNonNull(userId, "유저 ID");
+        validateNonNull(trackId, "트랙 ID");
+        validateNonNull(totalAmount, "총 금액");
+        validateNonNull(orderNumber, "주문 번호");
 
+        Order order = new Order();
+            order.userId = userId;
+            order.trackId = trackId;
+            order.totalAmount = totalAmount;
+            order.orderNumber = orderNumber;
+            order.status = OrderStatus.PENDING;
+
+        return order;
+    }
     public void updateStatus(OrderStatus status) {
         this.status = status;
     }
-
 }
