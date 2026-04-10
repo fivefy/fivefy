@@ -36,13 +36,15 @@ public class Playback {
     private PlaybackStatus status;
 
     @Column(nullable = false)
-    private int playedDuration;
+    private Integer playedDuration;
 
     @Column(nullable = false)
     private LocalDateTime playedAt;
 
     public static Playback create(Long trackId, Long userId, String sessionId, String deviceId) {
-        validateNonNull(trackId, userId, sessionId);
+        validateNotNull(trackId, "trackId");
+        validateNotNull(userId, "userId");
+        validateNotNull(sessionId, "sessionId");
 
         Playback playback = new Playback();
         playback.trackId = trackId;
@@ -57,15 +59,7 @@ public class Playback {
         return playback;
     }
 
-    private static void validateNonNull(Long trackId, Long userId, String sessionId) {
-        if (trackId == null) {
-            throw new IllegalArgumentException("trackId는 필수입니다");
-        }
-        if (userId == null) {
-            throw new IllegalArgumentException("userId는 필수입니다");
-        }
-        if (sessionId == null) {
-            throw new IllegalArgumentException("sessionId는 필수입니다");
-        }
+    private static void validateNotNull(Object value, String fieldName) {
+        Objects.requireNonNull(value, fieldName + "는 필수입니다. (validationNotNull)");
     }
 }
