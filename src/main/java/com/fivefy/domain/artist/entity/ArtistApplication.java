@@ -1,7 +1,7 @@
 package com.fivefy.domain.artist.entity;
 
 import com.fivefy.common.entity.BaseEntity;
-import com.fivefy.domain.artist.enums.ApplicationStatus;
+import com.fivefy.common.enums.ApplicationStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -55,6 +55,9 @@ public class ArtistApplication extends BaseEntity {
             String bio,
             String profileImageUrl
     ) {
+        validateNonNull(requesterUserId, "requesterUserId");
+        validateNonNull(requestedName, "requestedName");
+
         ArtistApplication application = new ArtistApplication();
 
         application.requesterUserId = requesterUserId;
