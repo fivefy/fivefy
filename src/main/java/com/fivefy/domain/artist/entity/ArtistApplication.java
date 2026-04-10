@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Getter
 @Entity
@@ -55,6 +56,9 @@ public class ArtistApplication extends BaseEntity {
             String bio,
             String profileImageUrl
     ) {
+        validateNonNull(requesterUserId, "requesterUserId");
+        validateNonNull(requestedName, "requestedName");
+
         ArtistApplication application = new ArtistApplication();
 
         application.requesterUserId = requesterUserId;

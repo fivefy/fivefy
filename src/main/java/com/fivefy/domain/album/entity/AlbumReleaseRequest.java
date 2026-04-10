@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Getter
 @Entity
@@ -67,6 +68,11 @@ public class AlbumReleaseRequest extends BaseEntity {
             LocalDateTime releaseAt,
             LocalDateTime scheduledPublishAt
     ) {
+        validateNonNull(requesterUserId, "requesterUserId");
+        validateNonNull(artistId, "artistId");
+        validateNonNull(title, "title");
+        validateNonNull(releaseAt, "releaseAt");
+
         AlbumReleaseRequest request = new AlbumReleaseRequest();
 
         request.requesterUserId = requesterUserId;
