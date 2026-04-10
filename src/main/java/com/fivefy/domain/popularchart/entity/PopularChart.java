@@ -34,7 +34,7 @@ public class PopularChart {
     @Column(nullable = false)
     private LocalDateTime snapshotDate;
 
-    public static PopularChart create(Long trackId, Integer rank, Long playCount, LocalDateTime snapshotDate) {
+    public static PopularChart create(Long trackId, int rank, Long playCount, LocalDateTime snapshotDate) {
         PopularChart chart = new PopularChart();
         chart.trackId = trackId;
         chart.rank = rank;
