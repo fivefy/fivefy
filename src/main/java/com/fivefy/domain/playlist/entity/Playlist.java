@@ -1,6 +1,7 @@
 package com.fivefy.domain.playlist.entity;
 
 import com.fivefy.common.entity.BaseEntity;
+import com.fivefy.common.util.ValidationUtils;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -33,6 +34,9 @@ public class Playlist extends BaseEntity {
     private LocalDateTime deletedAt;
 
     public static Playlist create(Long userId, String title, String description) {
+        ValidationUtils.validateNonNull(userId, "userId");
+        ValidationUtils.validateNonNull(title, "title");
+
         Playlist playlist = new Playlist();
         playlist.userId = userId;
         playlist.title = title;
