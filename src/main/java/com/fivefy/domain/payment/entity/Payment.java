@@ -24,6 +24,7 @@ public class Payment extends BaseEntity {
     @Column(nullable = false)
     private Long orderId;
 
+    // 음수값 처리는 나중에
     @Column(nullable = false)
     private Long amount;
 
@@ -80,7 +81,7 @@ public class Payment extends BaseEntity {
             payment.pgTransactionId = pgTransactionId;
             payment.refundReason = null;
             payment.idempotencyKey =  idempotencyKey;
-            payment.paidAt = LocalDateTime.now();
+            payment.paidAt = null;
             payment.refundedAt = null;
 
         return payment;
