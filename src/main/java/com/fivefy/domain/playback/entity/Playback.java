@@ -1,5 +1,6 @@
 package com.fivefy.domain.playback.entity;
 
+import com.fivefy.common.util.ValidationUtils;
 import com.fivefy.domain.playback.enums.PlaybackStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -7,7 +8,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.Objects;
 
 @Getter
 @Entity
@@ -42,9 +42,9 @@ public class Playback {
     private LocalDateTime playedAt;
 
     public static Playback create(Long trackId, Long userId, String sessionId, String deviceId) {
-        validateNotNull(trackId, "trackId");
-        validateNotNull(userId, "userId");
-        validateNotNull(sessionId, "sessionId");
+        ValidationUtils.validateNonNull(trackId, "trackId");
+        ValidationUtils.validateNonNull(userId, "userId");
+        ValidationUtils.validateNonNull(sessionId, "sessionId");
 
         Playback playback = new Playback();
         playback.trackId = trackId;
@@ -57,9 +57,5 @@ public class Playback {
         playback.playedAt = LocalDateTime.now();
 
         return playback;
-    }
-
-    private static void validateNotNull(Object value, String fieldName) {
-        Objects.requireNonNull(value, fieldName + "는 필수입니다. (validationNotNull)");
     }
 }
