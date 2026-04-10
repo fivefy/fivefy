@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Entity
 @Getter
@@ -26,7 +27,7 @@ public class PopularChart {
     private Long trackId;
 
     @Column(nullable = false)
-    private Integer rank;
+    private int rank;
 
     @Column(nullable = false)
     private Long playCount;
