@@ -57,10 +57,10 @@ public class Payment extends BaseEntity {
      * @return
      */
     public static Payment create(Long orderId, Long amount, String pgTransactionId, String idempotencyKey) {
-        validateNonNull(orderId, "주문 ID");
-        validateNonNull(amount, "결제 금액");
-        validateNonNull(pgTransactionId, "PG 트랜잭션 ID");
-        validateNonNull(idempotencyKey, "멱등키");
+        validateNonNull(orderId, "orderId");
+        validateNonNull(amount, "amount");
+        validateNonNull(pgTransactionId, "pgTransactionId");
+        validateNonNull(idempotencyKey, "idempotencyKey");
 
         Payment payment = new Payment();
             payment.orderId = orderId;
