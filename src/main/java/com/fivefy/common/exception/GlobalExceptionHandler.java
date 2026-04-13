@@ -11,6 +11,15 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    // 여러 도메인 에러들을 관리하는 BusinessException 처리
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<BaseResponse<Void>> handleBusinessException(BusinessException e) {
+        log.error("비즈니스 에러 발생 : {}, 에러 상세 내용 : ", e.getMessage(), e);
+        return ResponseEntity.status(e.getHttpStatus()).body(
+                BaseResponse.fail(e.getHttpStatus(), e.getMessage())
+        );
+    }
+
     // 예상치 못한 예외 전범위적 처리
     @ExceptionHandler(Exception.class)
     public ResponseEntity<BaseResponse<Void>> handleUnexpectedException(Exception e) {
