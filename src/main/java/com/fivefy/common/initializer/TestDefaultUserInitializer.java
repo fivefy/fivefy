@@ -67,7 +67,7 @@ public class TestDefaultUserInitializer implements ApplicationRunner {
 
         // 유저 2: 연간 구독 유저(일 년)
         initUser("test2@fivefy.com", "test1234", "테스트유저2",
-                500000L, 0L, SubscriptionPlanType.MONTH, now
+                500000L, 0L, SubscriptionPlanType.YEAR, now
         );
 
         // 유저 3: 무료 유저(삼 일)
@@ -95,7 +95,7 @@ public class TestDefaultUserInitializer implements ApplicationRunner {
 
         // 유료 포인트 충전 이력
         pointHistoryRepository.save(PointHistory
-                .create(wallet.getId(), PointType.PAID, PointHistoryType.USE,
+                .create(wallet.getId(), PointType.PAID, PointHistoryType.CHARGE,
                 paidAmount, paidAmount, "테스트 유료 포인트 충전"
                 )
         );
@@ -103,7 +103,7 @@ public class TestDefaultUserInitializer implements ApplicationRunner {
         // 이벤트 포인트 충전 이력
         if (eventAmount > 0) {
             pointHistoryRepository.save(PointHistory
-                    .create(wallet.getId(), PointType.FREE, PointHistoryType.USE,
+                    .create(wallet.getId(), PointType.FREE, PointHistoryType.CHARGE,
                     eventAmount, eventAmount, "테스트 이벤트 포인트 지급"
                     )
             );
