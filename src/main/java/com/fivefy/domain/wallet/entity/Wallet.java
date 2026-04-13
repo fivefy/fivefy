@@ -49,4 +49,30 @@ public class Wallet extends BaseEntity {
 
         return wallet;
     }
+
+    /**
+     * 충전(유료 재화)
+     * @param amount
+     */
+    public void chargeBalance(Long amount) {
+        this.balance += amount;
+        this.totalBalance = this.balance + this.eventBalance;
+    }
+    public void chargeEventBalance(Long amount) {
+        this.eventBalance += amount;
+        this.totalBalance = this.balance + this.eventBalance;
+    }
+
+    /**
+     * 사용 : 구독 구매
+     * @param amount
+     */
+    public void useBalance(Long amount) {
+        this.balance -= amount;
+        this.totalBalance = this.balance + this.eventBalance;
+    }
+    public void useEventBalance(Long amount) {
+        this.eventBalance -= amount;
+        this.totalBalance = this.balance + this.eventBalance;
+    }
 }
