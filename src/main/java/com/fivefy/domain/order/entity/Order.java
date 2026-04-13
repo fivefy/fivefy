@@ -36,10 +36,10 @@ public class Order extends BaseEntity {
     private OrderStatus status;
 
     public static Order create(Long userId, Long trackId, Long totalAmount, String orderNumber) {
-        validateNonNull(userId, "유저 ID");
-        validateNonNull(trackId, "트랙 ID");
-        validateNonNull(totalAmount, "총 금액");
-        validateNonNull(orderNumber, "주문 번호");
+        validateNonNull(userId, "userId");
+        validateNonNull(trackId, "trackId");
+        validateNonNull(totalAmount, "totalAmount");
+        validateNonNull(orderNumber, "orderNumber");
 
         Order order = new Order();
             order.userId = userId;
