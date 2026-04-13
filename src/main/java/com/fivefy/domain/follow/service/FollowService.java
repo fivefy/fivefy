@@ -60,6 +60,10 @@ public class FollowService {
         Follow follow = followRepository.findById(followId)
                 .orElseThrow(() -> new BusinessException(FollowErrorCode.ERR_FOLLOW_NOT_FOUND));
 
+        if (!follow.getUserId().equals(userId)) {
+            throw new BusinessException(FollowErrorCode.ERR_FOLLOW_FORBIDDEN);
+        }
+
         followRepository.delete(follow);
     }
 
@@ -69,6 +73,10 @@ public class FollowService {
         validateUserId(userId);
         Follow follow = followRepository.findById(followId)
                 .orElseThrow(() -> new BusinessException(FollowErrorCode.ERR_FOLLOW_NOT_FOUND));
+
+        if (!follow.getUserId().equals(userId)) {
+            throw new BusinessException(FollowErrorCode.ERR_FOLLOW_FORBIDDEN);
+        }
 
         follow.toggleNotification();
     }

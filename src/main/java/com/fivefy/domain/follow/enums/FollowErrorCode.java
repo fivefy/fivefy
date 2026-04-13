@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 @RequiredArgsConstructor
 public enum FollowErrorCode implements ErrorCode {
 
+    ERR_FOLLOW_FORBIDDEN(HttpStatus.FORBIDDEN, "팔로우에 대한 권한이 없습니다"),
     ERR_FOLLOW_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 팔로우한 아티스트입니다"),
     ERR_FOLLOW_NOT_FOUND(HttpStatus.NOT_FOUND, "팔로우가 존재하지 않습니다");
 
