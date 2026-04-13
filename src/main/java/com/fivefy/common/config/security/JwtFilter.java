@@ -1,6 +1,5 @@
 package com.fivefy.common.config.security;
 
-import com.fivefy.common.enums.AuthErrorCode;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
@@ -19,6 +18,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+
+import static com.fivefy.common.enums.AuthErrorCode.*;
 
 @Slf4j
 @Component
@@ -51,19 +52,19 @@ public class JwtFilter extends OncePerRequestFilter {
 
         } catch (ExpiredJwtException e) {
             log.info("만료된 JWT 토큰입니다");
-            request.setAttribute("exception", AuthErrorCode.ERR_AUTH_EXPIRED_TOKEN);
+            request.setAttribute("exception", ERR_AUTH_EXPIRED_TOKEN);
         } catch (UnsupportedJwtException e) {
             log.info("지원하지 않는 JWT 토큰입니다");
-            request.setAttribute("exception", AuthErrorCode.ERR_AUTH_INVALID_TOKEN);
+            request.setAttribute("exception", ERR_AUTH_INVALID_TOKEN);
         } catch (MalformedJwtException e) {
             log.info("잘못된 JWT 토큰입니다");
-            request.setAttribute("exception", AuthErrorCode.ERR_AUTH_INVALID_TOKEN);
+            request.setAttribute("exception", ERR_AUTH_INVALID_TOKEN);
         } catch (IllegalArgumentException e) {
             log.info("JWT 토큰이 비어있습니다");
-            request.setAttribute("exception", AuthErrorCode.ERR_AUTH_EMPTY_TOKEN);
+            request.setAttribute("exception", ERR_AUTH_EMPTY_TOKEN);
         } catch (Exception e) {
             log.error("인증 처리 중 오류 발생", e);
-            request.setAttribute("exception", AuthErrorCode.ERR_AUTH_UNAUTHORIZED);
+            request.setAttribute("exception", ERR_AUTH_UNAUTHORIZED);
         }
 
         filterChain.doFilter(request, response);
