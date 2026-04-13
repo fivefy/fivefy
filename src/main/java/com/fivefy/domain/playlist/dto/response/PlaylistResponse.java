@@ -5,7 +5,6 @@ import com.fivefy.domain.playlist.entity.Playlist;
 import java.time.LocalDateTime;
 
 public record PlaylistResponse(
-
         Long id,
         Long userId,
         String title,
