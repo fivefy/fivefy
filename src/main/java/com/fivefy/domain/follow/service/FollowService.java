@@ -14,6 +14,8 @@ import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,13 +51,11 @@ public class FollowService {
 
     // 팔로우 목록 조회
     @Transactional(readOnly = true)
-    public List<FollowGetResponse> getFollows(Long userId) {
-        getUser(userId); // 존재 검증
+    public Page<FollowGetResponse> getFollows(Long userId, Pageable pageable) {
+        getUser(userId);
 
-        return followRepository.findAllByUserId(userId)
-                .stream()
-                .map(FollowGetResponse::from)
-                .toList();
+        return followRepository.findAllByUserId(userId, pageable)
+                .map(FollowGetResponse::from);
     }
 
     // 팔로우 취소
