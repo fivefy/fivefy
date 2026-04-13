@@ -1,7 +1,7 @@
 package com.fivefy.domain.track.entity;
 
 import com.fivefy.common.entity.BaseEntity;
-import com.fivefy.common.util.ValidationUtils;
+import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 import com.fivefy.domain.track.enums.TrackStatus;
 import com.fivefy.domain.track.enums.TrackType;
 import jakarta.persistence.*;
@@ -70,12 +70,12 @@ public class Track extends BaseEntity {
     private LocalDateTime deletedAt;
 
     public static Track create(Long ownerUserId, TrackType trackType, String title, String genre, String audioUrl, Long durationSec) {
-        ValidationUtils.validateNonNull(ownerUserId, "ownerUserId");
-        ValidationUtils.validateNonNull(trackType, "trackType");
-        ValidationUtils.validateNonNull(title, "title");
-        ValidationUtils.validateNonNull(genre, "genre");
-        ValidationUtils.validateNonNull(audioUrl, "audioUrl");
-        ValidationUtils.validateNonNull(durationSec, "durationSec");
+        validateNonNull(ownerUserId, "ownerUserId");
+        validateNonNull(trackType, "trackType");
+        validateNonNull(title, "title");
+        validateNonNull(genre, "genre");
+        validateNonNull(audioUrl, "audioUrl");
+        validateNonNull(durationSec, "durationSec");
 
         Track track = new Track();
         track.ownerUserId = ownerUserId;

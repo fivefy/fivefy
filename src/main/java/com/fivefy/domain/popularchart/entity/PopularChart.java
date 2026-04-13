@@ -1,6 +1,6 @@
 package com.fivefy.domain.popularchart.entity;
 
-import com.fivefy.common.util.ValidationUtils;
+import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -36,10 +36,10 @@ public class PopularChart {
     private LocalDateTime snapshotDate;
 
     public static PopularChart create(Long trackId, Integer rank, Long playCount, LocalDateTime snapshotDate) {
-        ValidationUtils.validateNonNull(trackId, "trackId");
-        ValidationUtils.validateNonNull(rank, "rank");
-        ValidationUtils.validateNonNull(playCount, "playCount");
-        ValidationUtils.validateNonNull(snapshotDate, "snapshotDate");
+        validateNonNull(trackId, "trackId");
+        validateNonNull(rank, "rank");
+        validateNonNull(playCount, "playCount");
+        validateNonNull(snapshotDate, "snapshotDate");
 
         PopularChart chart = new PopularChart();
         chart.trackId = trackId;
