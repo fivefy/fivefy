@@ -11,6 +11,8 @@ import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDateTime;
 
+import static com.fivefy.common.util.ValidationUtils.validateNonNull;
+
 @Getter
 @Entity
 @Table(name = "track_release_requests")
