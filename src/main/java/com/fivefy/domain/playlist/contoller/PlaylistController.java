@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -23,7 +24,7 @@ public class PlaylistController {
 
     @PostMapping("/playlists")
     public ResponseEntity<BaseResponse<PlaylistResponse>> createPlaylist(
-            @RequestParam Long userId,
+            @AuthenticationPrincipal Long userId,
             @Valid @RequestBody PlaylistCreateRequest request
     ) {
         PlaylistResponse response = playlistService.createPlaylist(userId, request);
@@ -53,7 +54,7 @@ public class PlaylistController {
 
     @PatchMapping("/playlists/{playlistId}")
     public ResponseEntity<BaseResponse<PlaylistResponse>> updatePlaylist(
-            @RequestParam Long userId,
+            @AuthenticationPrincipal Long userId,
             @PathVariable Long playlistId,
             @Valid @RequestBody PlaylistUpdateRequest request
     ) {
@@ -66,7 +67,7 @@ public class PlaylistController {
 
     @DeleteMapping("/playlists/{playlistId}")
     public ResponseEntity<BaseResponse<PlaylistDeleteResponse>> deletePlaylist(
-            @RequestParam Long userId,
+            @AuthenticationPrincipal Long userId,
             @PathVariable Long playlistId
     ) {
         PlaylistDeleteResponse response = playlistService.deletePlaylist(userId, playlistId);
