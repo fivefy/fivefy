@@ -2,6 +2,9 @@ package com.fivefy.domain.artist.entity;
 
 import com.fivefy.common.entity.BaseEntity;
 import com.fivefy.common.enums.ApplicationStatus;
+import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.artist.enums.ArtistApplicationExceptionEnum;
+import com.fivefy.domain.artist.enums.ArtistExceptionEnum;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -69,5 +72,32 @@ public class ArtistApplication extends BaseEntity {
         application.status = ApplicationStatus.PENDING;
 
         return application;
+    }
+
+    public void approve(Long adminId) {
+        validateNonNull(adminId, "adminId");
+        validatePending();
+
+        this.status = ApplicationStatus.APPROVED;
+        this.reviewedByAdminId = adminId;
+        this.reviewedAt = LocalDateTime.now();
+    }
+
+    public void reject(Long adminId, String rejectionReason) {
+        validateNonNull(adminId, "adminId");
+        validateNonNull(rejectionReason, "rejectionReason");
+        validatePending();
+
+        this.status = ApplicationStatus.REJECTED;
+        this.reviewedByAdminId = adminId;
+        this.reviewedAt = LocalDateTime.now();
+        this.rejectionReason = rejectionReason;
+    }
+
+    private void validatePending() {
+        if (this.status != ApplicationStatus.PENDING) {
+            throw new BusinessException(
+                    ArtistApplicationExceptionEnum.ERR_ARTIST_APPLICATION_NOT_PENDING);
+        }
     }
 }
