@@ -14,9 +14,12 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Duration;
 
 import static com.fivefy.domain.user.enums.UserErrorCode.*;
 
@@ -28,6 +31,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final WalletRepository walletRepository;
     private final JwtUtil jwtUtil;
+    private final StringRedisTemplate redisTemplate;
 
     /**
      회원가입
@@ -66,7 +70,7 @@ public class UserService {
      3. redis에 RT 저장
      4. return
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public UserLoginResponse loginUser(UserLoginRequest request) {
         User user = userRepository.findByEmail(request.email()).orElseThrow(
                 () -> new BusinessException(ERR_USER_LOGIN_FAIL)
@@ -78,7 +82,11 @@ public class UserService {
         String accessToken = jwtUtil.createAccessToken(user.getId(), user.getRole());
         String refreshToken = jwtUtil.createRefreshToken();
 
-        // TODO RT redis 저장
+        redisTemplate.opsForValue().set(
+                "RT:" + user.getId(),
+                refreshToken,
+                Duration.ofDays(7)
+        );
 
         return UserLoginResponse.of(accessToken, refreshToken);
     }
