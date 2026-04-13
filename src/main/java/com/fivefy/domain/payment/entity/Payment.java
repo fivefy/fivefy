@@ -45,29 +45,17 @@ public class Payment extends BaseEntity {
     private LocalDateTime refundedAt;
 
     /**
-     * 결제
+     *
      * @param orderId           : 주문 ID
      * @param amount            : 금액(원화 기준 : Long 통일)
-     * @param status            : 상태(결제 요청, 보류, 승인, 결제 완료, 실패, 취소, 환불)
+     *        status            : 상태(결제 요청, 보류, 승인, 결제 완료, 실패, 취소, 환불)
      * @param pgTransactionId   : PG트랜젝션 ID - UUID 최대 글자 36자
-     * @param refundReason      : 환불사유 (글자 500 제한), 결제면 null
+     *        refundReason      : 환불사유 (글자 500 제한), 결제면 null
      * @param idempotencyKey    : 멱등키 - UUID 최대 글자 36자,
-     * @param paidAt            : 결제 시각 : 환불이면 null
-     * @param refundedAt        : 환불 시각 : 결제면 null
+     *        paidAt            : 결제 시각 : 환불이면 null
+     *        refundedAt        : 환불 시각 : 결제면 null
+     * @return
      */
-    public Payment(Long orderId, Long amount, PaymentStatus status,
-                   String pgTransactionId, String refundReason, String idempotencyKey,
-                   LocalDateTime paidAt, LocalDateTime refundedAt) {
-        this.orderId = orderId;
-        this.amount = amount;
-        this.status = status;
-        this.pgTransactionId = pgTransactionId;
-        this.refundReason = refundReason;
-        this.idempotencyKey = idempotencyKey;
-        this.paidAt = paidAt;
-        this.refundedAt = refundedAt;
-    }
-
     public static Payment create(Long orderId, Long amount, String pgTransactionId, String idempotencyKey) {
         validateNonNull(orderId, "주문 ID");
         validateNonNull(amount, "결제 금액");
