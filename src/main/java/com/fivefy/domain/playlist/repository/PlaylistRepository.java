@@ -11,5 +11,5 @@ public interface PlaylistRepository extends JpaRepository<Playlist, Long> {
 
     Page<Playlist> findAllByDeletedAtIsNull(Pageable pageable);
     Optional<Playlist> findByIdAndDeletedAtIsNull(Long id);
-    boolean existsByUserIdAndTitleAndDeletedFalse(Long userId, String title);
+    boolean existsByUserIdAndTitleAndDeletedAtIsNull(Long userId, String title);
 }
