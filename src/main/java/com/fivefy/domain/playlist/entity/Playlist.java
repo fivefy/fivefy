@@ -39,7 +39,7 @@ public class Playlist extends BaseEntity {
 
     public static Playlist create(Long userId, String title, String description) {
         validateNonNull(userId, "userId");
-        if (title == null || title.isBlank()) {
+        if (title == null || title.isBlank() || title.length() > 100) {
             throw new BusinessException(PlaylistErrorCode.INVALID_TITLE);
         }
 
@@ -56,7 +56,7 @@ public class Playlist extends BaseEntity {
     }
 
     public void update(String title, String description) {
-        if (title == null || title.isBlank()) {
+        if (title == null || title.isBlank() || title.length() > 100) {
             throw new BusinessException(PlaylistErrorCode.INVALID_TITLE);
         }
 
