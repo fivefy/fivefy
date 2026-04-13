@@ -1,7 +1,6 @@
 package com.fivefy.domain.follow.entity;
 
 import com.fivefy.common.entity.BaseEntity;
-import com.fivefy.common.util.ValidationUtils;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -11,7 +10,11 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
 @Getter
 @Entity
-@Table(name = "follows")
+@Table(name = "follows",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"user_id", "artist_id"})
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Follow extends BaseEntity {
 
@@ -26,7 +29,7 @@ public class Follow extends BaseEntity {
     private Long userId;
 
     @Column(nullable = false)
-    Boolean notificationEnabled;
+    private Boolean notificationEnabled;
 
     public static Follow create(Long artistId, Long userId) {
         validateNonNull(artistId, "artistId");
@@ -38,5 +41,9 @@ public class Follow extends BaseEntity {
         follow.notificationEnabled = true;
 
         return follow;
+    }
+
+    public void toggleNotification() {
+        this.notificationEnabled = !this.notificationEnabled;
     }
 }

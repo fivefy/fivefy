@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 
 @Getter
 public enum ArtistExceptionEnum implements ErrorCode {
+    ERR_ARTIST_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 아티스트입니다"),
     ERR_ARTIST_ALREADY_SUSPENDED(HttpStatus.BAD_REQUEST, "이미 정지된 아티스트입니다"),
     ERR_ARTIST_ALREADY_ACTIVATED(HttpStatus.BAD_REQUEST, "이미 활성화된 아티스트입니다"),
     ERR_ARTIST_ALREADY_DELETED(HttpStatus.BAD_REQUEST, "이미 삭제된 아티스트입니다"),
