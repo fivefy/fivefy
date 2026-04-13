@@ -1,6 +1,8 @@
 package com.fivefy.domain.album.entity;
 
 import com.fivefy.common.entity.BaseEntity;
+import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.album.enums.AlbumExceptionEnum;
 import com.fivefy.domain.album.enums.AlbumStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -9,7 +11,6 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDateTime;
-import java.util.Objects;
 
 import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
@@ -86,5 +87,54 @@ public class Album extends BaseEntity {
         album.totalDurationSec = 0L;
 
         return album;
+    }
+
+    public void publish() {
+        validateNotDeleted();
+
+        if (status == AlbumStatus.PUBLISHED) {
+            throw new BusinessException(AlbumExceptionEnum.ERR_ALBUM_ALREADY_PUBLISHED);
+        }
+        this.status = AlbumStatus.PUBLISHED;
+        this.publishedAt = LocalDateTime.now();
+    }
+
+    public void block() {
+        validateNotDeleted();
+
+        if (status == AlbumStatus.BLOCKED) {
+            throw new BusinessException(AlbumExceptionEnum.ERR_ALBUM_ALREADY_BLOCKED);
+        }
+        this.status = AlbumStatus.BLOCKED;
+    }
+
+    public void updateTrackSummary(Long trackCount, Long totalDurationSec) {
+        validateNonNull(trackCount, "trackCount");
+        validateNonNull(totalDurationSec, "totalDurationSec");
+        validateNotDeleted();
+
+        if (trackCount < 0L) {
+            throw new BusinessException(AlbumExceptionEnum.ERR_INVALID_TRACK_COUNT);
+        }
+
+        if (totalDurationSec < 0L) {
+            throw new BusinessException(AlbumExceptionEnum.ERR_INVALID_TOTAL_DURATION_SEC);
+        }
+
+        this.trackCount = trackCount;
+        this.totalDurationSec = totalDurationSec;
+    }
+
+    public void softDelete() {
+        if (this.deletedAt != null) {
+            throw new BusinessException(AlbumExceptionEnum.ERR_ALBUM_ALREADY_DELETED);
+        }
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    private void validateNotDeleted() {
+        if (this.deletedAt != null) {
+            throw new BusinessException(AlbumExceptionEnum.ERR_DELETED_ALBUM_CANNOT_BE_UPDATED);
+        }
     }
 }

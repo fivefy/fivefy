@@ -2,6 +2,8 @@ package com.fivefy.domain.album.entity;
 
 import com.fivefy.common.entity.BaseEntity;
 import com.fivefy.common.enums.ApplicationStatus;
+import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.album.enums.AlbumReleaseExceptionEnum;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -86,5 +88,33 @@ public class AlbumReleaseRequest extends BaseEntity {
         request.status = ApplicationStatus.PENDING;
 
         return request;
+    }
+
+    public void approve(Long adminId) {
+        validateNonNull(adminId, "adminId");
+        validatePending();
+
+        this.status = ApplicationStatus.APPROVED;
+        this.reviewedByAdminId = adminId;
+        this.reviewedAt = LocalDateTime.now();
+        this.rejectionReason = null;
+    }
+
+    public void reject(Long adminId, String rejectionReason) {
+        validateNonNull(adminId, "adminId");
+        validateNonNull(rejectionReason, "rejectionReason");
+        validatePending();
+
+        this.status = ApplicationStatus.REJECTED;
+        this.reviewedByAdminId = adminId;
+        this.reviewedAt = LocalDateTime.now();
+        this.rejectionReason = rejectionReason;
+    }
+
+    private void validatePending() {
+        if (this.status != ApplicationStatus.PENDING) {
+            throw new BusinessException(
+                    AlbumReleaseExceptionEnum.ERR_ALBUM_RELEASE_ALREADY_PROCESSED);
+        }
     }
 }

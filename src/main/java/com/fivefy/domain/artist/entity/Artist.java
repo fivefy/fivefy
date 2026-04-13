@@ -1,6 +1,8 @@
 package com.fivefy.domain.artist.entity;
 
 import com.fivefy.common.entity.BaseEntity;
+import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.artist.enums.ArtistExceptionEnum;
 import com.fivefy.domain.artist.enums.ArtistStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -63,5 +65,52 @@ public class Artist extends BaseEntity {
         artist.status = ArtistStatus.ACTIVE;
 
         return artist;
+    }
+
+    public void updateProfile(String bio, String profileImageUrl) {
+        validateNotDeleted();
+
+        if (bio != null) {
+            this.bio = bio;
+        }
+        if (profileImageUrl != null) {
+            this.profileImageUrl = profileImageUrl;
+        }
+    }
+
+    public void suspend() {
+        validateNotDeleted();
+
+        if (this.status == ArtistStatus.SUSPENDED) {
+            throw new BusinessException(ArtistExceptionEnum.ERR_ARTIST_ALREADY_SUSPENDED);
+        }
+        this.status = ArtistStatus.SUSPENDED;
+    }
+
+    public void activate() {
+        validateNotDeleted();
+
+        if (this.status == ArtistStatus.ACTIVE) {
+            throw new BusinessException(ArtistExceptionEnum.ERR_ARTIST_ALREADY_ACTIVATED);
+        }
+        this.status = ArtistStatus.ACTIVE;
+    }
+
+    public void softDelete() {
+        if (this.deletedAt != null) {
+            throw new BusinessException(ArtistExceptionEnum.ERR_ARTIST_ALREADY_DELETED);
+        }
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public boolean isOwnedBy(Long userId) {
+        validateNonNull(userId, "userId");
+        return this.ownerUserId.equals(userId);
+    }
+
+    private void validateNotDeleted() {
+        if (this.deletedAt != null) {
+            throw new BusinessException(ArtistExceptionEnum.ERR_DELETED_ARTIST_CANNOT_BE_UPDATED);
+        }
     }
 }
