@@ -17,6 +17,7 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -48,7 +49,7 @@ public class TestDefaultUserInitializer implements ApplicationRunner {
     private final WalletRepository walletRepository;
     private final PointHistoryRepository pointHistoryRepository;
     private final SubscriptionRepository subscriptionRepository;
-    // 비밀번호 평문으로 사용
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional
@@ -82,7 +83,7 @@ public class TestDefaultUserInitializer implements ApplicationRunner {
     ) {
         // 유저 생성
         User user = userRepository.save(
-                User.create(email, rawPassword, name)
+                User.create(email, passwordEncoder.encode(rawPassword), name)
         );
 
         // 지갑 생성 + 충전
