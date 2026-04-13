@@ -38,4 +38,8 @@ public class Follow extends BaseEntity {
 
         return follow;
     }
+
+    public void toggleNotification() {
+        this.notificationEnabled = !this.notificationEnabled;
+    }
 }

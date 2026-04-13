@@ -24,11 +24,10 @@ public class FollowService {
     private final ArtistRepository artistRepository;
     private final UserRepository userRepository;
 
+    // 팔로우 등록
     @Transactional
     public FollowCreateResponse createFollow(Long userId, Long artistId) {
-        if (!userRepository.existsById(userId)) {
-            throw new BusinessException(UserErrorCode.ERR_USER_NOT_FOUND);
-        }
+        validateUserId(userId);
         if (!artistRepository.existsById(artistId)) {
             throw new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND);
         }
@@ -43,11 +42,10 @@ public class FollowService {
         return FollowCreateResponse.from(follow);
     }
 
+    // 팔로우 목록 조회
     @Transactional(readOnly = true)
     public List<FollowGetResponse> getFollows(Long userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new BusinessException(UserErrorCode.ERR_USER_NOT_FOUND);
-        }
+        validateUserId(userId);
 
         return followRepository.findAllByUserId(userId)
                 .stream()
@@ -55,15 +53,30 @@ public class FollowService {
                 .toList();
     }
 
+    // 팔로우 취소
     @Transactional
     public void deleteFollow(Long userId, Long followId) {
-        if (!userRepository.existsById(userId)) {
-            throw new BusinessException(UserErrorCode.ERR_USER_NOT_FOUND);
-        }
-
+        validateUserId(userId);
         Follow follow = followRepository.findById(followId)
                 .orElseThrow(() -> new BusinessException(FollowErrorCode.ERR_FOLLOW_NOT_FOUND));
 
         followRepository.delete(follow);
+    }
+
+    // 알림설정
+    @Transactional
+    public void toggleNotification(Long userId, Long followId) {
+        validateUserId(userId);
+        Follow follow = followRepository.findById(followId)
+                .orElseThrow(() -> new BusinessException(FollowErrorCode.ERR_FOLLOW_NOT_FOUND));
+
+        follow.toggleNotification();
+    }
+
+    //중복되는 검증로직 헬퍼메서드
+    private void validateUserId(Long userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new BusinessException(UserErrorCode.ERR_USER_NOT_FOUND);
+        }
     }
 }

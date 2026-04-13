@@ -42,4 +42,13 @@ public class FollowController {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(BaseResponse.success(HttpStatus.OK, "팔로우 취소 성공", null));
     }
+
+    @PatchMapping("/follows/{followId}/notifications")
+    public ResponseEntity<BaseResponse<Void>> toggleNotification(
+            @RequestParam Long userId, @PathVariable Long followId) {
+        followService.toggleNotification(userId, followId);
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(BaseResponse.success(HttpStatus.OK, "알림 설정 변경 성공", null));
+    }
 }
