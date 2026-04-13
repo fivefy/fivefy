@@ -1,7 +1,9 @@
 package com.fivefy.domain.track.entity;
 
 import com.fivefy.common.entity.BaseEntity;
-import com.fivefy.domain.track.enums.CommentStatus;
+import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.track.enums.TrackCommentExceptionEnum;
+import com.fivefy.domain.track.enums.TrackCommentStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -33,7 +35,7 @@ public class TrackComment extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private CommentStatus status;
+    private TrackCommentStatus status;
 
     @LastModifiedDate
     private LocalDateTime updatedAt;
@@ -49,9 +51,35 @@ public class TrackComment extends BaseEntity {
         comment.userId = userId;
         comment.trackId = trackId;
         comment.content = content;
-
-        comment.status = CommentStatus.PUBLISHED;
+        comment.status = TrackCommentStatus.PUBLISHED;
 
         return comment;
+    }
+
+    public void updateContent(String content) {
+        validateNonNull(content, "content");
+        validateNotDeleted();
+
+        this.content = content;
+    }
+
+    public void softDelete() {
+        if (this.deletedAt != null) {
+            throw new BusinessException(TrackCommentExceptionEnum.ERR_TRACK_COMMENT_ALREADY_DELETED);
+        }
+        this.status = TrackCommentStatus.DELETED;
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public boolean isWrittenBy(Long userId) {
+        validateNonNull(userId, "userId");
+
+        return this.userId.equals(userId);
+    }
+
+    private void validateNotDeleted() {
+        if (this.deletedAt != null) {
+            throw new BusinessException(TrackCommentExceptionEnum.ERR_DELETED_TRACK_COMMENT_CANNOT_BE_UPDATED);
+        }
     }
 }
