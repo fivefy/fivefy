@@ -1,0 +1,22 @@
+package com.fivefy.common.exception;
+
+import com.fivefy.common.dto.response.BaseResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+@Slf4j
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    // 예상치 못한 예외 전범위적 처리
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<BaseResponse<Void>> handleUnexpectedException(Exception e) {
+        log.error("예상치 못한 에러 발생 : ", e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                BaseResponse.fail(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류로 인해 잠시 후 시도 바랍니다")
+        );
+    }
+}
