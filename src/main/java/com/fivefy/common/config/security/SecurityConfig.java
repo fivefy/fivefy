@@ -28,7 +28,8 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/**"
+                                "/api/users/signup",
+                                "/api/users/login"
                         ).permitAll().anyRequest().authenticated())
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint))
