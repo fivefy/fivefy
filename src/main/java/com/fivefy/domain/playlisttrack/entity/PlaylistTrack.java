@@ -1,6 +1,7 @@
 package com.fivefy.domain.playlisttrack.entity;
 
 import com.fivefy.common.entity.BaseEntity;
+import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -24,9 +25,13 @@ public class PlaylistTrack extends BaseEntity {
     private Long trackId;
 
     @Column(nullable = false)
-    private int index;
+    private Integer index;
 
-    public static PlaylistTrack create(Long playlistId, Long trackId, int index){
+    public static PlaylistTrack create(Long playlistId, Long trackId, Integer index){
+        validateNonNull(playlistId, "playlistId");
+        validateNonNull(trackId, "trackId");
+        validateNonNull(index, "index");
+
         PlaylistTrack playlistTrack = new PlaylistTrack();
         playlistTrack.playlistId = playlistId;
         playlistTrack.trackId = trackId;
