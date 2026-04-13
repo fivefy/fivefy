@@ -15,6 +15,8 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 
+import static com.fivefy.common.enums.AuthErrorCode.ERR_AUTH_UNAUTHORIZED;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -32,7 +34,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
         Object exception = request.getAttribute("exception");
         AuthErrorCode errorCode = (exception instanceof AuthErrorCode authErrorCode)
                 ? authErrorCode
-                : AuthErrorCode.ERR_AUTH_UNAUTHORIZED;
+                : ERR_AUTH_UNAUTHORIZED;
 
         log.info("JwtAuthenticationEntryPoint 호출 : {}", errorCode.getMessage());
 
