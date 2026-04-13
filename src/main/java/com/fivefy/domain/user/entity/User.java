@@ -1,7 +1,6 @@
 package com.fivefy.domain.user.entity;
 
 import com.fivefy.common.entity.BaseEntity;
-import com.fivefy.common.util.ValidationUtils;
 import com.fivefy.domain.user.enums.UserRole;
 import com.fivefy.domain.user.enums.UserStatus;
 import jakarta.persistence.*;
@@ -11,6 +10,8 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDateTime;
+
+import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
 @Getter
 @Entity
@@ -47,9 +48,9 @@ public class User extends BaseEntity {
     private LocalDateTime deletedAt;
 
     public static User create(String email, String encodedPassword, String name) {
-        ValidationUtils.validateNonNull(email, "email");
-        ValidationUtils.validateNonNull(encodedPassword, "password");
-        ValidationUtils.validateNonNull(name, "name");
+        validateNonNull(email, "email");
+        validateNonNull(encodedPassword, "password");
+        validateNonNull(name, "name");
 
         User user = new User();
         user.email = email;
