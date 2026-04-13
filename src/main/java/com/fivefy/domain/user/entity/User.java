@@ -11,6 +11,8 @@ import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDateTime;
 
+import static com.fivefy.common.util.ValidationUtils.validateNonNull;
+
 @Getter
 @Entity
 @Table(name = "users")
@@ -46,6 +48,10 @@ public class User extends BaseEntity {
     private LocalDateTime deletedAt;
 
     public static User create(String email, String encodedPassword, String name) {
+        validateNonNull(email, "email");
+        validateNonNull(encodedPassword, "password");
+        validateNonNull(name, "name");
+
         User user = new User();
         user.email = email;
         user.password = encodedPassword;
