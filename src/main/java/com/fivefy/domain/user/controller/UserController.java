@@ -46,6 +46,8 @@ public class UserController {
                 .build();
 
         return ResponseEntity.status(HttpStatus.OK)
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .header(HttpHeaders.PRAGMA, "no-cache")
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body(BaseResponse.success(HttpStatus.OK, "로그인 성공", UserLoginResponse.from(result.accessToken())));
     }

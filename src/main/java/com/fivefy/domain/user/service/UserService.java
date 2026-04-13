@@ -31,6 +31,8 @@ public class UserService {
     private final JwtUtil jwtUtil;
     private final StringRedisTemplate redisTemplate;
 
+    private static final String DUMMY_HASH = "$2a$10$7EqJtq98hPqEX7fNZaFWoOHiS8GdKx2UY8ailqXF/w3vGN9VOGQ0y";
+
     /**
      회원가입
      1. 이메일 중복 검증
@@ -68,12 +70,12 @@ public class UserService {
      3. redis에 RT 저장
      4. return
      */
-    @Transactional(readOnly = true)
     public UserLoginResponse loginUser(UserLoginRequest request) {
-        User user = userRepository.findByEmail(request.email()).orElseThrow(
-                () -> new BusinessException(ERR_USER_LOGIN_FAIL)
-        );
-        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+        User user = userRepository.findByEmail(request.email()).orElse(null);
+        String targetPassword = (user != null) ? user.getPassword() : DUMMY_HASH;
+        boolean isMatch = passwordEncoder.matches(request.password(), targetPassword);
+
+        if (user == null || !isMatch) {
             throw new BusinessException(ERR_USER_LOGIN_FAIL);
         }
 
