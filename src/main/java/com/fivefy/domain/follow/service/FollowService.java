@@ -1,6 +1,7 @@
 package com.fivefy.domain.follow.service;
 
 import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.artist.entity.Artist;
 import com.fivefy.domain.artist.enums.ArtistErrorCode;
 import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.follow.dto.response.FollowCreateResponse;
@@ -8,6 +9,7 @@ import com.fivefy.domain.follow.dto.response.FollowGetResponse;
 import com.fivefy.domain.follow.entity.Follow;
 import com.fivefy.domain.follow.enums.FollowErrorCode;
 import com.fivefy.domain.follow.repository.FollowRepository;
+import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -27,16 +29,15 @@ public class FollowService {
     // 팔로우 등록
     @Transactional
     public FollowCreateResponse createFollow(Long userId, Long artistId) {
-        validateUserId(userId);
-        if (!artistRepository.existsById(artistId)) {
-            throw new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND);
-        }
-        // 중복검증
+        User user = getUser(userId);
+        Artist artist = getArtist(artistId);
+        // 중복 검증
         if (followRepository.existsByUserIdAndArtistId(userId, artistId)) {
             throw new BusinessException(FollowErrorCode.ERR_FOLLOW_ALREADY_EXISTS);
         }
 
-        Follow follow = Follow.create(artistId, userId);
+        Follow follow = Follow.create(user.getId(), artist.getId());
+
         followRepository.save(follow);
 
         return FollowCreateResponse.from(follow);
@@ -45,7 +46,7 @@ public class FollowService {
     // 팔로우 목록 조회
     @Transactional(readOnly = true)
     public List<FollowGetResponse> getFollows(Long userId) {
-        validateUserId(userId);
+        getUser(userId); // 존재 검증
 
         return followRepository.findAllByUserId(userId)
                 .stream()
@@ -55,36 +56,34 @@ public class FollowService {
 
     // 팔로우 취소
     @Transactional
-    public void deleteFollow(Long userId, Long followId) {
-        validateUserId(userId);
-        Follow follow = followRepository.findById(followId)
-                .orElseThrow(() -> new BusinessException(FollowErrorCode.ERR_FOLLOW_NOT_FOUND));
-
-        if (!follow.getUserId().equals(userId)) {
-            throw new BusinessException(FollowErrorCode.ERR_FOLLOW_FORBIDDEN);
-        }
+    public void deleteFollow(Long userId, Long artistId) {
+        Follow follow = getFollow(userId, artistId);
 
         followRepository.delete(follow);
     }
 
     // 알림설정
     @Transactional
-    public void toggleNotification(Long userId, Long followId) {
-        validateUserId(userId);
-        Follow follow = followRepository.findById(followId)
-                .orElseThrow(() -> new BusinessException(FollowErrorCode.ERR_FOLLOW_NOT_FOUND));
-
-        if (!follow.getUserId().equals(userId)) {
-            throw new BusinessException(FollowErrorCode.ERR_FOLLOW_FORBIDDEN);
-        }
+    public void toggleNotification(Long userId, Long artistId) {
+        Follow follow = getFollow(userId, artistId);
 
         follow.toggleNotification();
     }
 
     //중복되는 검증로직 헬퍼메서드
-    private void validateUserId(Long userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new BusinessException(UserErrorCode.ERR_USER_NOT_FOUND);
-        }
+    private User getUser(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(UserErrorCode.ERR_USER_NOT_FOUND));
+    }
+
+    private Artist getArtist(Long artistId) {
+        return artistRepository.findById(artistId)
+                .orElseThrow(() -> new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND));
+    }
+
+    // 권한 체크
+    private Follow getFollow(Long userId, Long artistId) {
+        return followRepository.findByUserIdAndArtistId(userId, artistId)
+                .orElseThrow(() -> new BusinessException(FollowErrorCode.ERR_FOLLOW_NOT_FOUND));
     }
 }
