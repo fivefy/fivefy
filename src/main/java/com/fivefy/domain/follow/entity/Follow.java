@@ -7,6 +7,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import static com.fivefy.common.util.ValidationUtils.validateNonNull;
+
 @Getter
 @Entity
 @Table(name = "follows")
@@ -27,8 +29,8 @@ public class Follow extends BaseEntity {
     Boolean notificationEnabled;
 
     public static Follow create(Long artistId, Long userId) {
-        ValidationUtils.validateNonNull(artistId, "artistId");
-        ValidationUtils.validateNonNull(userId, "userId");
+        validateNonNull(artistId, "artistId");
+        validateNonNull(userId, "userId");
 
         Follow follow = new Follow();
         follow.artistId = artistId;
