@@ -3,6 +3,8 @@ package com.fivefy.domain.playlist.contoller;
 import com.fivefy.common.dto.response.BaseResponse;
 import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.domain.playlist.dto.request.PlaylistCreateRequest;
+import com.fivefy.domain.playlist.dto.request.PlaylistUpdateRequest;
+import com.fivefy.domain.playlist.dto.response.PlaylistDeleteResponse;
 import com.fivefy.domain.playlist.dto.response.PlaylistResponse;
 import com.fivefy.domain.playlist.service.PlaylistService;
 import jakarta.validation.Valid;
@@ -27,7 +29,8 @@ public class PlaylistController {
         PlaylistResponse response = playlistService.createPlaylist(userId, request);
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(BaseResponse.success(HttpStatus.CREATED, "플레이리스트 생성 성공", response));
+                .body(BaseResponse.success(HttpStatus.CREATED, "플레이리스트 생성 성공", response)
+        );
     }
 
     @GetMapping("/playlists")
@@ -45,6 +48,31 @@ public class PlaylistController {
 
         return ResponseEntity.ok(
                 BaseResponse.success(HttpStatus.OK, "플레이리스트 조회 성공", response)
+        );
+    }
+
+    @PatchMapping("/playlists/{playlistId}")
+    public ResponseEntity<BaseResponse<PlaylistResponse>> updatePlaylist(
+            @RequestParam Long userId,
+            @PathVariable Long playlistId,
+            @Valid @RequestBody PlaylistUpdateRequest request
+    ) {
+        PlaylistResponse response = playlistService.updatePlaylist(userId, playlistId, request);
+
+        return ResponseEntity.ok(
+                BaseResponse.success(HttpStatus.OK, "플레이리스트 수정 성공", response)
+        );
+    }
+
+    @DeleteMapping("/playlists/{playlistId}")
+    public ResponseEntity<BaseResponse<PlaylistDeleteResponse>> deletePlaylist(
+            @RequestParam Long userId,
+            @PathVariable Long playlistId
+    ) {
+        PlaylistDeleteResponse response = playlistService.deletePlaylist(userId, playlistId);
+
+        return ResponseEntity.ok(
+                BaseResponse.success(HttpStatus.OK, "플레이리스트 삭제 성공", response)
         );
     }
 }
