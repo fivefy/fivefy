@@ -132,6 +132,14 @@ public class Track extends BaseEntity {
         validateNonNull(audioUrl, "audioUrl");
         validateNonNull(durationSec, "durationSec");
 
+        if (trackNumber <= 0L) {
+            throw new BusinessException(TrackExceptionEnum.ERR_INVALID_TRACK_NUMBER);
+        }
+
+        if (durationSec <= 0L) {
+            throw new BusinessException(TrackExceptionEnum.ERR_INVALID_DURATION_SEC);
+        }
+
         Track track = new Track();
 
         track.ownerUserId = ownerUserId;

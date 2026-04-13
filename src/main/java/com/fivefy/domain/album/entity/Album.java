@@ -113,6 +113,14 @@ public class Album extends BaseEntity {
         validateNonNull(totalDurationSec, "totalDurationSec");
         validateNotDeleted();
 
+        if (trackCount < 0L) {
+            throw new BusinessException(AlbumExceptionEnum.ERR_INVALID_TRACK_COUNT);
+        }
+
+        if (totalDurationSec < 0L) {
+            throw new BusinessException(AlbumExceptionEnum.ERR_INVALID_TOTAL_DURATION_SEC);
+        }
+
         this.trackCount = trackCount;
         this.totalDurationSec = totalDurationSec;
     }
