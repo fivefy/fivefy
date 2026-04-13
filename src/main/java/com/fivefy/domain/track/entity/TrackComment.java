@@ -1,7 +1,6 @@
 package com.fivefy.domain.track.entity;
 
 import com.fivefy.common.entity.BaseEntity;
-import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 import com.fivefy.domain.track.enums.CommentStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -10,6 +9,8 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDateTime;
+
+import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
 @Getter
 @Entity
