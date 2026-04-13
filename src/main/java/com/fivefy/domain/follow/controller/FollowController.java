@@ -5,6 +5,7 @@ import com.fivefy.domain.follow.dto.request.FollowCreateRequest;
 import com.fivefy.domain.follow.dto.response.FollowCreateResponse;
 import com.fivefy.domain.follow.dto.response.FollowGetResponse;
 import com.fivefy.domain.follow.service.FollowService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +24,7 @@ public class FollowController {
     @PostMapping("/follows")
     public ResponseEntity<BaseResponse<FollowCreateResponse>> createFollow (
             @AuthenticationPrincipal Long userId,
-            @RequestBody FollowCreateRequest request) {
+            @Valid @RequestBody FollowCreateRequest request) {
         FollowCreateResponse response = followService.createFollow(userId, request.artistId());
 
         return ResponseEntity.status(HttpStatus.CREATED)

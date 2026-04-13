@@ -2,7 +2,6 @@ package com.fivefy.domain.follow.service;
 
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.artist.entity.Artist;
-import com.fivefy.domain.artist.enums.ArtistErrorCode;
 import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.follow.dto.response.FollowCreateResponse;
 import com.fivefy.domain.follow.dto.response.FollowGetResponse;
@@ -13,6 +12,7 @@ import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,11 +36,14 @@ public class FollowService {
             throw new BusinessException(FollowErrorCode.ERR_FOLLOW_ALREADY_EXISTS);
         }
 
-        Follow follow = Follow.create(user.getId(), artist.getId());
+        try {
+            Follow follow = Follow.create(artist.getId(), user.getId());
+            followRepository.save(follow);
 
-        followRepository.save(follow);
-
-        return FollowCreateResponse.from(follow);
+            return FollowCreateResponse.from(follow);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(FollowErrorCode.ERR_FOLLOW_ALREADY_EXISTS);
+        }
     }
 
     // 팔로우 목록 조회

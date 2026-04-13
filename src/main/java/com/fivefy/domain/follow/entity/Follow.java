@@ -10,7 +10,11 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
 @Getter
 @Entity
-@Table(name = "follows")
+@Table(name = "follows",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"user_id", "artist_id"})
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Follow extends BaseEntity {
 
