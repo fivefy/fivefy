@@ -4,7 +4,6 @@ import com.fivefy.common.entity.BaseEntity;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.artist.enums.ArtistApplicationExceptionEnum;
-import com.fivefy.domain.artist.enums.ArtistExceptionEnum;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -81,6 +80,7 @@ public class ArtistApplication extends BaseEntity {
         this.status = ApplicationStatus.APPROVED;
         this.reviewedByAdminId = adminId;
         this.reviewedAt = LocalDateTime.now();
+        this.rejectionReason = null;
     }
 
     public void reject(Long adminId, String rejectionReason) {

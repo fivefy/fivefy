@@ -68,6 +68,8 @@ public class Artist extends BaseEntity {
     }
 
     public void updateProfile(String bio, String profileImageUrl) {
+        validateNotDeleted();
+
         if (bio != null) {
             this.bio = bio;
         }
@@ -77,6 +79,8 @@ public class Artist extends BaseEntity {
     }
 
     public void suspend() {
+        validateNotDeleted();
+
         if (this.status == ArtistStatus.SUSPENDED) {
             throw new BusinessException(ArtistExceptionEnum.ERR_ARTIST_ALREADY_SUSPENDED);
         }
@@ -84,6 +88,8 @@ public class Artist extends BaseEntity {
     }
 
     public void activate() {
+        validateNotDeleted();
+
         if (this.status == ArtistStatus.ACTIVE) {
             throw new BusinessException(ArtistExceptionEnum.ERR_ARTIST_ALREADY_ACTIVATED);
         }
@@ -98,6 +104,13 @@ public class Artist extends BaseEntity {
     }
 
     public boolean isOwnedBy(Long userId) {
+        validateNonNull(userId, "userId");
         return this.ownerUserId.equals(userId);
+    }
+
+    private void validateNotDeleted() {
+        if (this.deletedAt != null) {
+            throw new BusinessException(ArtistExceptionEnum.ERR_DELETED_ARTIST_CANNOT_BE_UPDATED);
+        }
     }
 }
