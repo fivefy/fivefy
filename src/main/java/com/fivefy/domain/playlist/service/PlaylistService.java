@@ -24,6 +24,7 @@ public class PlaylistService {
 
     @Transactional
     public PlaylistResponse createPlaylist(Long userId, PlaylistCreateRequest request) {
+        // 중복 제목 여부 검사
         if (playlistRepository.existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title())) {
             throw new BusinessException(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME);
         }
@@ -58,10 +59,12 @@ public class PlaylistService {
         Playlist playlist = playlistRepository.findByIdAndDeletedAtIsNull(playlistId)
                 .orElseThrow(() -> new BusinessException(PlaylistErrorCode.PLAYLIST_NOT_FOUND));
 
+        // 본인이 생성한 플레이리스트만 수정 가능
         if (!playlist.isOwner(userId)) {
             throw new BusinessException(PlaylistErrorCode.PLAYLIST_UPDATE_FORBIDDEN);
         }
 
+        // 제목이 변경된 경우에만 중복 체크
         if (!playlist.getTitle().equals(request.title()) &&
                 playlistRepository.existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title())) {
             throw new BusinessException(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME);
@@ -77,6 +80,7 @@ public class PlaylistService {
         Playlist playlist = playlistRepository.findByIdAndDeletedAtIsNull(playlistId)
                 .orElseThrow(() -> new BusinessException(PlaylistErrorCode.PLAYLIST_NOT_FOUND));
 
+        // 본인이 생성한 플레이리스트만 삭제 가능
         if (!playlist.isOwner(userId)) {
             throw new BusinessException(PlaylistErrorCode.PLAYLIST_DELETE_FORBIDDEN);
         }
