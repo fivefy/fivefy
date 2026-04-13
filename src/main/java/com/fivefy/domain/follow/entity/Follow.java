@@ -1,7 +1,6 @@
 package com.fivefy.domain.follow.entity;
 
 import com.fivefy.common.entity.BaseEntity;
-import com.fivefy.common.util.ValidationUtils;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -26,7 +25,7 @@ public class Follow extends BaseEntity {
     private Long userId;
 
     @Column(nullable = false)
-    Boolean notificationEnabled;
+    private Boolean notificationEnabled;
 
     public static Follow create(Long artistId, Long userId) {
         validateNonNull(artistId, "artistId");
