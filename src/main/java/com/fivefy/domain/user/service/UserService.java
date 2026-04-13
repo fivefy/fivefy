@@ -8,6 +8,7 @@ import com.fivefy.domain.user.repository.UserRepository;
 import com.fivefy.domain.wallet.entity.Wallet;
 import com.fivefy.domain.wallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +40,13 @@ public class UserService {
         String encodedPassword = passwordEncoder.encode(request.password());
 
         User user = User.create(request.email(), encodedPassword, request.name());
-        User savedUser = userRepository.save(user);
+        User savedUser;
+        try {
+            savedUser = userRepository.save(user);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(ERR_USER_DUPLICATED_EMAIL);
+        }
+
         Wallet wallet = Wallet.create(savedUser.getId());
         walletRepository.save(wallet);
 
