@@ -10,7 +10,7 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
 @Entity
 @Getter
-@Table(name = "wallet")
+@Table(name = "wallets")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Wallet extends BaseEntity {
 

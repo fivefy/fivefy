@@ -12,7 +12,7 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
 @Entity
 @Getter
-@Table(name = "point_history")
+@Table(name = "point_histories")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PointHistory extends BaseEntity {
 
