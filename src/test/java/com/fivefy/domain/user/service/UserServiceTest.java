@@ -143,6 +143,7 @@ class UserServiceTest {
         void setUp() {
             request = new UserLoginRequest("test@test.com", "Test1234!");
             user = User.create("test@test.com", "encodedPassword", "테스트");
+            ReflectionTestUtils.setField(user, "id", 1L);
         }
 
         @Test
