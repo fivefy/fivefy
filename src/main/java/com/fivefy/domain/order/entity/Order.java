@@ -35,14 +35,6 @@ public class Order extends BaseEntity {
     @Column(nullable = false)
     private OrderStatus status;
 
-    public Order(Long userId, Long trackId, Long totalAmount, String orderNumber, OrderStatus status) {
-        this.userId = userId;
-        this.trackId = trackId;
-        this.totalAmount = totalAmount;
-        this.orderNumber = orderNumber;
-        this.status = status;
-    }
-
     public static Order create(Long userId, Long trackId, Long totalAmount, String orderNumber) {
         validateNonNull(userId, "유저 ID");
         validateNonNull(trackId, "트랙 ID");
