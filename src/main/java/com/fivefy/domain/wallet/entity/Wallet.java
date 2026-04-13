@@ -30,8 +30,16 @@ public class Wallet extends BaseEntity {
     @Column(nullable = false)
     private Long totalBalance;
 
+    /**
+     * 지갑(빈지갑 생성 후 충전)
+     * @param userId
+     *        balance       : 유료 재화
+     *        eventBalance  : 무료 재화
+     *        totalBalance  : 유료 + 무료
+     * @return
+     */
     public static Wallet create(Long userId) {
-        validateNonNull(userId, "유저 ID");
+        validateNonNull(userId, "userId");
 
         Wallet wallet = new Wallet();
             wallet.userId = userId;

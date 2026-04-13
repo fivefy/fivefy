@@ -40,19 +40,26 @@ public class PointHistory extends BaseEntity {
     private Long balanceAfter;
 
     @Column(nullable = false)
-    private String description;
+    private String logDescription;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
-
+    /**
+     * 지갑 사용 내역
+     * @param pointId           : 포인트 지갑 식별자
+     * @param pointType         : 유료 재화, 무료 재화
+     * @param pointHistoryType  : 사용, 환불
+     * @param amount            : 변동 금액
+     * @param balanceAfter      : 변동 내역
+     * @param logDescription    : 로그(설명)
+     * @return
+     */
     public static PointHistory create(Long pointId, PointType pointType, PointHistoryType pointHistoryType,
-                                      Long amount, Long balanceAfter, String description) {
+                                      Long amount, Long balanceAfter, String logDescription) {
         validateNonNull(pointId, "pointId");
         validateNonNull(pointType, "pointType");
         validateNonNull(pointHistoryType, "pointHistoryType");
         validateNonNull(amount, "amount");
         validateNonNull(balanceAfter, "balanceAfter");
-        validateNonNull(description, "description");
+        validateNonNull(logDescription, "logDescription");
 
         PointHistory history = new PointHistory();
             history.pointId = pointId;
@@ -60,7 +67,7 @@ public class PointHistory extends BaseEntity {
             history.pointHistoryType = pointHistoryType;
             history.amount = amount;
             history.balanceAfter = balanceAfter;
-            history.description = description;
+            history.logDescription = logDescription;
 
         return history;
     }
