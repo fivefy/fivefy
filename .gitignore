@@ -44,3 +44,6 @@ out/
 
 ### yml ###
 application-local.yml
+
+### sh ###
+pull.sh

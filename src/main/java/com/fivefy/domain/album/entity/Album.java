@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDateTime;
-import java.util.Objects;
 
 import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
