@@ -3,6 +3,8 @@ package com.fivefy.domain.playlist.service;
 import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.playlist.dto.request.PlaylistCreateRequest;
+import com.fivefy.domain.playlist.dto.request.PlaylistUpdateRequest;
+import com.fivefy.domain.playlist.dto.response.PlaylistDeleteResponse;
 import com.fivefy.domain.playlist.dto.response.PlaylistResponse;
 import com.fivefy.domain.playlist.entity.Playlist;
 import com.fivefy.domain.playlist.enums.PlaylistErrorCode;
@@ -45,5 +47,33 @@ public class PlaylistService {
                 .orElseThrow(() -> new BusinessException(PlaylistErrorCode.PLAYLIST_NOT_FOUND));
 
         return PlaylistResponse.from(playlist);
+    }
+
+    @Transactional
+    public PlaylistResponse updatePlaylist(Long userId, Long playlistId, PlaylistUpdateRequest request) {
+        Playlist playlist = playlistRepository.findByIdAndDeletedAtIsNull(playlistId)
+                .orElseThrow(() -> new BusinessException(PlaylistErrorCode.PLAYLIST_NOT_FOUND));
+
+        if (!playlist.isOwner(userId)) {
+            throw new BusinessException(PlaylistErrorCode.PLAYLIST_UPDATE_FORBIDDEN);
+        }
+
+        playlist.update(request.title(), request.description());
+
+        return PlaylistResponse.from(playlist);
+    }
+
+    @Transactional
+    public PlaylistDeleteResponse deletePlaylist(Long userId, Long playlistId) {
+        Playlist playlist = playlistRepository.findByIdAndDeletedAtIsNull(playlistId)
+                .orElseThrow(() -> new BusinessException(PlaylistErrorCode.PLAYLIST_NOT_FOUND));
+
+        if (!playlist.isOwner(userId)) {
+            throw new BusinessException(PlaylistErrorCode.PLAYLIST_DELETE_FORBIDDEN);
+        }
+
+        playlist.delete();
+
+        return PlaylistDeleteResponse.from(playlist);
     }
 }
