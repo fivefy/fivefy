@@ -97,7 +97,7 @@ public class ArtistApplication extends BaseEntity {
     private void validatePending() {
         if (this.status != ApplicationStatus.PENDING) {
             throw new BusinessException(
-                    ArtistApplicationExceptionEnum.ERR_ARTIST_APPLICATION_NOT_PENDING);
+                    ArtistApplicationExceptionEnum.ERR_ARTIST_APPLICATION_ALREADY_PROCESSED);
         }
     }
 }
