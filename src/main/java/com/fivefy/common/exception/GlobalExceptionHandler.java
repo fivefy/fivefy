@@ -1,11 +1,15 @@
 package com.fivefy.common.exception;
 
 import com.fivefy.common.dto.response.BaseResponse;
+import com.fivefy.common.dto.response.FieldErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.util.List;
 
 @Slf4j
 @RestControllerAdvice
@@ -17,6 +21,19 @@ public class GlobalExceptionHandler {
         log.error("비즈니스 에러 발생 : {}, 에러 상세 내용 : ", e.getMessage(), e);
         return ResponseEntity.status(e.getHttpStatus()).body(
                 BaseResponse.fail(e.getHttpStatus(), e.getMessage())
+        );
+    }
+
+    // validation 예외 처리
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<BaseResponse<List<FieldErrorResponse>>> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
+        log.error("요청 검증 에러 발생 : ", e);
+        List<FieldErrorResponse> errors = e.getBindingResult().getFieldErrors()
+                .stream()
+                .map(error -> new FieldErrorResponse(error.getField(), error.getDefaultMessage()))
+                .toList();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                BaseResponse.fail(HttpStatus.BAD_REQUEST, "유효하지 않은 요청입니다", errors)
         );
     }
 
