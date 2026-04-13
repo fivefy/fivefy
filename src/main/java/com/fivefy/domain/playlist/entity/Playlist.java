@@ -16,7 +16,15 @@ import java.util.Objects;
 
 @Getter
 @Entity
-@Table(name = "playlists")
+@Table(
+        name = "playlists",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_playlist_user_title_deleted",
+                        columnNames = {"user_id", "title", "deleted"}
+                )
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Playlist extends BaseEntity {
 
@@ -31,6 +39,9 @@ public class Playlist extends BaseEntity {
     private String title;
 
     private String description;
+
+    @Column(nullable = false)
+    private boolean deleted;
 
     @LastModifiedDate
     private LocalDateTime updatedAt;

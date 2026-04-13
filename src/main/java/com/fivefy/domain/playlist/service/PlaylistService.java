@@ -24,11 +24,12 @@ public class PlaylistService {
 
     @Transactional
     public PlaylistResponse createPlaylist(Long userId, PlaylistCreateRequest request) {
-        // 중복 제목 여부 검사
-        if (playlistRepository.existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title())) {
+        // 삭제되지 않은 플레이리스트 기준으로 제목 중복 검사
+        if (playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title())) {
             throw new BusinessException(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME);
         }
 
+        // 생성 시 deleted = false 상태로 저장
         Playlist playlist = Playlist.create(
                 userId,
                 request.title(),
@@ -66,7 +67,7 @@ public class PlaylistService {
 
         // 제목이 변경된 경우에만 중복 체크
         if (!playlist.getTitle().equals(request.title()) &&
-                playlistRepository.existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title())) {
+                playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title())) {
             throw new BusinessException(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME);
         }
 
@@ -85,6 +86,7 @@ public class PlaylistService {
             throw new BusinessException(PlaylistErrorCode.PLAYLIST_DELETE_FORBIDDEN);
         }
 
+        // 실제 삭제 대신 삭제 상태로 변경
         playlist.delete();
 
         return PlaylistDeleteResponse.from(playlist);
