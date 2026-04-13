@@ -2,6 +2,7 @@ package com.fivefy.common.config.security;
 
 import com.fivefy.common.enums.AuthErrorCode;
 import com.fivefy.domain.user.enums.UserRole;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
@@ -46,19 +47,11 @@ public class JwtFilter extends OncePerRequestFilter {
             }
 
             // 검증된 토큰에서 사용자 정보 추출 후 SecurityContext에 인증 정보 저장
-            if (jwtUtil.validateToken(token)) {
-                Long userId = jwtUtil.getUserId(token);
-                UserRole role = jwtUtil.getRole(token);
+            Claims claims = jwtUtil.validateToken(token);
+            UsernamePasswordAuthenticationToken authentication = jwtUtil.getAuthentication(claims);
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                List<SimpleGrantedAuthority> authorities =
-                        List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
-
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(userId, null, authorities);
-
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
         } catch (ExpiredJwtException e) {
             log.info("만료된 JWT 토큰입니다 : {}", e.getMessage());
             request.setAttribute("exception", AuthErrorCode.ERR_AUTH_EXPIRED_TOKEN);
