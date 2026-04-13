@@ -24,6 +24,10 @@ public class PlaylistService {
 
     @Transactional
     public PlaylistResponse createPlaylist(Long userId, PlaylistCreateRequest request) {
+        if (playlistRepository.existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title())) {
+            throw new BusinessException(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME);
+        }
+
         Playlist playlist = Playlist.create(
                 userId,
                 request.title(),
