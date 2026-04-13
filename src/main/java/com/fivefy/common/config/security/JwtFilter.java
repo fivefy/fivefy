@@ -50,19 +50,19 @@ public class JwtFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
         } catch (ExpiredJwtException e) {
-            log.info("만료된 JWT 토큰입니다 : {}", e.getMessage());
+            log.info("만료된 JWT 토큰입니다");
             request.setAttribute("exception", AuthErrorCode.ERR_AUTH_EXPIRED_TOKEN);
         } catch (UnsupportedJwtException e) {
-            log.info("지원하지 않는 JWT 토큰입니다 : {}", e.getMessage());
+            log.info("지원하지 않는 JWT 토큰입니다");
             request.setAttribute("exception", AuthErrorCode.ERR_AUTH_INVALID_TOKEN);
         } catch (MalformedJwtException e) {
-            log.info("잘못된 JWT 토큰입니다 : {}", e.getMessage());
+            log.info("잘못된 JWT 토큰입니다");
             request.setAttribute("exception", AuthErrorCode.ERR_AUTH_INVALID_TOKEN);
         } catch (IllegalArgumentException e) {
-            log.info("JWT 토큰이 비어있습니다 : {}", e.getMessage());
+            log.info("JWT 토큰이 비어있습니다");
             request.setAttribute("exception", AuthErrorCode.ERR_AUTH_EMPTY_TOKEN);
         } catch (Exception e) {
-            log.error("인증 처리 중 오류 발생 : {}", e.getMessage());
+            log.error("인증 처리 중 오류 발생", e);
             request.setAttribute("exception", AuthErrorCode.ERR_AUTH_UNAUTHORIZED);
         }
 
