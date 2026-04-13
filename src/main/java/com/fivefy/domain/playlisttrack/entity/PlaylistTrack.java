@@ -9,8 +9,9 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "playlist_track",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"playlist_id", "index"}))
+@Table(name = "playlist_tracks",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"playlist_id", "position"})
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PlaylistTrack extends BaseEntity {
 
@@ -25,17 +26,17 @@ public class PlaylistTrack extends BaseEntity {
     private Long trackId;
 
     @Column(nullable = false)
-    private Integer index;
+    private Integer position;
 
-    public static PlaylistTrack create(Long playlistId, Long trackId, Integer index){
+    public static PlaylistTrack create(Long playlistId, Long trackId, Integer position){
         validateNonNull(playlistId, "playlistId");
         validateNonNull(trackId, "trackId");
-        validateNonNull(index, "index");
+        validateNonNull(position, "position");
 
         PlaylistTrack playlistTrack = new PlaylistTrack();
         playlistTrack.playlistId = playlistId;
         playlistTrack.trackId = trackId;
-        playlistTrack.index = index;
+        playlistTrack.position = position;
 
         return playlistTrack;
     }
