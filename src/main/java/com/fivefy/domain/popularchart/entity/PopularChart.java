@@ -27,7 +27,7 @@ public class PopularChart {
     private Long trackId;
 
     @Column(nullable = false)
-    private Integer rank;
+    private Integer chartRank;
 
     @Column(nullable = false)
     private Long playCount;
@@ -35,15 +35,15 @@ public class PopularChart {
     @Column(nullable = false)
     private LocalDateTime snapshotDate;
 
-    public static PopularChart create(Long trackId, Integer rank, Long playCount, LocalDateTime snapshotDate) {
+    public static PopularChart create(Long trackId, Integer chartRank, Long playCount, LocalDateTime snapshotDate) {
         validateNonNull(trackId, "trackId");
-        validateNonNull(rank, "rank");
+        validateNonNull(chartRank, "chartRank");
         validateNonNull(playCount, "playCount");
         validateNonNull(snapshotDate, "snapshotDate");
 
         PopularChart chart = new PopularChart();
         chart.trackId = trackId;
-        chart.rank = rank;
+        chart.chartRank = chartRank;
         chart.playCount = playCount;
         chart.snapshotDate = snapshotDate;
 
