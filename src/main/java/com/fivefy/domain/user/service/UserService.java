@@ -1,18 +1,25 @@
 package com.fivefy.domain.user.service;
 
+import com.fivefy.common.config.security.JwtUtil;
 import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.user.dto.request.UserLoginRequest;
 import com.fivefy.domain.user.dto.request.UserSignupRequest;
+import com.fivefy.domain.user.dto.response.UserLoginResponse;
 import com.fivefy.domain.user.dto.response.UserSignupResponse;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.repository.UserRepository;
 import com.fivefy.domain.wallet.entity.Wallet;
 import com.fivefy.domain.wallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import static com.fivefy.domain.user.enums.UserErrorCode.ERR_USER_DUPLICATED_EMAIL;
+import java.time.Duration;
+
+import static com.fivefy.domain.user.enums.UserErrorCode.*;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +28,10 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final WalletRepository walletRepository;
+    private final JwtUtil jwtUtil;
+    private final StringRedisTemplate redisTemplate;
+
+    private static final String DUMMY_HASH = "$2a$10$7EqJtq98hPqEX7fNZaFWoOHiS8GdKx2UY8ailqXF/w3vGN9VOGQ0y";
 
     /**
      회원가입
@@ -39,10 +50,44 @@ public class UserService {
         String encodedPassword = passwordEncoder.encode(request.password());
 
         User user = User.create(request.email(), encodedPassword, request.name());
-        User savedUser = userRepository.save(user);
+        User savedUser;
+        try {
+            savedUser = userRepository.save(user);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(ERR_USER_DUPLICATED_EMAIL);
+        }
+
         Wallet wallet = Wallet.create(savedUser.getId());
         walletRepository.save(wallet);
 
         return UserSignupResponse.from(savedUser);
+    }
+
+    /**
+     로그인
+     1. 이메일 & 비밀번호 검증
+     2. 토큰 발급
+     3. redis에 RT 저장
+     4. return
+     */
+    public UserLoginResponse loginUser(UserLoginRequest request) {
+        User user = userRepository.findByEmail(request.email()).orElse(null);
+        String targetPassword = (user != null) ? user.getPassword() : DUMMY_HASH;
+        boolean isMatch = passwordEncoder.matches(request.password(), targetPassword);
+
+        if (user == null || !isMatch) {
+            throw new BusinessException(ERR_USER_LOGIN_FAIL);
+        }
+
+        String accessToken = jwtUtil.createAccessToken(user.getId(), user.getRole());
+        String refreshToken = jwtUtil.createRefreshToken();
+
+        redisTemplate.opsForValue().set(
+                "RT:" + user.getId(),
+                refreshToken,
+                Duration.ofDays(7)
+        );
+
+        return UserLoginResponse.of(accessToken, refreshToken);
     }
 }
