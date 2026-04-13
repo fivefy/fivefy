@@ -40,7 +40,7 @@ public class UserService {
 
         User user = User.create(request.email(), encodedPassword, request.name());
         User savedUser = userRepository.save(user);
-        Wallet wallet = Wallet.create(user.getId());
+        Wallet wallet = Wallet.create(savedUser.getId());
         walletRepository.save(wallet);
 
         return UserSignupResponse.from(savedUser);
