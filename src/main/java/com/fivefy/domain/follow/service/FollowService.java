@@ -8,7 +8,6 @@ import com.fivefy.domain.follow.dto.response.FollowGetResponse;
 import com.fivefy.domain.follow.entity.Follow;
 import com.fivefy.domain.follow.enums.FollowErrorCode;
 import com.fivefy.domain.follow.repository.FollowRepository;
-import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -54,5 +53,17 @@ public class FollowService {
                 .stream()
                 .map(FollowGetResponse::from)
                 .toList();
+    }
+
+    @Transactional
+    public void deleteFollow(Long userId, Long followId) {
+        if (!userRepository.existsById(userId)) {
+            throw new BusinessException(UserErrorCode.ERR_USER_NOT_FOUND);
+        }
+
+        Follow follow = followRepository.findById(followId)
+                .orElseThrow(() -> new BusinessException(FollowErrorCode.ERR_FOLLOW_NOT_FOUND));
+
+        followRepository.delete(follow);
     }
 }

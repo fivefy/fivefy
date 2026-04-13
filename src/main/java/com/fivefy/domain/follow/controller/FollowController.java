@@ -34,4 +34,12 @@ public class FollowController {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(BaseResponse.success(HttpStatus.OK, "팔로우 목록 조회 성공", responses));
     }
+
+    @DeleteMapping("/follows/{followId}")
+    public ResponseEntity<BaseResponse<Void>>  deleteFollow(@RequestParam Long userId, @PathVariable Long followId) {
+        followService.deleteFollow(userId, followId);
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(BaseResponse.success(HttpStatus.OK, "팔로우 취소 성공", null));
+    }
 }
