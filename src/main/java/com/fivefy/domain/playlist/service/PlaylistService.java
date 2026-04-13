@@ -62,6 +62,11 @@ public class PlaylistService {
             throw new BusinessException(PlaylistErrorCode.PLAYLIST_UPDATE_FORBIDDEN);
         }
 
+        if (!playlist.getTitle().equals(request.title()) &&
+                playlistRepository.existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title())) {
+            throw new BusinessException(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME);
+        }
+
         playlist.update(request.title(), request.description());
 
         return PlaylistResponse.from(playlist);
