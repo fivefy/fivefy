@@ -26,6 +26,6 @@ class JwtFilterTest {
         mockMvc.perform(get("/api/users/me"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("[A004] 인증되지 않은 사용자입니다"));
+                .andExpect(jsonPath("$.message").value("잘못된 접근입니다"));
     }
 }

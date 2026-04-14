@@ -8,10 +8,10 @@ import org.springframework.http.HttpStatus;
 @Getter
 @RequiredArgsConstructor
 public enum AuthErrorCode implements ErrorCode {
-    ERR_AUTH_EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "[A001] 만료된 JWT 토큰입니다"),
-    ERR_AUTH_INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "[A002] 유효하지 않은 JWT 토큰입니다"),
-    ERR_AUTH_EMPTY_TOKEN(HttpStatus.UNAUTHORIZED, "[A003] JWT 토큰이 없습니다"),
-    ERR_AUTH_UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "[A004] 인증되지 않은 사용자입니다");
+    ERR_AUTH_EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "만료된 JWT 토큰입니다"),
+    ERR_AUTH_INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 JWT 토큰입니다"),
+    ERR_AUTH_EMPTY_TOKEN(HttpStatus.UNAUTHORIZED, "JWT 토큰이 없습니다"),
+    ERR_AUTH_UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "잘못된 접근입니다");
 
     private final HttpStatus httpStatus;
     private final String message;

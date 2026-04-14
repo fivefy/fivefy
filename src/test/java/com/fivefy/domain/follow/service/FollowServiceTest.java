@@ -2,7 +2,7 @@ package com.fivefy.domain.follow.service;
 
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.artist.entity.Artist;
-import com.fivefy.domain.artist.enums.ArtistExceptionEnum;
+import com.fivefy.domain.artist.enums.ArtistErrorCode;
 import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.follow.dto.response.FollowCreateResponse;
 import com.fivefy.domain.follow.dto.response.FollowGetResponse;
@@ -107,7 +107,7 @@ class FollowServiceTest {
         // when & then
         assertThatThrownBy(() -> followService.createFollow(USER_ID, ARTIST_ID))
                 .isInstanceOf(BusinessException.class)
-                .hasMessage(ArtistExceptionEnum.ERR_ARTIST_NOT_FOUND.getMessage());
+                .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
     }
 
     // createFollow 중복 체크
