@@ -51,8 +51,8 @@ public class FollowController {
             @AuthenticationPrincipal Long userId, @PathVariable Long artistId) {
         followService.deleteFollow(userId, artistId);
 
-        return ResponseEntity.status(HttpStatus.NO_CONTENT)
-                .body(BaseResponse.success(HttpStatus.NO_CONTENT, "팔로우 취소 성공", null));
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(BaseResponse.success(HttpStatus.OK, "팔로우 취소 성공", null));
     }
 
     @PatchMapping("/follows/{artistId}/notifications")
