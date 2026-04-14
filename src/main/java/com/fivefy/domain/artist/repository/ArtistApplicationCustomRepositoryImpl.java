@@ -62,7 +62,7 @@ public class ArtistApplicationCustomRepositoryImpl implements ArtistApplicationC
                         case "createdAt" -> new OrderSpecifier<>(direction, artistApplication.createdAt);
                         case "status" -> new OrderSpecifier<>(direction, artistApplication.status);
                         // 지원하지 않는 정렬 조건이면 createdAt 기준 최신/오래된 순 정렬로 fallback 한다.
-                        default -> new OrderSpecifier<>(Order.DESC, artistApplication.createdAt);
+                        default -> new OrderSpecifier<>(Order.ASC, artistApplication.createdAt);
                     };
                 })
                 .toArray(OrderSpecifier[]::new);
