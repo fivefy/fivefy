@@ -1,8 +1,11 @@
 package com.fivefy.domain.artist.service;
 
+import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationCreateRequest;
+import com.fivefy.domain.artist.dto.response.ArtistApplicationListResponse;
 import com.fivefy.domain.artist.dto.response.ArtistApplicationResponse;
 import com.fivefy.domain.artist.entity.ArtistApplication;
+import com.fivefy.domain.artist.repository.ArtistApplicationCustomRepository;
 import com.fivefy.domain.artist.repository.ArtistApplicationRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -11,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.*;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -23,6 +27,10 @@ import static org.mockito.Mockito.*;
 
 /**
  * ArtistService의 비즈니스 로직을 검증하는 단위 테스트
+ *
+ * 아티스트 등록 요청 생성 기능을 검증한다.
+ * 내 아티스트 등록 요청 목록 조회 기능을 검증한다.
+ * 관리자용 아티스트 등록 요청 목록 조회 기능을 검증한다.
  */
 @ExtendWith(MockitoExtension.class)
 class ArtistServiceTest {
@@ -147,4 +155,108 @@ class ArtistServiceTest {
                     .findAllByRequesterUserIdOrderByCreatedAtDesc(userId);
         }
     }
+
+    @Nested
+    @DisplayName("관리자용 아티스트 등록 요청 목록 조회")
+    class GetArtistApplications {
+
+        @Test
+        @DisplayName("관리자는 아티스트 등록 요청 목록을 오래된 순으로 조회한다")
+        void getArtistApplications_success() {
+            // given
+            Pageable pageable = PageRequest.of(
+                    0,
+                    5,
+                    Sort.by(Sort.Direction.ASC, "createdAt")
+            );
+
+            ArtistApplication firstApplication = ArtistApplication.create(
+                    1L,
+                    "아이유",
+                    "가수",
+                    "https://example.com/iu.jpg"
+            );
+            ArtistApplication secondApplication = ArtistApplication.create(
+                    2L,
+                    "볼빨간사춘기",
+                    "듀오",
+                    "https://example.com/bol4.jpg"
+            );
+
+            // 오래된 요청이 먼저 조회되도록 createdAt과 id를 직접 주입한다.
+            ReflectionTestUtils.setField(firstApplication, "id", 1L);
+            ReflectionTestUtils.setField(firstApplication, "createdAt",
+                    LocalDateTime.of(2026, 4, 14, 10, 0, 0));
+
+            ReflectionTestUtils.setField(secondApplication, "id", 2L);
+            ReflectionTestUtils.setField(secondApplication, "createdAt",
+                    LocalDateTime.of(2026, 4, 15, 10, 0, 0));
+
+            Page<ArtistApplication> page = new PageImpl<>(
+                    List.of(firstApplication, secondApplication),
+                    pageable,
+                    2
+            );
+
+            when(artistApplicationRepository.searchArtistApplications(pageable))
+                    .thenReturn(page);
+
+            // when
+            PageResponse<ArtistApplicationListResponse> response =
+                    artistService.getArtistApplications(pageable);
+
+            // then
+            assertThat(response.content()).hasSize(2);
+            assertThat(response.page()).isEqualTo(0);
+            assertThat(response.size()).isEqualTo(5);
+            assertThat(response.totalElements()).isEqualTo(2);
+            assertThat(response.totalPages()).isEqualTo(1);
+
+            assertThat(response.content().get(0).applicationId()).isEqualTo(1L);
+            assertThat(response.content().get(0).requesterUserId()).isEqualTo(1L);
+            assertThat(response.content().get(0).requestedName()).isEqualTo("아이유");
+            assertThat(response.content().get(0).status()).isEqualTo("PENDING");
+            assertThat(response.content().get(0).createdAt()).isEqualTo(LocalDateTime.of(2026, 4, 14, 10, 0, 0));
+
+            assertThat(response.content().get(1).applicationId()).isEqualTo(2L);
+            assertThat(response.content().get(1).requesterUserId()).isEqualTo(2L);
+            assertThat(response.content().get(1).requestedName()).isEqualTo("볼빨간사춘기");
+            assertThat(response.content().get(1).status()).isEqualTo("PENDING");
+            assertThat(response.content().get(1).createdAt()).isEqualTo(LocalDateTime.of(2026, 4, 15, 10, 0, 0));
+
+            verify(artistApplicationRepository, times(1))
+                    .searchArtistApplications(pageable);
+        }
+
+        @Test
+        @DisplayName("등록 요청이 없으면 빈 페이지를 반환한다")
+        void getArtistApplications_empty() {
+            // given
+            Pageable pageable = PageRequest.of(
+                    0,
+                    5,
+                    Sort.by(Sort.Direction.ASC, "createdAt")
+            );
+
+            Page<ArtistApplication> emptyPage = new PageImpl<>(List.of(), pageable, 0);
+
+            when(artistApplicationRepository.searchArtistApplications(pageable))
+                    .thenReturn(emptyPage);
+
+            // when
+            PageResponse<ArtistApplicationListResponse> response =
+                    artistService.getArtistApplications(pageable);
+
+            // then
+            assertThat(response.content()).isEmpty();
+            assertThat(response.page()).isEqualTo(0);
+            assertThat(response.size()).isEqualTo(5);
+            assertThat(response.totalElements()).isZero();
+            assertThat(response.totalPages()).isZero();
+
+            verify(artistApplicationRepository, times(1))
+                    .searchArtistApplications(pageable);
+        }
+    }
+
 }
