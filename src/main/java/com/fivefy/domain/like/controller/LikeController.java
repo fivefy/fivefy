@@ -44,4 +44,13 @@ public class LikeController {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(BaseResponse.success(HttpStatus.OK, "좋아요 목록 조회 성공", PageResponse.from(responses)));
     }
+
+    @DeleteMapping("/likes/{likeId}")
+    public ResponseEntity<BaseResponse> deleteLike(
+            @AuthenticationPrincipal Long userId, @PathVariable Long likeId) {
+        likeService.deleteLike(userId, likeId);
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(BaseResponse.success(HttpStatus.OK, "좋아요 취소 성공", null));
+    }
 }

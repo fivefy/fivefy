@@ -74,6 +74,16 @@ public class LikeService {
                 });
     }
 
+    @Transactional
+    public void deleteLike(Long userId, Long likeId) {
+        getUser(userId);
+
+        Like like = likeRepository.findByIdAndUserId(likeId, userId)
+                .orElseThrow(() -> new BusinessException(LikeErrorCode.ERR_LIKE_NOT_FOUND));
+
+        likeRepository.delete(like);
+    }
+
     // 검증 헬퍼 메서드
     private User getUser(Long userId) {
         return userRepository.findById(userId)
