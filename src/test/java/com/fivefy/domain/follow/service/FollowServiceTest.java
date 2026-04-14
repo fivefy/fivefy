@@ -173,4 +173,30 @@ class FollowServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessage(UserErrorCode.ERR_USER_NOT_FOUND.getMessage());
     }
+
+    // deleteFollow
+    @Test
+    @DisplayName("팔로우 취소 성공")
+    void deleteFollow_success() {
+        // given
+        given(followRepository.findByUserIdAndArtistId(USER_ID, ARTIST_ID)).willReturn(Optional.of(mockFollow));
+
+        // when
+        followService.deleteFollow(USER_ID, ARTIST_ID);
+
+        // then
+        verify(followRepository).delete(mockFollow);
+    }
+
+    @Test
+    @DisplayName("팔로우 취소 실패 - 팔로우 없음")
+    void deleteFollow_notFound() {
+        // given
+        given(followRepository.findByUserIdAndArtistId(any(), any())).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> followService.deleteFollow(USER_ID, ARTIST_ID))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(FollowErrorCode.ERR_FOLLOW_NOT_FOUND.getMessage());
+    }
 }
