@@ -1,0 +1,86 @@
+= Fivefy API Document
+:doctype: book
+:icons: font
+:source-highlighter: highlightjs
+:toc: left
+:toc-title: 목차
+:toclevels: 3
+:sectlinks:
+:snippets: ../../../build/generated-snippets
+
+== 개요
+
+Fivefy의 음악 스트리밍 서비스 REST API 문서입니다.
+
+=== 기본 정보
+
+|===
+| 항목 | 내용
+| Base URL (Stage) | `https://api-stage.fivefy.com`
+| Base URL (Prod)  | `https://api.fivefy.com`
+| Content-Type     | `application/json`
+|===
+
+=== 공통 응답 형식
+
+모든 API는 아래의 공통 형식으로 응답합니다.
+
+[source,json]
+----
+{
+  "success": true,
+  "status": "200 OK",
+  "message": "응답 메시지",
+  "data": { }
+}
+----
+
+=== 공통 에러 코드
+
+|===
+| HTTP 상태 | 설명
+| 400 Bad Request    | 요청 값 검증 실패
+| 401 Unauthorized   | 인증 실패 또는 토큰 만료
+| 403 Forbidden      | 권한 없음
+| 404 Not Found      | 리소스 없음
+| 409 Conflict       | 중복 데이터
+| 500 Internal Error | 서버 오류
+|===
+
+=== 인증
+
+로그인 이후 발급받은 Access Token을 `Authorization` 헤더에 포함합니다.
+
+[source]
+----
+Authorization: Bearer {accessToken}
+----
+
+Refresh Token은 HttpOnly 쿠키(`refreshToken`)로 관리됩니다.
+
+---
+
+== User API
+
+=== 회원가입
+
+include::{snippets}/user-signup/http-request.adoc[]
+include::{snippets}/user-signup/request-fields.adoc[]
+include::{snippets}/user-signup/http-response.adoc[]
+include::{snippets}/user-signup/response-fields.adoc[]
+
+==== 에러 케이스 — 중복 이메일
+
+---
+
+=== 로그인
+
+==== 에러 케이스 — 로그인 실패
+
+---
+
+== 도메인 API
+
+=== 기능
+
+=== 에러 케이스
