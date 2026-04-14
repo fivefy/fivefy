@@ -10,6 +10,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -58,7 +60,11 @@ public class ArtistController {
      */
     @GetMapping("/admin/artist-applications")
     public ResponseEntity<BaseResponse<PageResponse<ArtistApplicationListResponse>>> getArtistApplications(
-            Pageable pageable
+            @PageableDefault(
+                    size = 10,
+                    sort = "createdAt",
+                    direction = Sort.Direction.ASC
+            ) Pageable pageable
     ) {
         PageResponse<ArtistApplicationListResponse> response =
                 artistService.getArtistApplications(pageable);

@@ -58,7 +58,6 @@ public class ArtistService {
     }
 
     /**
-     *
      * 아티스트 등록 요청 목록 조회
      */
     @Transactional(readOnly = true)
