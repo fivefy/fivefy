@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface ArtistApplicationRepository extends JpaRepository<ArtistApplication, Long> {
+public interface ArtistApplicationRepository extends JpaRepository<ArtistApplication, Long>, ArtistApplicationCustomRepository {
+
     List<ArtistApplication> findAllByRequesterUserIdOrderByCreatedAtDesc(Long requesterUserId);
 }
