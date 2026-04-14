@@ -154,4 +154,35 @@ class FollowControllerTest {
                     .andExpect(jsonPath("$.message").value(FollowErrorCode.ERR_FOLLOW_NOT_FOUND.getMessage()));
         }
     }
+
+    @Nested
+    @DisplayName("알림 설정 토글")
+    class ToggleNotification {
+
+        @Test
+        @DisplayName("알림 설정 토글 성공 시 200 반환")
+        void toggleNotification_success() throws Exception {
+            // given
+            doNothing().when(followService).toggleNotification(any(), eq(ARTIST_ID));
+
+            // when & then
+            mockMvc.perform(patch("/api/follows/{artistId}/notifications", ARTIST_ID))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("알림 설정 변경 성공"));
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 팔로우 토글 시 404 반환")
+        void toggleNotification_notFound() throws Exception {
+            // given
+            doThrow(new BusinessException(FollowErrorCode.ERR_FOLLOW_NOT_FOUND))
+                    .when(followService).toggleNotification(any(), eq(ARTIST_ID));
+
+            // when & then
+            mockMvc.perform(patch("/api/follows/{artistId}/notifications", ARTIST_ID))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.message").value(FollowErrorCode.ERR_FOLLOW_NOT_FOUND.getMessage()));
+        }
+    }
 }
