@@ -5,7 +5,7 @@ import com.fivefy.domain.playlisttrack.entity.PlaylistTrack;
 import java.time.LocalDateTime;
 
 public record PlaylistTrackResponse(
-        Long playlistTrackId,
+        Long id,
         Long playlistId,
         Long trackId,
         Integer position,
