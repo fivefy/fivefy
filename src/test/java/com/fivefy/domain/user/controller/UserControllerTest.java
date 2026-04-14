@@ -23,6 +23,10 @@ import static com.fivefy.domain.user.enums.UserErrorCode.ERR_USER_DUPLICATED_EMA
 import static com.fivefy.domain.user.enums.UserErrorCode.ERR_USER_LOGIN_FAIL;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.restdocs.cookies.CookieDocumentation.cookieWithName;
+import static org.springframework.restdocs.cookies.CookieDocumentation.responseCookies;
+import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
+import static org.springframework.restdocs.headers.HeaderDocumentation.responseHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.JsonFieldType.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
@@ -86,7 +90,22 @@ class UserControllerTest extends RestDocsSupport {
                             .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andDo(document("user-signup-validate",
+                            requestFields(
+                                    fieldWithPath("name").type(STRING).description("이름 (값 없음)"),
+                                    fieldWithPath("email").type(STRING).description("이메일"),
+                                    fieldWithPath("password").type(STRING).description("비밀번호 (8~20자, 영문+숫자+특수문자)")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지"),
+                                    fieldWithPath("data").type(ARRAY).description("상세 에러 내역"),
+                                    fieldWithPath("data[].field").type(STRING).description("에러가 발생한 필드명"),
+                                    fieldWithPath("data[].message").type(STRING).description("에러 상세 사유")
+                            )
+                    ));
         }
 
         @Test
@@ -131,7 +150,19 @@ class UserControllerTest extends RestDocsSupport {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isConflict())
-                    .andExpect(jsonPath("$.message").value(ERR_USER_DUPLICATED_EMAIL.getMessage()));
+                    .andExpect(jsonPath("$.message").value(ERR_USER_DUPLICATED_EMAIL.getMessage()))
+                    .andDo(document("user-signup-duplicate",
+                            requestFields(
+                                    fieldWithPath("name").type(STRING).description("이름 (2~10자)"),
+                                    fieldWithPath("email").type(STRING).description("중복된 이메일"),
+                                    fieldWithPath("password").type(STRING).description("비밀번호 (8~20자, 영문+숫자+특수문자)")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
         }
     }
 
@@ -154,7 +185,26 @@ class UserControllerTest extends RestDocsSupport {
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data.accessToken").value("accessToken"))
-                    .andExpect(jsonPath("$.data.refreshToken").doesNotExist());
+                    .andExpect(jsonPath("$.data.refreshToken").doesNotExist())
+                    .andDo(document("user-login",
+                            requestFields(
+                                    fieldWithPath("email").type(STRING).description("이메일"),
+                                    fieldWithPath("password").type(STRING).description("비밀번호")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    fieldWithPath("data.accessToken").type(STRING).description("액세스 토큰")
+                            ),
+                            responseCookies(
+                                    cookieWithName("refreshToken").description("리프레시 토큰 (HttpOnly, Secure)")
+                            ),
+                            responseHeaders(
+                                    headerWithName(HttpHeaders.CACHE_CONTROL).description("캐시 방지 헤더 (HTTP/1.1)"),
+                                    headerWithName(HttpHeaders.PRAGMA).description("캐시 방지 헤더 (HTTP/1.0 하위 호환용)")
+                            )
+                    ));
         }
 
         @Test
@@ -205,7 +255,21 @@ class UserControllerTest extends RestDocsSupport {
                             .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andDo(document("user-login-validate",
+                            requestFields(
+                                    fieldWithPath("email").type(STRING).description("이메일 (값 없음)"),
+                                    fieldWithPath("password").type(STRING).description("비밀번호")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지"),
+                                    fieldWithPath("data").type(ARRAY).description("상세 에러 내역"),
+                                    fieldWithPath("data[].field").type(STRING).description("에러가 발생한 필드명"),
+                                    fieldWithPath("data[].message").type(STRING).description("에러 상세 사유")
+                            )
+                    ));
         }
 
         @Test
@@ -222,7 +286,18 @@ class UserControllerTest extends RestDocsSupport {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isUnauthorized())
-                    .andExpect(jsonPath("$.message").value(ERR_USER_LOGIN_FAIL.getMessage()));
+                    .andExpect(jsonPath("$.message").value(ERR_USER_LOGIN_FAIL.getMessage()))
+                    .andDo(document("user-login-fail",
+                            requestFields(
+                                    fieldWithPath("email").type(STRING).description("이메일"),
+                                    fieldWithPath("password").type(STRING).description("잘못된 비밀번호")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
         }
     }
 }

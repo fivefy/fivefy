@@ -11,6 +11,7 @@ import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.ObjectMapper;
 
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.modifyHeaders;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 
@@ -31,7 +32,7 @@ public abstract class RestDocsSupport {
                 .webAppContextSetup(context)
                 .apply(documentationConfiguration(restDocumentation)
                         .operationPreprocessors()
-                        .withRequestDefaults(prettyPrint())
+                        .withRequestDefaults(modifyHeaders().remove("X-CSRF-TOKEN"), prettyPrint())
                         .withResponseDefaults(prettyPrint()))
                 .apply(springSecurity())
                 .build();

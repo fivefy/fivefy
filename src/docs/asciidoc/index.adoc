@@ -69,13 +69,44 @@ include::{snippets}/user-signup/request-fields.adoc[]
 include::{snippets}/user-signup/http-response.adoc[]
 include::{snippets}/user-signup/response-fields.adoc[]
 
+==== 에러 케이스 — 요청 검증 실패
+
+include::{snippets}/user-signup-validate/http-request.adoc[]
+include::{snippets}/user-signup-validate/request-fields.adoc[]
+include::{snippets}/user-signup-validate/http-response.adoc[]
+include::{snippets}/user-signup-validate/response-fields.adoc[]
+
 ==== 에러 케이스 — 중복 이메일
+
+include::{snippets}/user-signup-duplicate/http-request.adoc[]
+include::{snippets}/user-signup-duplicate/request-fields.adoc[]
+include::{snippets}/user-signup-duplicate/http-response.adoc[]
+include::{snippets}/user-signup-duplicate/response-fields.adoc[]
 
 ---
 
 === 로그인
 
+include::{snippets}/user-login/http-request.adoc[]
+include::{snippets}/user-login/request-fields.adoc[]
+include::{snippets}/user-login/http-response.adoc[]
+include::{snippets}/user-login/response-headers.adoc[]
+include::{snippets}/user-login/response-cookies.adoc[]
+include::{snippets}/user-login/response-fields.adoc[]
+
+==== 에러 케이스 — 요청 검증 실패
+
+include::{snippets}/user-login-validate/http-request.adoc[]
+include::{snippets}/user-login-validate/request-fields.adoc[]
+include::{snippets}/user-login-validate/http-response.adoc[]
+include::{snippets}/user-login-validate/response-fields.adoc[]
+
 ==== 에러 케이스 — 로그인 실패
+
+include::{snippets}/user-login-fail/http-request.adoc[]
+include::{snippets}/user-login-fail/request-fields.adoc[]
+include::{snippets}/user-login-fail/http-response.adoc[]
+include::{snippets}/user-login-fail/response-fields.adoc[]
 
 ---
 
