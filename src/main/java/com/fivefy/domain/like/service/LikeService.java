@@ -1,18 +1,14 @@
 package com.fivefy.domain.like.service;
 
 import com.fivefy.common.exception.BusinessException;
-import com.fivefy.domain.album.entity.Album;
-import com.fivefy.domain.artist.enums.ArtistErrorCode;
 import com.fivefy.domain.album.enums.AlbumErrorCode;
 import com.fivefy.domain.album.repository.AlbumRepository;
-import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.like.dto.response.LikeCreateResponse;
 import com.fivefy.domain.like.dto.response.LikeGetResponse;
 import com.fivefy.domain.like.entity.Like;
 import com.fivefy.domain.like.enums.LikeErrorCode;
 import com.fivefy.domain.like.enums.TargetType;
 import com.fivefy.domain.like.repository.LikeRepository;
-import com.fivefy.domain.track.entity.Track;
 import com.fivefy.domain.track.enums.TrackErrorCode;
 import com.fivefy.domain.track.repository.TrackRepository;
 import com.fivefy.domain.user.entity.User;
@@ -25,6 +21,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+// TODO: Track/Album 삭제 시 연관 Like 삭제 처리 필요 / 방안: 이벤트 방식
+
 @Service
 @RequiredArgsConstructor
 public class LikeService {
@@ -33,7 +31,6 @@ public class LikeService {
     private final UserRepository userRepository;
     private final TrackRepository trackRepository;
     private final AlbumRepository albumRepository;
-    private final ArtistRepository artistRepository;
 
     @Transactional
     public LikeCreateResponse createLike(Long targetId, TargetType targetType, Long userId) {
@@ -55,23 +52,10 @@ public class LikeService {
     }
 
     @Transactional(readOnly = true)
-    public Page<LikeGetResponse> getLikes(Long userId, Pageable pageable) {
+    public Page<LikeGetResponse> getLikes(Long userId, TargetType targetType, Pageable pageable) {
         getUser(userId);
 
-        return likeRepository.findAllByUserId(userId, pageable)
-                .map(like -> {
-                    if (like.getTargetType() == TargetType.TRACK) {
-                        Track track = trackRepository.findById(like.getTargetId())
-                                .orElseThrow(() -> new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND));
-                        String artistName = getArtistName(track.getArtistId());
-                        return LikeGetResponse.from(like, track.getTitle(), artistName);
-                    } else {
-                        Album album = albumRepository.findById(like.getTargetId())
-                                .orElseThrow(() -> new BusinessException(AlbumErrorCode.ERR_ALBUM_NOT_FOUND));
-                        String artistName = getArtistName(album.getArtistId());
-                        return LikeGetResponse.from(like, album.getTitle(), artistName);
-                    }
-                });
+        return likeRepository.findLikesWithTarget(userId, targetType, pageable);
     }
 
     @Transactional
@@ -99,12 +83,5 @@ public class LikeService {
                     .orElseThrow(() -> new BusinessException(AlbumErrorCode.ERR_ALBUM_NOT_FOUND))
                     .getId();
         };
-    }
-
-    private String getArtistName(Long artistId) {
-        if (artistId == null) return null;
-        return artistRepository.findById(artistId)
-                .orElseThrow(() -> new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND))
-                .getName();
     }
 }

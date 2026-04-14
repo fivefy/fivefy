@@ -5,6 +5,7 @@ import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.domain.like.dto.request.LikeCreateRequest;
 import com.fivefy.domain.like.dto.response.LikeCreateResponse;
 import com.fivefy.domain.like.dto.response.LikeGetResponse;
+import com.fivefy.domain.like.enums.TargetType;
 import com.fivefy.domain.like.service.LikeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -38,8 +39,9 @@ public class LikeController {
     @GetMapping("/likes")
     public ResponseEntity<BaseResponse<PageResponse<LikeGetResponse>>> getAllLike(
             @AuthenticationPrincipal Long userId,
+            @RequestParam(required = false) TargetType targetType,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable) {
-        Page<LikeGetResponse> responses = likeService.getLikes(userId, pageable);
+        Page<LikeGetResponse> responses = likeService.getLikes(userId, targetType, pageable);
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(BaseResponse.success(HttpStatus.OK, "좋아요 목록 조회 성공", PageResponse.from(responses)));
