@@ -5,6 +5,7 @@ import com.fivefy.domain.artist.entity.Artist;
 import com.fivefy.domain.artist.enums.ArtistExceptionEnum;
 import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.follow.dto.response.FollowCreateResponse;
+import com.fivefy.domain.follow.dto.response.FollowGetResponse;
 import com.fivefy.domain.follow.entity.Follow;
 import com.fivefy.domain.follow.enums.FollowErrorCode;
 import com.fivefy.domain.follow.repository.FollowRepository;
@@ -19,7 +20,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -134,5 +140,37 @@ class FollowServiceTest {
         assertThatThrownBy(() -> followService.createFollow(USER_ID, ARTIST_ID))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage(FollowErrorCode.ERR_FOLLOW_ALREADY_EXISTS.getMessage());
+    }
+
+    // getFollows 페이징 조회
+    @Test
+    @DisplayName("팔로우 목록 조회 성공 - 페이징")
+    void getFollows_success() {
+        // given
+        Pageable pageable = PageRequest.of(0, 20);
+        Page<Follow> followPage = new PageImpl<>(List.of(mockFollow), pageable, 1);
+
+        given(userRepository.findById(USER_ID)).willReturn(Optional.of(mockUser));
+        given(followRepository.findAllByUserId(USER_ID, pageable)).willReturn(followPage);
+
+        // when
+        Page<FollowGetResponse> responses = followService.getFollows(USER_ID, pageable);
+
+        // then
+        assertThat(responses.getContent()).hasSize(1);
+        assertThat(responses.getTotalElements()).isEqualTo(1);
+        assertThat(responses.getContent().get(0).artistId()).isEqualTo(ARTIST_ID);
+    }
+
+    @Test
+    @DisplayName("팔로우 목록 조회 실패 - 존재하지 않는 유저")
+    void getFollows_userNotFound() {
+        // given
+        given(userRepository.findById(any())).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> followService.getFollows(USER_ID, PageRequest.of(0, 20)))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(UserErrorCode.ERR_USER_NOT_FOUND.getMessage());
     }
 }
