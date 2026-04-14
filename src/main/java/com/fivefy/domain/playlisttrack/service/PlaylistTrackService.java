@@ -1,7 +1,9 @@
 package com.fivefy.domain.playlisttrack.service;
 
 import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.playlist.entity.Playlist;
 import com.fivefy.domain.playlist.enums.PlaylistErrorCode;
+import com.fivefy.domain.playlist.repository.PlaylistRepository;
 import com.fivefy.domain.playlisttrack.dto.request.PlaylistTrackCreateRequest;
 import com.fivefy.domain.playlisttrack.dto.request.PlaylistTrackOrderUpdateRequest;
 import com.fivefy.domain.playlisttrack.dto.response.PlaylistTrackResponse;
@@ -13,17 +15,24 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-import static com.fivefy.domain.playlist.enums.PlaylistErrorCode.*;
-
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PlaylistTrackService {
 
     private final PlaylistTrackRepository playlistTrackRepository;
+    private final PlaylistRepository playlistRepository;
 
     @Transactional
-    public PlaylistTrackResponse addTrack(Long playlistId, PlaylistTrackCreateRequest request) {
+    public PlaylistTrackResponse addTrack(Long userId, Long playlistId, PlaylistTrackCreateRequest request) {
+        Playlist playlist = playlistRepository.findByIdAndDeletedAtIsNull(playlistId)
+                .orElseThrow(() -> new BusinessException(PlaylistErrorCode.PLAYLIST_NOT_FOUND));
+
+        // 본인이 생성한 플레이리스트만 트랙 추가 가능
+        if (!playlist.isOwner(userId)) {
+            throw new BusinessException(PlaylistErrorCode.PLAYLIST_ACCESS_FORBIDDEN);
+        }
+
         // 동일한 플레이리스트에 같은 트랙이 이미 존재하는지 검사
         if (playlistTrackRepository.existsByPlaylistIdAndTrackId(playlistId, request.trackId())) {
             throw new BusinessException(PlaylistErrorCode.PLAYLIST_TRACK_ALREADY_EXISTS);
@@ -42,7 +51,15 @@ public class PlaylistTrackService {
         return PlaylistTrackResponse.from(savedPlaylistTrack);
     }
 
-    public List<PlaylistTrackResponse> getTracks(Long playlistId) {
+    public List<PlaylistTrackResponse> getTracks(Long userId, Long playlistId) {
+        Playlist playlist = playlistRepository.findByIdAndDeletedAtIsNull(playlistId)
+                .orElseThrow(() -> new BusinessException(PlaylistErrorCode.PLAYLIST_NOT_FOUND));
+
+        // 본인이 생성한 플레이리스트만 트랙 추가 가능
+        if (!playlist.isOwner(userId)) {
+            throw new BusinessException(PlaylistErrorCode.PLAYLIST_ACCESS_FORBIDDEN);
+        }
+
         return playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(playlistId)
                 .stream()
                 .map(PlaylistTrackResponse::from)
@@ -50,7 +67,15 @@ public class PlaylistTrackService {
     }
 
     @Transactional
-    public void updateTrackOrder(Long playlistId, PlaylistTrackOrderUpdateRequest request) {
+    public void updateTrackOrder(Long userId, Long playlistId, PlaylistTrackOrderUpdateRequest request) {
+        Playlist playlist = playlistRepository.findByIdAndDeletedAtIsNull(playlistId)
+                .orElseThrow(() -> new BusinessException(PlaylistErrorCode.PLAYLIST_NOT_FOUND));
+
+        // 본인이 생성한 플레이리스트만 순서 변경 가능
+        if (!playlist.isOwner(userId)) {
+            throw new BusinessException(PlaylistErrorCode.PLAYLIST_UPDATE_FORBIDDEN);
+        }
+
         List<PlaylistTrack> playlistTracks = playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(playlistId);
 
         PlaylistTrack target = playlistTracks.stream()
@@ -65,16 +90,31 @@ public class PlaylistTrackService {
             throw new BusinessException(PlaylistErrorCode.INVALID_PLAYLIST_TRACK_POSITION);
         }
 
+        // 현재 위치와 동일하면 그대로 종료
+        if (target.getPosition().equals(newPosition)) {
+            return;
+        }
+
+        // 유니크 제약 충돌 방지를 위해 대상 트랙을 임시 위치로 이동
+        target.updatePosition(-1);
+        playlistTrackRepository.flush();
+
         playlistTracks.remove(target);
         playlistTracks.add(newPosition - 1, target);
 
-        for (int i = 0; i < playlistTracks.size(); i++) {
-            playlistTracks.get(i).updatePosition(i + 1);
-        }
+        reorderPositions(playlistTracks);
     }
 
     @Transactional
-    public void deleteTrack(Long playlistId, Long trackId) {
+    public void deleteTrack(Long userId, Long playlistId, Long trackId) {
+        Playlist playlist = playlistRepository.findByIdAndDeletedAtIsNull(playlistId)
+                .orElseThrow(() -> new BusinessException(PlaylistErrorCode.PLAYLIST_NOT_FOUND));
+
+        // 본인이 생성한 플레이리스트만 삭제 가능
+        if (!playlist.isOwner(userId)) {
+            throw new BusinessException(PlaylistErrorCode.PLAYLIST_DELETE_FORBIDDEN);
+        }
+
         List<PlaylistTrack> playlistTracks = playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(playlistId);
 
         PlaylistTrack target = playlistTracks.stream()
@@ -85,6 +125,10 @@ public class PlaylistTrackService {
         playlistTracks.remove(target);
         playlistTrackRepository.delete(target);
 
+        reorderPositions(playlistTracks);
+    }
+
+    private void reorderPositions(List<PlaylistTrack> playlistTracks) {
         for (int i = 0; i < playlistTracks.size(); i++) {
             playlistTracks.get(i).updatePosition(i + 1);
         }
