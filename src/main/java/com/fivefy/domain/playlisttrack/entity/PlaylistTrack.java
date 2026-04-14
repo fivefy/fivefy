@@ -2,6 +2,9 @@ package com.fivefy.domain.playlisttrack.entity;
 
 import com.fivefy.common.entity.BaseEntity;
 import static com.fivefy.common.util.ValidationUtils.validateNonNull;
+
+import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.playlist.enums.PlaylistErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -9,8 +12,18 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "playlist_tracks",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"playlist_id", "position"})
+@Table(
+        name = "playlist_tracks",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_playlist_track_playlist_position",
+                        columnNames = {"playlist_id", "position"}
+                ),
+                @UniqueConstraint(
+                        name = "uk_playlist_track_playlist_track",
+                        columnNames = {"playlist_id", "track_id"}
+                )
+        }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PlaylistTrack extends BaseEntity {
@@ -39,5 +52,19 @@ public class PlaylistTrack extends BaseEntity {
         playlistTrack.position = position;
 
         return playlistTrack;
+    }
+
+    public void updatePosition(Integer position) {
+        validateNonNull(position, "position");
+
+        if (position <= 0) {
+            throw new BusinessException(PlaylistErrorCode.INVALID_POSITION);
+        }
+
+        this.position = position;
+    }
+
+    public void moveToTemporaryPosition(int tempPosition) {
+        this.position = tempPosition;
     }
 }
