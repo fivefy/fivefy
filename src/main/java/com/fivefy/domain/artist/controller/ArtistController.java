@@ -23,14 +23,8 @@ public class ArtistController {
 
     /**
      * 아티스트 등록 요청 생성 API
-     *
-     * 현재는 로그인 사용자 식별을 임시로 Header에서 받고 있지만,
-     * 이후 Security 적용 시 인증 정보에서 꺼내는 방식으로 바꿀 수 있음.
      */
-    /**
-     * 아티스트 등록 요청 생성 API
-     */
-    @PostMapping("/artists/applications")
+    @PostMapping("/artist-applications")
     public ResponseEntity<BaseResponse<ArtistApplicationCreateResponse>> createArtistApplication(
             @AuthenticationPrincipal Long userId,
             @Valid @RequestBody ArtistApplicationCreateRequest request
