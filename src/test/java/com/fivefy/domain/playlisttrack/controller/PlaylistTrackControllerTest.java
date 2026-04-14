@@ -1,6 +1,8 @@
 package com.fivefy.domain.playlisttrack.controller;
 
 import com.fivefy.common.config.security.JwtUtil;
+import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.playlist.enums.PlaylistErrorCode;
 import com.fivefy.domain.playlisttrack.dto.request.PlaylistTrackCreateRequest;
 import com.fivefy.domain.playlisttrack.dto.request.PlaylistTrackOrderUpdateRequest;
 import com.fivefy.domain.playlisttrack.dto.response.PlaylistTrackResponse;
@@ -20,8 +22,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -83,6 +85,60 @@ public class PlaylistTrackControllerTest {
                     .andDo(print())
                     .andExpect(status().isBadRequest());
         }
+
+        @Test
+        @DisplayName("플레이리스트 권한이 없으면 403 반환")
+        void addTrackForbidden() throws Exception {
+            // given
+            PlaylistTrackCreateRequest request = new PlaylistTrackCreateRequest(10L);
+
+            given(playlistTrackService.addTrack(any(), eq(1L), any(PlaylistTrackCreateRequest.class)))
+                    .willThrow(new BusinessException(PlaylistErrorCode.PLAYLIST_ACCESS_FORBIDDEN));
+
+            // when & then
+            mockMvc.perform(post("/api/playlists/{playlistId}/tracks", 1L)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.message")
+                            .value(PlaylistErrorCode.PLAYLIST_ACCESS_FORBIDDEN.getMessage()));
+        }
+
+        @Test
+        @DisplayName("플레이리스트가 존재하지 않으면 404 반환")
+        void addTrackPlaylistNotFound() throws Exception {
+            // given
+            PlaylistTrackCreateRequest request = new PlaylistTrackCreateRequest(10L);
+
+            given(playlistTrackService.addTrack(any(), eq(1L), any(PlaylistTrackCreateRequest.class)))
+                    .willThrow(new BusinessException(PlaylistErrorCode.PLAYLIST_NOT_FOUND));
+
+            // when & then
+            mockMvc.perform(post("/api/playlists/{playlistId}/tracks", 1L)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.message")
+                            .value(PlaylistErrorCode.PLAYLIST_NOT_FOUND.getMessage()));
+        }
+
+        @Test
+        @DisplayName("이미 추가된 트랙이면 409 반환")
+        void addTrackDuplicate() throws Exception {
+            // given
+            PlaylistTrackCreateRequest request = new PlaylistTrackCreateRequest(10L);
+
+            given(playlistTrackService.addTrack(any(), eq(1L), any(PlaylistTrackCreateRequest.class)))
+                    .willThrow(new BusinessException(PlaylistErrorCode.PLAYLIST_TRACK_ALREADY_EXISTS));
+
+            // when & then
+            mockMvc.perform(post("/api/playlists/{playlistId}/tracks", 1L)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.message")
+                            .value(PlaylistErrorCode.PLAYLIST_TRACK_ALREADY_EXISTS.getMessage()));
+        }
     }
 
     @Nested
@@ -112,6 +168,20 @@ public class PlaylistTrackControllerTest {
                     .andExpect(jsonPath("$.data[0].position").value(1))
                     .andExpect(jsonPath("$.data[1].trackId").value(20L))
                     .andExpect(jsonPath("$.data[1].position").value(2));
+        }
+
+        @Test
+        @DisplayName("플레이리스트가 존재하지 않으면 404 반환")
+        void getTracksPlaylistNotFound() throws Exception {
+            // given
+            given(playlistTrackService.getTracks(any(), eq(1L)))
+                    .willThrow(new BusinessException(PlaylistErrorCode.PLAYLIST_NOT_FOUND));
+
+            // when & then
+            mockMvc.perform(get("/api/playlists/{playlistId}/tracks", 1L))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.message")
+                            .value(PlaylistErrorCode.PLAYLIST_NOT_FOUND.getMessage()));
         }
     }
 
@@ -152,6 +222,63 @@ public class PlaylistTrackControllerTest {
                     .andDo(print())
                     .andExpect(status().isBadRequest());
         }
+
+        @Test
+        @DisplayName("플레이리스트 권한이 없으면 403 반환")
+        void updateTrackOrderForbidden() throws Exception {
+            // given
+            PlaylistTrackOrderUpdateRequest request = new PlaylistTrackOrderUpdateRequest(10L, 2);
+
+            willThrow(new BusinessException(PlaylistErrorCode.PLAYLIST_ACCESS_FORBIDDEN))
+                    .given(playlistTrackService)
+                    .updateTrackOrder(any(), eq(1L), any(PlaylistTrackOrderUpdateRequest.class));
+
+            // when & then
+            mockMvc.perform(patch("/api/playlists/{playlistId}/tracks/index", 1L)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.message")
+                            .value(PlaylistErrorCode.PLAYLIST_ACCESS_FORBIDDEN.getMessage()));
+        }
+
+        @Test
+        @DisplayName("플레이리스트가 존재하지 않으면 404 반환")
+        void updateTrackOrderPlaylistNotFound() throws Exception {
+            // given
+            PlaylistTrackOrderUpdateRequest request = new PlaylistTrackOrderUpdateRequest(10L, 2);
+
+            willThrow(new BusinessException(PlaylistErrorCode.PLAYLIST_NOT_FOUND))
+                    .given(playlistTrackService)
+                    .updateTrackOrder(any(), eq(1L), any(PlaylistTrackOrderUpdateRequest.class));
+
+            // when & then
+            mockMvc.perform(patch("/api/playlists/{playlistId}/tracks/index", 1L)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.message")
+                            .value(PlaylistErrorCode.PLAYLIST_NOT_FOUND.getMessage()));
+        }
+
+        @Test
+        @DisplayName("트랙 순서 충돌 시 409 반환")
+        void updateTrackOrderConflict() throws Exception {
+            // given
+            PlaylistTrackOrderUpdateRequest request = new PlaylistTrackOrderUpdateRequest(10L, 2);
+
+            willThrow(new BusinessException(PlaylistErrorCode.PLAYLIST_TRACK_POSITION_CONFLICT))
+                    .given(playlistTrackService)
+                    .updateTrackOrder(any(), eq(1L), any(PlaylistTrackOrderUpdateRequest.class));
+
+            // when & then
+            mockMvc.perform(patch("/api/playlists/{playlistId}/tracks/index", 1L)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.message")
+                            .value(PlaylistErrorCode.PLAYLIST_TRACK_POSITION_CONFLICT.getMessage()));
+        }
     }
 
     @Nested
@@ -172,6 +299,36 @@ public class PlaylistTrackControllerTest {
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("플레이리스트 트랙 삭제 성공"))
                     .andExpect(jsonPath("$.data").doesNotExist());
+        }
+
+        @Test
+        @DisplayName("플레이리스트 권한이 없으면 403 반환")
+        void deleteTrackForbidden() throws Exception {
+            // given
+            willThrow(new BusinessException(PlaylistErrorCode.PLAYLIST_ACCESS_FORBIDDEN))
+                    .given(playlistTrackService)
+                    .deleteTrack(any(), eq(1L), eq(10L));
+
+            // when & then
+            mockMvc.perform(delete("/api/playlists/{playlistId}/tracks/{trackId}", 1L, 10L))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.message")
+                            .value(PlaylistErrorCode.PLAYLIST_ACCESS_FORBIDDEN.getMessage()));
+        }
+
+        @Test
+        @DisplayName("삭제할 트랙이 존재하지 않으면 404 반환")
+        void deleteTrackNotFound() throws Exception {
+            // given
+            willThrow(new BusinessException(PlaylistErrorCode.PLAYLIST_TRACK_NOT_FOUND))
+                    .given(playlistTrackService)
+                    .deleteTrack(any(), eq(1L), eq(10L));
+
+            // when & then
+            mockMvc.perform(delete("/api/playlists/{playlistId}/tracks/{trackId}", 1L, 10L))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.message")
+                            .value(PlaylistErrorCode.PLAYLIST_TRACK_NOT_FOUND.getMessage()));
         }
     }
 }
