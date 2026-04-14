@@ -2,11 +2,14 @@ package com.fivefy.domain.artist.service;
 
 import com.fivefy.domain.artist.dto.request.ArtistApplicationCreateRequest;
 import com.fivefy.domain.artist.dto.response.ArtistApplicationCreateResponse;
+import com.fivefy.domain.artist.dto.response.ArtistApplicationGetResponse;
 import com.fivefy.domain.artist.entity.ArtistApplication;
 import com.fivefy.domain.artist.repository.ArtistApplicationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -38,5 +41,16 @@ public class ArtistService {
 
         // 3. 응답 DTO 반환
         return ArtistApplicationCreateResponse.from(savedApplication);
+    }
+
+    /**
+     * 내 아티스트 등록 요청 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public List<ArtistApplicationGetResponse> getMyArtistApplications(Long userId) {
+        return artistApplicationRepository.findAllByRequesterUserIdOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(ArtistApplicationGetResponse::from)
+                .toList();
     }
 }
