@@ -25,7 +25,7 @@ public class PointHistory extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private PointType pointtype;
+    private PointType pointType;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -61,7 +61,7 @@ public class PointHistory extends BaseEntity {
 
         PointHistory history = new PointHistory();
             history.pointId = pointId;
-            history.pointtype = pointType;
+            history.pointType = pointType;
             history.pointHistoryType = pointHistoryType;
             history.amount = amount;
             history.balanceAfter = balanceAfter;
