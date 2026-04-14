@@ -12,8 +12,18 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "playlist_tracks",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"playlist_id", "position"})
+@Table(
+        name = "playlist_tracks",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_playlist_track_playlist_position",
+                        columnNames = {"playlist_id", "position"}
+                ),
+                @UniqueConstraint(
+                        name = "uk_playlist_track_playlist_track",
+                        columnNames = {"playlist_id", "track_id"}
+                )
+        }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PlaylistTrack extends BaseEntity {
