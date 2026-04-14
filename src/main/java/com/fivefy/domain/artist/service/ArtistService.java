@@ -1,8 +1,7 @@
 package com.fivefy.domain.artist.service;
 
 import com.fivefy.domain.artist.dto.request.ArtistApplicationCreateRequest;
-import com.fivefy.domain.artist.dto.response.ArtistApplicationCreateResponse;
-import com.fivefy.domain.artist.dto.response.ArtistApplicationGetResponse;
+import com.fivefy.domain.artist.dto.response.ArtistApplicationResponse;
 import com.fivefy.domain.artist.entity.ArtistApplication;
 import com.fivefy.domain.artist.repository.ArtistApplicationRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +24,7 @@ public class ArtistService {
      * 3. 응답 DTO 반환
      */
     @Transactional
-    public ArtistApplicationCreateResponse createArtistApplication(
+    public ArtistApplicationResponse createArtistApplication(
             Long userId, ArtistApplicationCreateRequest request) {
 
         // 1. 아티스트 등록 요청 엔티티 생성
@@ -40,17 +39,17 @@ public class ArtistService {
         ArtistApplication savedApplication = artistApplicationRepository.save(application);
 
         // 3. 응답 DTO 반환
-        return ArtistApplicationCreateResponse.from(savedApplication);
+        return ArtistApplicationResponse.from(savedApplication);
     }
 
     /**
      * 내 아티스트 등록 요청 목록 조회
      */
     @Transactional(readOnly = true)
-    public List<ArtistApplicationGetResponse> getMyArtistApplications(Long userId) {
+    public List<ArtistApplicationResponse> getMyArtistApplications(Long userId) {
         return artistApplicationRepository.findAllByRequesterUserIdOrderByCreatedAtDesc(userId)
                 .stream()
-                .map(ArtistApplicationGetResponse::from)
+                .map(ArtistApplicationResponse::from)
                 .toList();
     }
 }

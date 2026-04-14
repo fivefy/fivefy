@@ -1,8 +1,7 @@
 package com.fivefy.domain.artist.service;
 
 import com.fivefy.domain.artist.dto.request.ArtistApplicationCreateRequest;
-import com.fivefy.domain.artist.dto.response.ArtistApplicationCreateResponse;
-import com.fivefy.domain.artist.dto.response.ArtistApplicationGetResponse;
+import com.fivefy.domain.artist.dto.response.ArtistApplicationResponse;
 import com.fivefy.domain.artist.entity.ArtistApplication;
 import com.fivefy.domain.artist.repository.ArtistApplicationRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -65,7 +64,7 @@ class ArtistServiceTest {
                     .thenReturn(savedApplication);
 
             // when
-            ArtistApplicationCreateResponse response =
+            ArtistApplicationResponse response =
                     artistService.createArtistApplication(userId, request);
 
             // then
@@ -114,7 +113,7 @@ class ArtistServiceTest {
                     .thenReturn(List.of(firstApplication, secondApplication));
 
             // when
-            List<ArtistApplicationGetResponse> response = artistService.getMyArtistApplications(userId);
+            List<ArtistApplicationResponse> response = artistService.getMyArtistApplications(userId);
 
             // then
             assertThat(response).hasSize(2);
@@ -139,7 +138,7 @@ class ArtistServiceTest {
                     .thenReturn(List.of());
 
             // when
-            List<ArtistApplicationGetResponse> response = artistService.getMyArtistApplications(userId);
+            List<ArtistApplicationResponse> response = artistService.getMyArtistApplications(userId);
 
             // then
             assertThat(response).isEmpty();

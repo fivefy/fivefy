@@ -5,17 +5,16 @@ import com.fivefy.domain.artist.entity.ArtistApplication;
 import java.time.LocalDateTime;
 
 /**
- * 아티스트 등록 요청 조회 응답 DTO
+ * 아티스트 등록 요청 생성 및 내 아티스트 등록 요청 목록 조회 응답 DTO
  */
-public record ArtistApplicationGetResponse(
+public record ArtistApplicationResponse(
         Long applicationId,
         String requestedName,
         String status,
         LocalDateTime createdAt
 ) {
-
-    public static ArtistApplicationGetResponse from(ArtistApplication artistApplication) {
-        return new ArtistApplicationGetResponse(
+    public static ArtistApplicationResponse from(ArtistApplication artistApplication) {
+        return new ArtistApplicationResponse(
                 artistApplication.getId(),
                 artistApplication.getRequestedName(),
                 artistApplication.getStatus().name(),
