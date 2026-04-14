@@ -22,7 +22,7 @@ public class Payment extends BaseEntity {
     private Long id;
 
     @Column(nullable = false)
-    private Long orderId;
+    private Long userId;
 
     // 음수값 처리는 나중에
     @Column(nullable = false)
@@ -33,7 +33,7 @@ public class Payment extends BaseEntity {
     private PaymentStatus status;
 
     @Column(length = 100, nullable = false, unique = true)
-    private String pgTransactionId;
+    private String pgTransactionId; // << 이거 받아오기 : 포트원(PortOne)PG_ID
 
     @Column(length = 100, nullable = false, unique = true)
     private String idempotencyKey;
@@ -46,7 +46,7 @@ public class Payment extends BaseEntity {
 
     /**
      *
-     * @param orderId           : 주문 ID
+     * @param userId            : 유저 ID
      * @param amount            : 금액(원화 기준 : Long 통일)
      *        status            : 상태(결제 요청, 보류, 승인, 결제 완료, 실패, 취소, 환불)
      * @param pgTransactionId   : PG트랜젝션 ID - UUID 최대 글자 36자
@@ -56,14 +56,14 @@ public class Payment extends BaseEntity {
      *        refundedAt        : 환불 시각 : 결제면 null
      * @return
      */
-    public static Payment create(Long orderId, Long amount, String pgTransactionId, String idempotencyKey) {
-        validateNonNull(orderId, "orderId");
+    public static Payment create(Long userId, Long amount, String pgTransactionId, String idempotencyKey) {
+        validateNonNull(userId, "orderId");
         validateNonNull(amount, "amount");
         validateNonNull(pgTransactionId, "pgTransactionId");
         validateNonNull(idempotencyKey, "idempotencyKey");
 
         Payment payment = new Payment();
-            payment.orderId = orderId;
+            payment.userId = userId;
             payment.amount = amount;
             payment.status = PaymentStatus.REQUESTED;
             payment.pgTransactionId = pgTransactionId;
@@ -77,5 +77,21 @@ public class Payment extends BaseEntity {
 
     public void updateStatus(PaymentStatus status) {
         this.status = status;
+    }
+
+    public void complete() {
+        this.status = PaymentStatus.COMPLETED;
+        this.paidAt = LocalDateTime.now();
+    }
+
+    public void fail() {
+        this.status = PaymentStatus.FAILED;
+    }
+
+    public void refund(String reason) {
+        validateNonNull(reason, "환불 사유");
+        this.status = PaymentStatus.REFUNDED;
+        this.refundReason = reason;
+        this.refundedAt = LocalDateTime.now();
     }
 }
