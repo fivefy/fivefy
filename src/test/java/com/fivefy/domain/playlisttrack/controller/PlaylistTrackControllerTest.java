@@ -229,7 +229,7 @@ public class PlaylistTrackControllerTest {
             // given
             PlaylistTrackOrderUpdateRequest request = new PlaylistTrackOrderUpdateRequest(10L, 2);
 
-            willThrow(new BusinessException(PlaylistErrorCode.PLAYLIST_ACCESS_FORBIDDEN))
+            willThrow(new BusinessException(PlaylistErrorCode.PLAYLIST_UPDATE_FORBIDDEN))
                     .given(playlistTrackService)
                     .updateTrackOrder(any(), eq(1L), any(PlaylistTrackOrderUpdateRequest.class));
 
@@ -239,7 +239,7 @@ public class PlaylistTrackControllerTest {
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isForbidden())
                     .andExpect(jsonPath("$.message")
-                            .value(PlaylistErrorCode.PLAYLIST_ACCESS_FORBIDDEN.getMessage()));
+                            .value(PlaylistErrorCode.PLAYLIST_UPDATE_FORBIDDEN.getMessage()));
         }
 
         @Test
@@ -305,7 +305,7 @@ public class PlaylistTrackControllerTest {
         @DisplayName("플레이리스트 권한이 없으면 403 반환")
         void deleteTrackForbidden() throws Exception {
             // given
-            willThrow(new BusinessException(PlaylistErrorCode.PLAYLIST_ACCESS_FORBIDDEN))
+            willThrow(new BusinessException(PlaylistErrorCode.PLAYLIST_DELETE_FORBIDDEN))
                     .given(playlistTrackService)
                     .deleteTrack(any(), eq(1L), eq(10L));
 
@@ -313,7 +313,7 @@ public class PlaylistTrackControllerTest {
             mockMvc.perform(delete("/api/playlists/{playlistId}/tracks/{trackId}", 1L, 10L))
                     .andExpect(status().isForbidden())
                     .andExpect(jsonPath("$.message")
-                            .value(PlaylistErrorCode.PLAYLIST_ACCESS_FORBIDDEN.getMessage()));
+                            .value(PlaylistErrorCode.PLAYLIST_DELETE_FORBIDDEN.getMessage()));
         }
 
         @Test
