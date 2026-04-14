@@ -199,4 +199,44 @@ class FollowServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessage(FollowErrorCode.ERR_FOLLOW_NOT_FOUND.getMessage());
     }
+
+    // toggleNotification
+    @Test
+    @DisplayName("알림 설정 토글 성공 - true → false")
+    void toggleNotification_trueToFalse() {
+        // given
+        given(followRepository.findByUserIdAndArtistId(USER_ID, ARTIST_ID)).willReturn(Optional.of(mockFollow));
+
+        // when
+        followService.toggleNotification(USER_ID, ARTIST_ID);
+
+        // then
+        assertThat(mockFollow.getNotificationEnabled()).isFalse();
+    }
+
+    @Test
+    @DisplayName("알림 설정 토글 성공 - false → true")
+    void toggleNotification_falseToTrue() {
+        // given
+        given(followRepository.findByUserIdAndArtistId(USER_ID, ARTIST_ID)).willReturn(Optional.of(mockFollow));
+
+        // when
+        followService.toggleNotification(USER_ID, ARTIST_ID); // true → false
+        followService.toggleNotification(USER_ID, ARTIST_ID); // false → true
+
+        // then
+        assertThat(mockFollow.getNotificationEnabled()).isTrue();
+    }
+
+    @Test
+    @DisplayName("알림 설정 토글 실패 - 팔로우 없음")
+    void toggleNotification_notFound() {
+        // given
+        given(followRepository.findByUserIdAndArtistId(any(), any())).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> followService.toggleNotification(USER_ID, ARTIST_ID))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(FollowErrorCode.ERR_FOLLOW_NOT_FOUND.getMessage());
+    }
 }
