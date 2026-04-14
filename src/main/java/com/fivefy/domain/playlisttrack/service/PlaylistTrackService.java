@@ -55,7 +55,7 @@ public class PlaylistTrackService {
         Playlist playlist = playlistRepository.findByIdAndDeletedAtIsNull(playlistId)
                 .orElseThrow(() -> new BusinessException(PlaylistErrorCode.PLAYLIST_NOT_FOUND));
 
-        // 본인이 생성한 플레이리스트만 트랙 추가 가능
+        // 본인이 생성한 플레이리스트만 트랙 조회 가능
         if (!playlist.isOwner(userId)) {
             throw new BusinessException(PlaylistErrorCode.PLAYLIST_ACCESS_FORBIDDEN);
         }
@@ -95,10 +95,6 @@ public class PlaylistTrackService {
             return;
         }
 
-        // 유니크 제약 충돌 방지를 위해 대상 트랙을 임시 위치로 이동
-        target.updatePosition(-1);
-        playlistTrackRepository.flush();
-
         playlistTracks.remove(target);
         playlistTracks.add(newPosition - 1, target);
 
@@ -124,11 +120,18 @@ public class PlaylistTrackService {
 
         playlistTracks.remove(target);
         playlistTrackRepository.delete(target);
+        playlistTrackRepository.flush(); // 삭제 먼저 DB에 반영
 
         reorderPositions(playlistTracks);
     }
 
     private void reorderPositions(List<PlaylistTrack> playlistTracks) {
+        for (int i = 0; i < playlistTracks.size(); i++) {
+            playlistTracks.get(i).moveToTemporaryPosition(-(i + 1));
+        }
+
+        playlistTrackRepository.flush(); // 전부 -1로 먼저 반영
+
         for (int i = 0; i < playlistTracks.size(); i++) {
             playlistTracks.get(i).updatePosition(i + 1);
         }

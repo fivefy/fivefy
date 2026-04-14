@@ -56,6 +56,8 @@ public class Playlist extends BaseEntity {
     }
 
     public void update(String title, String description) {
+        validateNotDeleted();
+
         if (title == null || title.isBlank() || title.length() > 100) {
             throw new BusinessException(PlaylistErrorCode.INVALID_TITLE);
         }
@@ -65,6 +67,13 @@ public class Playlist extends BaseEntity {
     }
 
     public void delete() {
+        validateNotDeleted();
         this.deletedAt = LocalDateTime.now();
+    }
+
+    private void validateNotDeleted() {
+        if (this.deletedAt != null) {
+            throw new BusinessException(PlaylistErrorCode.ALREADY_DELETED_PLAYLIST);
+        }
     }
 }

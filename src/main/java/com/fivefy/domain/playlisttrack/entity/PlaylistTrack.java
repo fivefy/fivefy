@@ -2,6 +2,9 @@ package com.fivefy.domain.playlisttrack.entity;
 
 import com.fivefy.common.entity.BaseEntity;
 import static com.fivefy.common.util.ValidationUtils.validateNonNull;
+
+import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.playlist.enums.PlaylistErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -43,6 +46,15 @@ public class PlaylistTrack extends BaseEntity {
 
     public void updatePosition(Integer position) {
         validateNonNull(position, "position");
+
+        if (position <= 0) {
+            throw new BusinessException(PlaylistErrorCode.INVALID_POSITION);
+        }
+
         this.position = position;
+    }
+
+    public void moveToTemporaryPosition(int tempPosition) {
+        this.position = tempPosition;
     }
 }
