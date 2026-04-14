@@ -10,6 +10,7 @@ import com.fivefy.domain.playlisttrack.dto.response.PlaylistTrackResponse;
 import com.fivefy.domain.playlisttrack.entity.PlaylistTrack;
 import com.fivefy.domain.playlisttrack.repository.PlaylistTrackRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,9 +47,12 @@ public class PlaylistTrackService {
                 nextPosition
         );
 
-        PlaylistTrack savedPlaylistTrack = playlistTrackRepository.save(playlistTrack);
-
-        return PlaylistTrackResponse.from(savedPlaylistTrack);
+        try {
+            PlaylistTrack savedPlaylistTrack = playlistTrackRepository.save(playlistTrack);
+            return PlaylistTrackResponse.from(savedPlaylistTrack);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(PlaylistErrorCode.PLAYLIST_TRACK_POSITION_CONFLICT);
+        }
     }
 
     public List<PlaylistTrackResponse> getTracks(Long userId, Long playlistId) {
