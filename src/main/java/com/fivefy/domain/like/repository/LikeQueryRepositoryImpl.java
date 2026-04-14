@@ -51,6 +51,7 @@ public class LikeQueryRepositoryImpl implements LikeQueryRepository {
                         .and(like.targetType.eq(TargetType.ALBUM)))
                 .leftJoin(artist).on(artist.id.eq(track.artistId.coalesce(album.artistId)))
                 .where(condition)
+                .orderBy(like.createdAt.asc(), like.id.asc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
