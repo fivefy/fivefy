@@ -96,4 +96,62 @@ class FollowControllerTest {
                     .andExpect(jsonPath("$.message").value(FollowErrorCode.ERR_FOLLOW_ALREADY_EXISTS.getMessage()));
         }
     }
+
+    @Nested
+    @DisplayName("팔로우 목록 조회")
+    class GetFollows {
+
+        @Test
+        @DisplayName("팔로우 목록 조회 성공 시 200 반환")
+        void getFollows_success() throws Exception {
+            // given
+            FollowGetResponse followGetResponse = new FollowGetResponse(1L, ARTIST_ID, true);
+            PageImpl<FollowGetResponse> page = new PageImpl<>(
+                    List.of(followGetResponse), PageRequest.of(0, 20), 1
+            );
+
+            given(followService.getFollows(any(), any())).willReturn(page);
+
+            // when & then
+            mockMvc.perform(get("/api/follows")
+                            .param("page", "0")
+                            .param("size", "20"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("팔로우 목록 조회 성공"))
+                    .andExpect(jsonPath("$.data.content[0].artistId").value(ARTIST_ID))
+                    .andExpect(jsonPath("$.data.totalElements").value(1));
+        }
+    }
+
+    @Nested
+    @DisplayName("팔로우 취소")
+    class DeleteFollow {
+
+        @Test
+        @DisplayName("팔로우 취소 성공 시 200 반환")
+        void deleteFollow_success() throws Exception {
+            // given
+            doNothing().when(followService).deleteFollow(any(), eq(ARTIST_ID));
+
+            // when & then
+            mockMvc.perform(delete("/api/follows/{artistId}", ARTIST_ID))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("팔로우 취소 성공"));
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 팔로우 취소 시 404 반환")
+        void deleteFollow_notFound() throws Exception {
+            // given
+            doThrow(new BusinessException(FollowErrorCode.ERR_FOLLOW_NOT_FOUND))
+                    .when(followService).deleteFollow(any(), eq(ARTIST_ID));
+
+            // when & then
+            mockMvc.perform(delete("/api/follows/{artistId}", ARTIST_ID))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.message").value(FollowErrorCode.ERR_FOLLOW_NOT_FOUND.getMessage()));
+        }
+    }
 }
