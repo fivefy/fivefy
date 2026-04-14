@@ -1,6 +1,7 @@
 package com.fivefy.domain.playlisttrack.service;
 
 import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.playlist.enums.PlaylistErrorCode;
 import com.fivefy.domain.playlisttrack.dto.request.PlaylistTrackCreateRequest;
 import com.fivefy.domain.playlisttrack.dto.request.PlaylistTrackOrderUpdateRequest;
 import com.fivefy.domain.playlisttrack.dto.response.PlaylistTrackResponse;
@@ -22,9 +23,10 @@ public class PlaylistTrackService {
     private final PlaylistTrackRepository playlistTrackRepository;
 
     @Transactional
-    public void addTrack(Long playlistId, PlaylistTrackCreateRequest request) {
+    public PlaylistTrackResponse addTrack(Long playlistId, PlaylistTrackCreateRequest request) {
+        // 동일한 플레이리스트에 같은 트랙이 이미 존재하는지 검사
         if (playlistTrackRepository.existsByPlaylistIdAndTrackId(playlistId, request.trackId())) {
-            throw new BusinessException(PLAYLIST_TRACK_ALREADY_EXISTS);
+            throw new BusinessException(PlaylistErrorCode.PLAYLIST_TRACK_ALREADY_EXISTS);
         }
 
         int nextPosition = playlistTrackRepository.countByPlaylistId(playlistId) + 1;
@@ -35,7 +37,9 @@ public class PlaylistTrackService {
                 nextPosition
         );
 
-        playlistTrackRepository.save(playlistTrack);
+        PlaylistTrack savedPlaylistTrack = playlistTrackRepository.save(playlistTrack);
+
+        return PlaylistTrackResponse.from(savedPlaylistTrack);
     }
 
     public List<PlaylistTrackResponse> getTracks(Long playlistId) {
@@ -52,12 +56,13 @@ public class PlaylistTrackService {
         PlaylistTrack target = playlistTracks.stream()
                 .filter(playlistTrack -> playlistTrack.getTrackId().equals(request.trackId()))
                 .findFirst()
-                .orElseThrow(() -> new BusinessException(PLAYLIST_TRACK_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(PlaylistErrorCode.PLAYLIST_TRACK_NOT_FOUND));
 
         int newPosition = request.position();
 
+        // 변경할 순서가 유효한 범위인지 검사
         if (newPosition < 1 || newPosition > playlistTracks.size()) {
-            throw new BusinessException(INVALID_PLAYLIST_TRACK_POSITION);
+            throw new BusinessException(PlaylistErrorCode.INVALID_PLAYLIST_TRACK_POSITION);
         }
 
         playlistTracks.remove(target);
@@ -75,7 +80,7 @@ public class PlaylistTrackService {
         PlaylistTrack target = playlistTracks.stream()
                 .filter(playlistTrack -> playlistTrack.getTrackId().equals(trackId))
                 .findFirst()
-                .orElseThrow(() -> new BusinessException(PLAYLIST_TRACK_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(PlaylistErrorCode.PLAYLIST_TRACK_NOT_FOUND));
 
         playlistTracks.remove(target);
         playlistTrackRepository.delete(target);
