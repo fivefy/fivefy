@@ -40,4 +40,9 @@ public class PlaylistTrack extends BaseEntity {
 
         return playlistTrack;
     }
+
+    public void updatePosition(Integer position) {
+        validateNonNull(position, "position");
+        this.position = position;
+    }
 }
