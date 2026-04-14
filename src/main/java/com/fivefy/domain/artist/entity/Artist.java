@@ -2,7 +2,7 @@ package com.fivefy.domain.artist.entity;
 
 import com.fivefy.common.entity.BaseEntity;
 import com.fivefy.common.exception.BusinessException;
-import com.fivefy.domain.artist.enums.ArtistExceptionEnum;
+import com.fivefy.domain.artist.enums.ArtistErrorCode;
 import com.fivefy.domain.artist.enums.ArtistStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -16,7 +16,12 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
 @Getter
 @Entity
-@Table(name = "artists")
+@Table(
+        name = "artists",
+        indexes = {
+                @Index(name = "idx_artist_owner_user_id", columnList = "owner_user_id")
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Artist extends BaseEntity {
 
@@ -82,7 +87,7 @@ public class Artist extends BaseEntity {
         validateNotDeleted();
 
         if (this.status == ArtistStatus.SUSPENDED) {
-            throw new BusinessException(ArtistExceptionEnum.ERR_ARTIST_ALREADY_SUSPENDED);
+            throw new BusinessException(ArtistErrorCode.ERR_ARTIST_ALREADY_SUSPENDED);
         }
         this.status = ArtistStatus.SUSPENDED;
     }
@@ -91,14 +96,14 @@ public class Artist extends BaseEntity {
         validateNotDeleted();
 
         if (this.status == ArtistStatus.ACTIVE) {
-            throw new BusinessException(ArtistExceptionEnum.ERR_ARTIST_ALREADY_ACTIVATED);
+            throw new BusinessException(ArtistErrorCode.ERR_ARTIST_ALREADY_ACTIVATED);
         }
         this.status = ArtistStatus.ACTIVE;
     }
 
     public void softDelete() {
         if (this.deletedAt != null) {
-            throw new BusinessException(ArtistExceptionEnum.ERR_ARTIST_ALREADY_DELETED);
+            throw new BusinessException(ArtistErrorCode.ERR_ARTIST_ALREADY_DELETED);
         }
         this.deletedAt = LocalDateTime.now();
     }
@@ -110,7 +115,7 @@ public class Artist extends BaseEntity {
 
     private void validateNotDeleted() {
         if (this.deletedAt != null) {
-            throw new BusinessException(ArtistExceptionEnum.ERR_DELETED_ARTIST_CANNOT_BE_UPDATED);
+            throw new BusinessException(ArtistErrorCode.ERR_DELETED_ARTIST_CANNOT_BE_UPDATED);
         }
     }
 }

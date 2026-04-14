@@ -3,7 +3,7 @@ package com.fivefy.domain.artist.entity;
 import com.fivefy.common.entity.BaseEntity;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
-import com.fivefy.domain.artist.enums.ArtistApplicationExceptionEnum;
+import com.fivefy.domain.artist.enums.ArtistApplicationErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -16,7 +16,13 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
 @Getter
 @Entity
-@Table(name = "artist_applications")
+@Table(
+        name = "artist_applications",
+        indexes = {
+                @Index(name = "idx_artist_application_requester_user_id", columnList = "requester_user_id"),
+                @Index(name = "idx_artist_application_status", columnList = "status")
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ArtistApplication extends BaseEntity {
 
@@ -97,7 +103,7 @@ public class ArtistApplication extends BaseEntity {
     private void validatePending() {
         if (this.status != ApplicationStatus.PENDING) {
             throw new BusinessException(
-                    ArtistApplicationExceptionEnum.ERR_ARTIST_APPLICATION_ALREADY_PROCESSED);
+                    ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_PROCESSED);
         }
     }
 }

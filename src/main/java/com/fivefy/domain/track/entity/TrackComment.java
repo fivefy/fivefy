@@ -2,7 +2,7 @@ package com.fivefy.domain.track.entity;
 
 import com.fivefy.common.entity.BaseEntity;
 import com.fivefy.common.exception.BusinessException;
-import com.fivefy.domain.track.enums.TrackCommentExceptionEnum;
+import com.fivefy.domain.track.enums.TrackCommentErrorCode;
 import com.fivefy.domain.track.enums.TrackCommentStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -16,7 +16,13 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
 @Getter
 @Entity
-@Table(name = "track_comments")
+@Table(
+        name = "track_comments",
+        indexes = {
+                @Index(name = "idx_track_comment_track_id", columnList = "track_id"),
+                @Index(name = "idx_track_comment_user_id", columnList = "user_id")
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class TrackComment extends BaseEntity {
 
@@ -24,22 +30,24 @@ public class TrackComment extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(nullable = false)
+    @Column(name = "track_id", nullable = false)
     private Long trackId;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "status", nullable = false)
     private TrackCommentStatus status;
 
     @LastModifiedDate
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
     public static TrackComment create(Long userId, Long trackId, String content) {
@@ -65,9 +73,8 @@ public class TrackComment extends BaseEntity {
 
     public void softDelete() {
         if (this.deletedAt != null) {
-            throw new BusinessException(TrackCommentExceptionEnum.ERR_TRACK_COMMENT_ALREADY_DELETED);
+            throw new BusinessException(TrackCommentErrorCode.ERR_TRACK_COMMENT_ALREADY_DELETED);
         }
-        this.status = TrackCommentStatus.DELETED;
         this.deletedAt = LocalDateTime.now();
     }
 
@@ -79,7 +86,7 @@ public class TrackComment extends BaseEntity {
 
     private void validateNotDeleted() {
         if (this.deletedAt != null) {
-            throw new BusinessException(TrackCommentExceptionEnum.ERR_DELETED_TRACK_COMMENT_CANNOT_BE_UPDATED);
+            throw new BusinessException(TrackCommentErrorCode.ERR_DELETED_TRACK_COMMENT_CANNOT_BE_UPDATED);
         }
     }
 }

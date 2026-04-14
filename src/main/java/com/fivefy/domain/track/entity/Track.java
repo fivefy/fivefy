@@ -2,7 +2,7 @@ package com.fivefy.domain.track.entity;
 
 import com.fivefy.common.entity.BaseEntity;
 import com.fivefy.common.exception.BusinessException;
-import com.fivefy.domain.track.enums.TrackExceptionEnum;
+import com.fivefy.domain.track.enums.TrackErrorCode;
 import com.fivefy.domain.track.enums.TrackStatus;
 import com.fivefy.domain.track.enums.TrackType;
 import jakarta.persistence.*;
@@ -17,7 +17,15 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
 @Getter
 @Entity
-@Table(name = "tracks")
+@Table(
+        name = "tracks",
+        indexes = {
+                @Index(name = "idx_track_owner_user_id", columnList = "owner_user_id"),
+                @Index(name = "idx_track_artist_id", columnList = "artist_id"),
+                @Index(name = "idx_track_album_id", columnList = "album_id"),
+                @Index(name = "idx_track_status", columnList = "status")
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Track extends BaseEntity {
 
@@ -133,11 +141,11 @@ public class Track extends BaseEntity {
         validateNonNull(durationSec, "durationSec");
 
         if (trackNumber <= 0L) {
-            throw new BusinessException(TrackExceptionEnum.ERR_INVALID_TRACK_NUMBER);
+            throw new BusinessException(TrackErrorCode.ERR_INVALID_TRACK_NUMBER);
         }
 
         if (durationSec <= 0L) {
-            throw new BusinessException(TrackExceptionEnum.ERR_INVALID_DURATION_SEC);
+            throw new BusinessException(TrackErrorCode.ERR_INVALID_DURATION_SEC);
         }
 
         Track track = new Track();
@@ -164,7 +172,7 @@ public class Track extends BaseEntity {
         validateNotDeleted();
 
         if (this.status == TrackStatus.PUBLISHED) {
-            throw new BusinessException(TrackExceptionEnum.ERR_TRACK_ALREADY_PUBLISHED);
+            throw new BusinessException(TrackErrorCode.ERR_TRACK_ALREADY_PUBLISHED);
         }
         this.status = TrackStatus.PUBLISHED;
         this.publishedAt = LocalDateTime.now();
@@ -174,7 +182,7 @@ public class Track extends BaseEntity {
         validateNotDeleted();
 
         if (this.status == TrackStatus.BLOCKED) {
-            throw new BusinessException(TrackExceptionEnum.ERR_TRACK_ALREADY_BLOCKED);
+            throw new BusinessException(TrackErrorCode.ERR_TRACK_ALREADY_BLOCKED);
         }
         this.status = TrackStatus.BLOCKED;
     }
@@ -183,14 +191,14 @@ public class Track extends BaseEntity {
         validateNotDeleted();
 
         if (this.status != TrackStatus.PUBLISHED) {
-            throw new BusinessException(TrackExceptionEnum.ERR_TRACK_NOT_PUBLISHED);
+            throw new BusinessException(TrackErrorCode.ERR_TRACK_NOT_PUBLISHED);
         }
         this.playCount++;
     }
 
     public void softDelete() {
         if (this.deletedAt != null) {
-            throw new BusinessException(TrackExceptionEnum.ERR_TRACK_ALREADY_DELETED);
+            throw new BusinessException(TrackErrorCode.ERR_TRACK_ALREADY_DELETED);
         }
         this.deletedAt = LocalDateTime.now();
     }
@@ -210,7 +218,7 @@ public class Track extends BaseEntity {
 
     private void validateNotDeleted() {
         if (this.deletedAt != null) {
-            throw new BusinessException(TrackExceptionEnum.ERR_DELETED_TRACK_CANNOT_BE_UPDATED);
+            throw new BusinessException(TrackErrorCode.ERR_DELETED_TRACK_CANNOT_BE_UPDATED);
         }
     }
 }

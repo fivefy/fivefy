@@ -3,7 +3,7 @@ package com.fivefy.domain.track.entity;
 import com.fivefy.common.entity.BaseEntity;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
-import com.fivefy.domain.track.enums.TrackReleaseExceptionEnum;
+import com.fivefy.domain.track.enums.TrackReleaseErrorCode;
 import com.fivefy.domain.track.enums.TrackType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -17,7 +17,15 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
 @Getter
 @Entity
-@Table(name = "track_release_requests")
+@Table(
+        name = "track_release_requests",
+        indexes = {
+                @Index(name = "idx_track_release_request_requester_user_id", columnList = "requester_user_id"),
+                @Index(name = "idx_track_release_request_artist_id", columnList = "artist_id"),
+                @Index(name = "idx_track_release_request_album_id", columnList = "album_id"),
+                @Index(name = "idx_track_release_request_status", columnList = "status")
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class TrackReleaseRequest extends BaseEntity {
 
@@ -143,7 +151,7 @@ public class TrackReleaseRequest extends BaseEntity {
 
     private void validatePending() {
         if (this.status != ApplicationStatus.PENDING) {
-            throw new BusinessException(TrackReleaseExceptionEnum.ERR_TRACK_RELEASE_ALREADY_PROCESSED);
+            throw new BusinessException(TrackReleaseErrorCode.ERR_TRACK_RELEASE_ALREADY_PROCESSED);
         }
     }
 }
