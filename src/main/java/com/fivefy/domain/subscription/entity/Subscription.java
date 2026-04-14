@@ -71,13 +71,15 @@ public class Subscription extends BaseEntity {
         return subscription;
     }
 
-    /**
-         * 구독 환불 - 포인트 반환 대상
+        /**
+         * 구독 환불 - 포인트 반환 대상(비활성 구독)
          */
         public void refund() {
-            if (this.status != SubscriptionStatus.ACTIVE) {
+            // 활성화 거르기
+            if (this.status == SubscriptionStatus.ACTIVE) {
                 throw new BusinessException(ERR_TYPE_BAD_REQUEST);
             }
+            // 환불 시 타입 변경
             this.status = SubscriptionStatus.CANCELED;
             this.nextBillingDate = null;
         }
@@ -86,8 +88,8 @@ public class Subscription extends BaseEntity {
          * 구독 취소 - 다음 결제 중단, 만료일까지는 이용 가능
          */
         public void cancel() {
-            if (this.status != SubscriptionStatus.ACTIVE) {
-                throw new IllegalStateException("활성 상태인 구독만 취소할 수 있습니다. 현재 상태: " + this.status);
+            if (this.status != SubscriptionStatus.INACTIVE) {
+                throw new IllegalStateException("비활성 상태인 구독만 취소할 수 있습니다. 현재 상태: " + this.status);
             }
             this.status = SubscriptionStatus.CANCELED;
             this.nextBillingDate = null;
