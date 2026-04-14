@@ -272,6 +272,23 @@ class PlaylistControllerTest {
         }
 
         @Test
+        @DisplayName("존재하지 않는 플레이리스트 수정 시 404 반환")
+        void updatePlaylistNotFound() throws Exception {
+            // given
+            PlaylistUpdateRequest request = new PlaylistUpdateRequest("수정 제목", "설명");
+
+            given(playlistService.updatePlaylist(any(), eq(1L), any(PlaylistUpdateRequest.class)))
+                    .willThrow(new BusinessException(PlaylistErrorCode.PLAYLIST_NOT_FOUND));
+
+            // when & then
+            mockMvc.perform(patch("/api/playlists/1")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.message").value(PlaylistErrorCode.PLAYLIST_NOT_FOUND.getMessage()));
+        }
+
+        @Test
         @DisplayName("중복 제목으로 수정 시 409 반환")
         void updatePlaylistDuplicateName() throws Exception {
             // given
