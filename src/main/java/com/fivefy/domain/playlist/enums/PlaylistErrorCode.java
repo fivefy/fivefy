@@ -17,9 +17,10 @@ public enum PlaylistErrorCode implements ErrorCode {
     PLAYLIST_DELETE_FORBIDDEN(HttpStatus.FORBIDDEN, "플레이리스트 삭제 권한이 없습니다"),
 
     // PlaylistTrack
-    PLAYLIST_TRACK_NOT_FOUND(HttpStatus.NOT_FOUND, "플레이리스트 트랙을 찾을 수 없습니다."),
-    PLAYLIST_TRACK_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 플레이리스트에 추가된 트랙입니다."),
-    INVALID_PLAYLIST_TRACK_POSITION(HttpStatus.BAD_REQUEST, "유효하지 않은 트랙 순서입니다.");
+    PLAYLIST_ACCESS_FORBIDDEN(HttpStatus.FORBIDDEN, "플레이리스트에 대한 권한이 없습니다"),
+    PLAYLIST_TRACK_NOT_FOUND(HttpStatus.NOT_FOUND, "플레이리스트 트랙을 찾을 수 없습니다"),
+    PLAYLIST_TRACK_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 플레이리스트에 추가된 트랙입니다"),
+    INVALID_PLAYLIST_TRACK_POSITION(HttpStatus.BAD_REQUEST, "유효하지 않은 트랙 순서입니다");
 
     private final HttpStatus httpStatus;
     private final String message;
