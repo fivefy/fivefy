@@ -2,7 +2,7 @@ package com.fivefy.domain.follow.service;
 
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.artist.entity.Artist;
-import com.fivefy.domain.artist.enums.ArtistExceptionEnum;
+import com.fivefy.domain.artist.enums.ArtistErrorCode;
 import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.follow.dto.response.FollowCreateResponse;
 import com.fivefy.domain.follow.dto.response.FollowGetResponse;
@@ -18,8 +18,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -82,7 +80,7 @@ public class FollowService {
 
     private Artist getArtist(Long artistId) {
         return artistRepository.findById(artistId)
-                .orElseThrow(() -> new BusinessException(ArtistExceptionEnum.ERR_ARTIST_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND));
     }
 
     // 권한 체크

@@ -3,7 +3,7 @@ package com.fivefy.domain.album.entity;
 import com.fivefy.common.entity.BaseEntity;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
-import com.fivefy.domain.album.enums.AlbumReleaseExceptionEnum;
+import com.fivefy.domain.album.enums.AlbumReleaseErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -16,7 +16,14 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
 @Getter
 @Entity
-@Table(name = "album_release_requests")
+@Table(
+        name = "album_release_requests",
+        indexes = {
+                @Index(name = "idx_album_release_request_requester_user_id", columnList = "requester_user_id"),
+                @Index(name = "idx_album_release_request_artist_id", columnList = "artist_id"),
+                @Index(name = "idx_album_release_request_status", columnList = "status")
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class AlbumReleaseRequest extends BaseEntity {
 
@@ -114,7 +121,7 @@ public class AlbumReleaseRequest extends BaseEntity {
     private void validatePending() {
         if (this.status != ApplicationStatus.PENDING) {
             throw new BusinessException(
-                    AlbumReleaseExceptionEnum.ERR_ALBUM_RELEASE_ALREADY_PROCESSED);
+                    AlbumReleaseErrorCode.ERR_ALBUM_RELEASE_ALREADY_PROCESSED);
         }
     }
 }

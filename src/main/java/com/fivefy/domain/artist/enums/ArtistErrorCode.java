@@ -5,7 +5,7 @@ import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
 @Getter
-public enum ArtistExceptionEnum implements ErrorCode {
+public enum ArtistErrorCode implements ErrorCode {
     ERR_ARTIST_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 아티스트입니다"),
     ERR_ARTIST_ALREADY_SUSPENDED(HttpStatus.BAD_REQUEST, "이미 정지된 아티스트입니다"),
     ERR_ARTIST_ALREADY_ACTIVATED(HttpStatus.BAD_REQUEST, "이미 활성화된 아티스트입니다"),
@@ -15,7 +15,7 @@ public enum ArtistExceptionEnum implements ErrorCode {
     private final HttpStatus httpStatus;
     private final String message;
 
-    ArtistExceptionEnum(HttpStatus httpStatus, String message) {
+    ArtistErrorCode(HttpStatus httpStatus, String message) {
         this.httpStatus = httpStatus;
         this.message = message;
     }

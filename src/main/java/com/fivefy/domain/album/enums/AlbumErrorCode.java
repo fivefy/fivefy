@@ -5,7 +5,7 @@ import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
 @Getter
-public enum AlbumExceptionEnum implements ErrorCode {
+public enum AlbumErrorCode implements ErrorCode {
     ERR_ALBUM_ALREADY_PUBLISHED(HttpStatus.BAD_REQUEST, "이미 발매된 앨범입니다"),
     ERR_ALBUM_ALREADY_BLOCKED(HttpStatus.BAD_REQUEST, "이미 차단된 앨범입니다"),
     ERR_ALBUM_ALREADY_DELETED(HttpStatus.BAD_REQUEST, "이미 삭제된 앨범입니다"),
@@ -16,7 +16,7 @@ public enum AlbumExceptionEnum implements ErrorCode {
     private final HttpStatus httpStatus;
     private final String message;
 
-    AlbumExceptionEnum(HttpStatus httpStatus, String message) {
+    AlbumErrorCode(HttpStatus httpStatus, String message) {
         this.httpStatus = httpStatus;
         this.message = message;
     }

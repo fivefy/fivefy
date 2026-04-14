@@ -2,7 +2,7 @@ package com.fivefy.domain.album.entity;
 
 import com.fivefy.common.entity.BaseEntity;
 import com.fivefy.common.exception.BusinessException;
-import com.fivefy.domain.album.enums.AlbumExceptionEnum;
+import com.fivefy.domain.album.enums.AlbumErrorCode;
 import com.fivefy.domain.album.enums.AlbumStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -16,7 +16,13 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
 @Getter
 @Entity
-@Table(name = "albums")
+@Table(
+        name = "albums",
+        indexes = {
+                @Index(name = "idx_album_artist_id", columnList = "artist_id"),
+                @Index(name = "idx_album_status", columnList = "status")
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Album extends BaseEntity {
 
@@ -93,7 +99,7 @@ public class Album extends BaseEntity {
         validateNotDeleted();
 
         if (status == AlbumStatus.PUBLISHED) {
-            throw new BusinessException(AlbumExceptionEnum.ERR_ALBUM_ALREADY_PUBLISHED);
+            throw new BusinessException(AlbumErrorCode.ERR_ALBUM_ALREADY_PUBLISHED);
         }
         this.status = AlbumStatus.PUBLISHED;
         this.publishedAt = LocalDateTime.now();
@@ -103,7 +109,7 @@ public class Album extends BaseEntity {
         validateNotDeleted();
 
         if (status == AlbumStatus.BLOCKED) {
-            throw new BusinessException(AlbumExceptionEnum.ERR_ALBUM_ALREADY_BLOCKED);
+            throw new BusinessException(AlbumErrorCode.ERR_ALBUM_ALREADY_BLOCKED);
         }
         this.status = AlbumStatus.BLOCKED;
     }
@@ -114,11 +120,11 @@ public class Album extends BaseEntity {
         validateNotDeleted();
 
         if (trackCount < 0L) {
-            throw new BusinessException(AlbumExceptionEnum.ERR_INVALID_TRACK_COUNT);
+            throw new BusinessException(AlbumErrorCode.ERR_INVALID_TRACK_COUNT);
         }
 
         if (totalDurationSec < 0L) {
-            throw new BusinessException(AlbumExceptionEnum.ERR_INVALID_TOTAL_DURATION_SEC);
+            throw new BusinessException(AlbumErrorCode.ERR_INVALID_TOTAL_DURATION_SEC);
         }
 
         this.trackCount = trackCount;
@@ -127,14 +133,14 @@ public class Album extends BaseEntity {
 
     public void softDelete() {
         if (this.deletedAt != null) {
-            throw new BusinessException(AlbumExceptionEnum.ERR_ALBUM_ALREADY_DELETED);
+            throw new BusinessException(AlbumErrorCode.ERR_ALBUM_ALREADY_DELETED);
         }
         this.deletedAt = LocalDateTime.now();
     }
 
     private void validateNotDeleted() {
         if (this.deletedAt != null) {
-            throw new BusinessException(AlbumExceptionEnum.ERR_DELETED_ALBUM_CANNOT_BE_UPDATED);
+            throw new BusinessException(AlbumErrorCode.ERR_DELETED_ALBUM_CANNOT_BE_UPDATED);
         }
     }
 }
