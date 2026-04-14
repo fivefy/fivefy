@@ -196,7 +196,7 @@ VALUES
 (4, 6, 'OFFICIAL_RELEASE', 1, 8, 1, 'Aurora Borealis', NULL, 'ELECTRONIC', 'https://audio.music.com/req/4.mp3', 280, NULL, '2025-03-01 00:00:00', 'PENDING', NULL, NULL, NULL, '2025-01-16 10:00:00', '2025-01-16 10:00:00');
 
 -- ================================================================
--- 7. tracks (50개)
+-- 7. tracks (53개)
 -- ================================================================
 TRUNCATE TABLE tracks;
 
@@ -262,7 +262,12 @@ VALUES
 (47, 26,'FREE_CREATION', NULL, NULL, NULL, 'Rainy Day',      NULL,                          'AMBIENT',      'https://audio.music.com/47.mp3', 312, NULL, 'PUBLISHED', NULL, '2024-11-20 00:00:00', 680,  '2024-11-20 10:00:00', NOW(), NULL),
 (48, 27,'FREE_CREATION', NULL, NULL, NULL, '첫 눈',          '첫 눈이 내리는 날',           'INDIE',        'https://audio.music.com/48.mp3', 202, NULL, 'PUBLISHED', NULL, '2024-12-01 00:00:00', 1400, '2024-12-01 10:00:00', NOW(), NULL),
 (49, 28,'FREE_CREATION', NULL, NULL, NULL, '별 헤는 밤',     NULL,                          'INDIE',        'https://audio.music.com/49.mp3', 218, NULL, 'PUBLISHED', NULL, '2024-12-10 00:00:00', 1100, '2024-12-10 10:00:00', NOW(), NULL),
-(50, 29,'FREE_CREATION', NULL, NULL, NULL, 'Loop Study',     NULL,                          'ELECTRONIC',   'https://audio.music.com/50.mp3', 180, NULL, 'PUBLISHED', NULL, '2025-01-05 00:00:00', 890,  '2025-01-05 10:00:00', NOW(), NULL);
+(50, 29,'FREE_CREATION', NULL, NULL, NULL, 'Loop Study',     NULL,                          'ELECTRONIC',   'https://audio.music.com/50.mp3', 180, NULL, 'PUBLISHED', NULL, '2025-01-05 00:00:00', 890,  '2025-01-05 10:00:00', NOW(), NULL),
+-- 앨범 8 (에코 - Hidden Tracks)
+(51, 8,'OFFICIAL_RELEASE', 3, 9, 1, 'Blinding Lights',          '바람아 불어라',           'INDIE',        'https://audio.music.com/51.mp3', 210, NULL, 'BLOCKED', NULL, NULL, 0, '2024-11-20 10:00:00', NOW(), NULL),
+(52, 8,'OFFICIAL_RELEASE', 3, 9, 2, 'Shape of You',     '조각같은 너',                          'INDIE',        'https://audio.music.com/52.mp3', 240, NULL, 'BLOCKED', NULL, NULL, 0, '2024-11-20 10:00:00', NOW(), NULL),
+(53, 8,'OFFICIAL_RELEASE', 3, 9, 3, 'Yesterday',     '어제로 돌아가자',                          'ELECTRONIC',   'https://audio.music.com/53.mp3', 270, NULL, 'BLOCKED', NULL, NULL, 0,  '2024-11-20 10:00:00', NOW(), NULL);
+
 
 -- ================================================================
 -- 8. subscriptions (60건 — 기본 status: TRIAL)
@@ -355,12 +360,20 @@ BEGIN
     DECLARE uid BIGINT;
     DECLARE tid BIGINT;
     DECLARE dur INT;
+    DECLARE track_dur INT;
     DECLARE stat VARCHAR(20);
     WHILE i <= 500 DO
             SET uid  = 15 + FLOOR(RAND() * 96);
             SET tid  = 1  + FLOOR(RAND() * 40);
-            SET dur  = FLOOR(RAND() * 300) + 10;
+            SELECT duration_sec INTO track_dur
+            FROM tracks
+            WHERE id = tid;
             SET stat = ELT(1 + FLOOR(RAND() * 5), 'COMPLETE', 'COMPLETE', 'COMPLETE', 'STOP', 'SKIP');
+            SET dur  = IF(
+                    stat = 'COMPLETE',
+                    track_dur,
+                    LEAST(track_dur, FLOOR(RAND() * track_dur) + 1)
+                        );
             INSERT INTO playbacks (id, track_id, user_id, session_id, device_id, status, played_duration, played_at)
             VALUES (
                        i, tid, uid,
@@ -542,10 +555,10 @@ INSERT INTO popular_charts (id, track_id, chart_rank, play_count, snapshot_date)
 (4,  7,  4,  13400, '2025-01-13 00:00:00'),
 (5,  16, 5,  13400, '2025-01-13 00:00:00'),
 (6,  2,  6,  12300, '2025-01-13 00:00:00'),
-(7,  35, 7,  11500, '2025-01-13 00:00:00'),
-(8,  6,  8,  11200, '2025-01-13 00:00:00'),
-(9,  11, 9,   9800, '2025-01-13 00:00:00'),
-(10, 3,  10,  9300, '2025-01-13 00:00:00');
+(7,  6, 7,  11500, '2025-01-13 00:00:00'),
+(8,  35,  8,  11200, '2025-01-13 00:00:00'),
+(9,  3, 9,   9800, '2025-01-13 00:00:00'),
+(10, 11,  10,  9300, '2025-01-13 00:00:00');
 
 -- ================================================================
 -- 17. notifications
