@@ -1,7 +1,59 @@
 -- ================================================================
 -- 음악 구독 서비스 더미데이터
 -- 엔티티 최신화 반영 (영문 테이블명, ENUM, 컬럼명 변경)
+
+-- ⚠️  경고: 이 스크립트는 로컬 개발 전용입니다.
+--          stage / prod DB에서는 절대 실행하지 마세요.
+
+-- [WARNING] 본 스크립트는 MySQL 8.0 이상의 로컬 개발 환경 전용입니다.
+-- H2 및 자동화 테스트 환경(Spring Test)에서는 실행되지 않으며, 포함되어서도 안 됩니다.
+
 -- ================================================================
+
+-- ================================================================
+-- 로컬 DB 가드: DB명이 'fivefy_db'가 아니면 중단
+-- ================================================================
+
+DELIMITER $$
+DROP PROCEDURE IF EXISTS check_db_name $$
+CREATE PROCEDURE check_db_name()
+BEGIN
+    IF DATABASE() != 'fivefy_db' THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'ABORT: 로컬 DB(fivefy_db)에서만 실행 가능합니다.';
+    END IF;
+END $$
+DELIMITER ;
+-- 프로시저 실행
+CALL check_db_name();
+-- 실행 후 프로시저 삭제 (흔적 남기지 않음)
+DROP PROCEDURE IF EXISTS check_db_name;
+
+DELIMITER $$
+DROP PROCEDURE IF EXISTS check_safety_environment $$
+CREATE PROCEDURE check_safety_environment()
+BEGIN
+    DECLARE is_rds INT DEFAULT 0;
+    -- 1. RDS 호스트네임 체크
+    IF @@hostname LIKE '%.rds.amazonaws.com' THEN
+        SET is_rds = 1;
+    END IF;
+    -- 2. RDS이거나 DB 이름이 운영(fivefy_db가 아님)인 경우 에러 발생
+    IF is_rds = 1 OR DATABASE() != 'fivefy_db' THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = '⚠️ [ACCESS DENIED] 운영 환경 또는 RDS에서 더미 데이터 실행이 차단되었습니다.';
+    END IF;
+END $$
+DELIMITER ;
+-- 검사 실행
+CALL check_safety_environment();
+-- 검사 통과 시에만 아래 로직이 실행됨
+DROP PROCEDURE IF EXISTS check_safety_environment;
+
+-- ================================================================
+-- 트랜잭션 시작 (중간 실패 시 전체 롤백 보장)
+-- ================================================================
+START TRANSACTION;
 
 SET FOREIGN_KEY_CHECKS = 0;
 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
@@ -34,7 +86,8 @@ INSERT INTO users (id, email, password, name, role, status, last_active_at, crea
 
 -- 일반 유저 96명 (id 15~110)
 DELIMITER $$
-CREATE PROCEDURE IF NOT EXISTS insert_users()
+DROP PROCEDURE IF EXISTS insert_users $$
+CREATE PROCEDURE insert_users()
 BEGIN
     DECLARE i INT DEFAULT 15;
     WHILE i <= 110 DO
@@ -217,7 +270,8 @@ VALUES
 TRUNCATE TABLE subscriptions;
 
 DELIMITER $$
-CREATE PROCEDURE IF NOT EXISTS insert_subscriptions()
+DROP PROCEDURE IF EXISTS insert_subscriptions $$
+CREATE PROCEDURE insert_subscriptions()
 BEGIN
     DECLARE i INT DEFAULT 1;
     DECLARE uid INT;
@@ -249,7 +303,8 @@ TRUNCATE TABLE wallets;
 TRUNCATE TABLE point_histories;
 
 DELIMITER $$
-CREATE PROCEDURE IF NOT EXISTS insert_wallets()
+DROP PROCEDURE IF EXISTS insert_wallets $$
+CREATE PROCEDURE insert_wallets()
 BEGIN
     DECLARE i       INT    DEFAULT 1;
     DECLARE bal     BIGINT;
@@ -268,14 +323,14 @@ BEGIN
 
             IF bal > 0 THEN
                 INSERT INTO point_histories (id, point_id, pointtype, point_history_type, amount, balance_after, log_description, created_at)
-                VALUES (hist_id, i, 'PAID', 'USE', bal, bal, '포인트 충전',
+                VALUES (hist_id, i, 'PAID', 'CHARGE', bal, bal, '포인트 충전',
                         DATE_SUB(NOW(), INTERVAL FLOOR(RAND()*60) DAY));
                 SET hist_id = hist_id + 1;
             END IF;
 
             IF evt_bal > 0 THEN
                 INSERT INTO point_histories (id, point_id, pointtype, point_history_type, amount, balance_after, log_description, created_at)
-                VALUES (hist_id, i, 'FREE', 'USE', evt_bal, total, '신규 가입 이벤트 포인트',
+                VALUES (hist_id, i, 'FREE', 'CHARGE', evt_bal, total, '신규 가입 이벤트 포인트',
                         DATE_SUB(NOW(), INTERVAL FLOOR(RAND()*30) DAY));
                 SET hist_id = hist_id + 1;
             END IF;
@@ -293,7 +348,8 @@ DROP PROCEDURE IF EXISTS insert_wallets;
 TRUNCATE TABLE playbacks;
 
 DELIMITER $$
-CREATE PROCEDURE IF NOT EXISTS insert_playbacks()
+DROP PROCEDURE IF EXISTS insert_playbacks $$
+CREATE PROCEDURE insert_playbacks()
 BEGIN
     DECLARE i   INT DEFAULT 1;
     DECLARE uid BIGINT;
@@ -326,19 +382,24 @@ DROP PROCEDURE IF EXISTS insert_playbacks;
 TRUNCATE TABLE likes;
 
 DELIMITER $$
-CREATE PROCEDURE IF NOT EXISTS insert_likes()
+DROP PROCEDURE IF EXISTS insert_likes $$
+CREATE PROCEDURE insert_likes()
 BEGIN
-    DECLARE i     INT DEFAULT 1;
+    DECLARE next_id  INT DEFAULT 1;
+    DECLARE inserted INT DEFAULT 0;
     DECLARE uid   BIGINT;
     DECLARE tid   BIGINT;
     DECLARE ttype VARCHAR(10);
-    WHILE i <= 300 DO
+    WHILE inserted < 300 DO
             SET uid   = 15 + FLOOR(RAND() * 96);
             SET ttype = IF(RAND() < 0.8, 'TRACK', 'ALBUM');
             SET tid   = IF(ttype='TRACK', 1 + FLOOR(RAND()*40), 1 + FLOOR(RAND()*7));
             INSERT IGNORE INTO likes (id, user_id, target_id, target_type, created_at)
-            VALUES (i, uid, tid, ttype, DATE_SUB(NOW(), INTERVAL FLOOR(RAND()*90) DAY));
-            SET i = i + 1;
+            VALUES (next_id, uid, tid, ttype, DATE_SUB(NOW(), INTERVAL FLOOR(RAND()*90) DAY));
+            SET next_id = next_id + 1;
+            IF ROW_COUNT() = 1 THEN
+                SET inserted = inserted + 1;
+            END IF;
         END WHILE;
 END $$
 DELIMITER ;
@@ -363,7 +424,8 @@ INSERT INTO track_comments (id, user_id, track_id, content, status, created_at, 
 (10, 29, 36, '이 베이스라인... 귀에서 안 떠나요.',            'PUBLISHED',   '2024-10-08 22:00:00', NOW(),                 '2025-01-10 09:00:00');
 
 DELIMITER $$
-CREATE PROCEDURE IF NOT EXISTS insert_more_comments()
+DROP PROCEDURE IF EXISTS insert_more_comments $$
+CREATE PROCEDURE insert_more_comments()
 BEGIN
     DECLARE i        INT DEFAULT 11;
     DECLARE uid      BIGINT;
@@ -391,17 +453,22 @@ DROP PROCEDURE IF EXISTS insert_more_comments;
 TRUNCATE TABLE follows;
 
 DELIMITER $$
-CREATE PROCEDURE IF NOT EXISTS insert_follows()
+DROP PROCEDURE IF EXISTS insert_follows $$
+CREATE PROCEDURE insert_follows()
 BEGIN
-    DECLARE i INT DEFAULT 1;
-    WHILE i <= 150 DO
+    DECLARE next_id  INT DEFAULT 1;
+    DECLARE inserted INT DEFAULT 0;
+    WHILE inserted < 150 DO
             INSERT IGNORE INTO follows (id, artist_id, user_id, notification_enabled, created_at)
-            VALUES (i,
+            VALUES (next_id,
                     1 + FLOOR(RAND() * 5),
                     15 + FLOOR(RAND() * 96),
                     RAND() < 0.7,
                     DATE_SUB(NOW(), INTERVAL FLOOR(RAND()*90) DAY));
-            SET i = i + 1;
+            SET next_id = next_id + 1;
+            IF ROW_COUNT() = 1 THEN
+                SET inserted = inserted + 1;
+            END IF;
         END WHILE;
 END $$
 DELIMITER ;
@@ -475,10 +542,10 @@ INSERT INTO popular_charts (id, track_id, chart_rank, play_count, snapshot_date)
 (4,  7,  4,  13400, '2025-01-13 00:00:00'),
 (5,  16, 5,  13400, '2025-01-13 00:00:00'),
 (6,  2,  6,  12300, '2025-01-13 00:00:00'),
-(7,  35, 7,  11200, '2025-01-13 00:00:00'),
-(8,  6,  8,  11500, '2025-01-13 00:00:00'),
-(9,  11, 9,   9300, '2025-01-13 00:00:00'),
-(10, 3,  10,  9800, '2025-01-13 00:00:00');
+(7,  35, 7,  11500, '2025-01-13 00:00:00'),
+(8,  6,  8,  11200, '2025-01-13 00:00:00'),
+(9,  11, 9,   9800, '2025-01-13 00:00:00'),
+(10, 3,  10,  9300, '2025-01-13 00:00:00');
 
 -- ================================================================
 -- 17. notifications
@@ -528,6 +595,11 @@ INSERT INTO recommendations (id, user_id, track_id, score, reason, created_at) V
 -- ================================================================
 SET FOREIGN_KEY_CHECKS = 1;
 SET UNIQUE_CHECKS = @OLD_UNIQUE_CHECKS;
+
+-- 모든 INSERT 성공 시 커밋
+-- 중간에 오류가 났다면 여기까지 도달하지 못하고 트랜잭션이 열린 채로 남음
+-- → 해당 세션 종료 시 자동 롤백됨
+COMMIT;
 
 -- 데이터 확인
 SELECT 'users'                AS 테이블, COUNT(*) AS 행수 FROM users
