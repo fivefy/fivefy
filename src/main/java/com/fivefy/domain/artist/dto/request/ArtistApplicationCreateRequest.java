@@ -13,13 +13,14 @@ public record ArtistApplicationCreateRequest(
         @Size(max = 100, message = "아티스트 이름은 100자 이하입니다")
         String requestedName,
 
+        @NotNull(message = "아티스트 타입은 필수입니다")
+        ArtistType artistType,
+
         @Size(max = 1000, message = "소개는 1000자 이하입니다")
         String bio,
 
         @Size(max = 255, message = "이미지 URL은 255자 이하입니다")
-        String profileImageUrl,
+        String profileImageUrl
 
-        @NotNull(message = "아티스트 타입은 필수입니다")
-        ArtistType artistType
 ) {
 }

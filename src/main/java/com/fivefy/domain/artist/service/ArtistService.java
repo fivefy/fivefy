@@ -49,9 +49,9 @@ public class ArtistService {
         ArtistApplication application = ArtistApplication.create(
                 userId,
                 request.requestedName(),
+                request.artistType(),
                 request.bio(),
-                request.profileImageUrl(),
-                request.artistType()
+                request.profileImageUrl()
         );
 
         // DB 저장
@@ -240,9 +240,9 @@ public class ArtistService {
         return Artist.create(
                 application.getRequesterUserId(),
                 application.getRequestedName(),
+                application.getArtistType(),
                 application.getBio(),
-                application.getProfileImageUrl(),
-                application.getArtistType()
+                application.getProfileImageUrl()
         );
     }
 

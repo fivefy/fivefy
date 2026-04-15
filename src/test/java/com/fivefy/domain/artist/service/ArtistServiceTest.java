@@ -70,9 +70,9 @@ class ArtistServiceTest {
             Long userId = 1L;
             ArtistApplicationCreateRequest request = new ArtistApplicationCreateRequest(
                     "아이유",
+                    ArtistType.SOLO,
                     "가수",
-                    "https://example.com/profile.jpg",
-                    ArtistType.SOLO
+                    "https://example.com/profile.jpg"
             );
 
             User user = mock(User.class);
@@ -82,9 +82,9 @@ class ArtistServiceTest {
             ArtistApplication savedApplication = ArtistApplication.create(
                     userId,
                     request.requestedName(),
+                    request.artistType(),
                     request.bio(),
-                    request.profileImageUrl(),
-                    request.artistType()
+                    request.profileImageUrl()
             );
 
             // 단위 테스트에서는 JPA auditing이 동작하지 않으므로 createdAt을 직접 주입한다.
@@ -123,9 +123,9 @@ class ArtistServiceTest {
             Long userId = 1L;
             ArtistApplicationCreateRequest request = new ArtistApplicationCreateRequest(
                     "아이유",
+                    ArtistType.SOLO,
                     "가수",
-                    "https://example.com/profile.jpg",
-                    ArtistType.SOLO
+                    "https://example.com/profile.jpg"
             );
 
             User user = mock(User.class);
@@ -164,16 +164,16 @@ class ArtistServiceTest {
             ArtistApplication firstApplication = ArtistApplication.create(
                     userId,
                     "아이유",
+                    ArtistType.SOLO,
                     "가수",
-                    "https://example.com/iu.jpg",
-                    ArtistType.SOLO
+                    "https://example.com/iu.jpg"
             );
             ArtistApplication secondApplication = ArtistApplication.create(
                     userId,
                     "아이유 밴드",
+                    ArtistType.COLLABORATION,
                     "프로젝트 아티스트",
-                    "https://example.com/band.jpg",
-                    ArtistType.COLLABORATION
+                    "https://example.com/band.jpg"
             );
 
             ReflectionTestUtils.setField(firstApplication, "id", 2L);
@@ -248,16 +248,16 @@ class ArtistServiceTest {
             ArtistApplication firstApplication = ArtistApplication.create(
                     1L,
                     "아이유",
+                    ArtistType.SOLO,
                     "가수",
-                    "https://example.com/iu.jpg",
-                    ArtistType.SOLO
+                    "https://example.com/iu.jpg"
             );
             ArtistApplication secondApplication = ArtistApplication.create(
                     2L,
                     "볼빨간사춘기",
+                    ArtistType.COLLABORATION,
                     "듀오",
-                    "https://example.com/bol4.jpg",
-                    ArtistType.COLLABORATION
+                    "https://example.com/bol4.jpg"
             );
 
             // 오래된 요청이 먼저 조회되도록 createdAt과 id를 직접 주입한다.
@@ -350,9 +350,9 @@ class ArtistServiceTest {
             ArtistApplication application = ArtistApplication.create(
                     1L,
                     "아이유",
+                    ArtistType.SOLO,
                     "가수",
-                    "https://example.com/iu.jpg",
-                    ArtistType.SOLO
+                    "https://example.com/iu.jpg"
             );
 
             ReflectionTestUtils.setField(application, "id", 1L);
@@ -392,9 +392,9 @@ class ArtistServiceTest {
             ArtistApplication application = ArtistApplication.create(
                     userId,
                     "아이유",
+                    ArtistType.SOLO,
                     "가수",
-                    "https://example.com/iu.jpg",
-                    ArtistType.SOLO
+                    "https://example.com/iu.jpg"
             );
 
             // 상세 조회 검증을 위해 엔티티 필드를 직접 주입한다.
@@ -444,9 +444,9 @@ class ArtistServiceTest {
             ArtistApplication application = ArtistApplication.create(
                     1L,
                     "아이유",
+                    ArtistType.SOLO,
                     "가수",
-                    "https://example.com/iu.jpg",
-                    ArtistType.SOLO
+                    "https://example.com/iu.jpg"
             );
 
             // 상세 조회 검증을 위해 엔티티 필드를 직접 주입한다.
@@ -489,9 +489,9 @@ class ArtistServiceTest {
             ArtistApplication application = ArtistApplication.create(
                     1L,
                     "아이유",
+                    ArtistType.SOLO,
                     "가수",
-                    "https://example.com/iu.jpg",
-                    ArtistType.SOLO
+                    "https://example.com/iu.jpg"
             );
 
             User user = mock(User.class);
@@ -545,18 +545,18 @@ class ArtistServiceTest {
             ArtistApplication application = ArtistApplication.create(
                     2L,
                     "아이유",
+                    ArtistType.SOLO,
                     "가수",
-                    "https://example.com/profile.jpg",
-                    ArtistType.SOLO
+                    "https://example.com/profile.jpg"
             );
             ReflectionTestUtils.setField(application, "id", applicationId);
 
             Artist savedArtist = Artist.create(
                     application.getRequesterUserId(),
                     application.getRequestedName(),
+                    application.getArtistType(),
                     application.getBio(),
-                    application.getProfileImageUrl(),
-                    application.getArtistType()
+                    application.getProfileImageUrl()
             );
             ReflectionTestUtils.setField(savedArtist, "id", 100L);
 
@@ -590,9 +590,9 @@ class ArtistServiceTest {
             ArtistApplication application = ArtistApplication.create(
                     2L,
                     "아이유",
+                    ArtistType.SOLO,
                     "가수",
-                    "https://example.com/profile.jpg",
-                    ArtistType.SOLO
+                    "https://example.com/profile.jpg"
             );
             ReflectionTestUtils.setField(application, "id", applicationId);
             application.approve(adminId);
@@ -626,9 +626,9 @@ class ArtistServiceTest {
             ArtistApplication application = ArtistApplication.create(
                     2L,
                     "아이유",
+                    ArtistType.SOLO,
                     "가수",
-                    "https://example.com/profile.jpg",
-                    ArtistType.SOLO
+                    "https://example.com/profile.jpg"
             );
             ReflectionTestUtils.setField(application, "id", applicationId);
 
@@ -662,9 +662,9 @@ class ArtistServiceTest {
             ArtistApplication application = ArtistApplication.create(
                     2L,
                     "아이유",
+                    ArtistType.SOLO,
                     "가수",
-                    "https://example.com/profile.jpg",
-                    ArtistType.SOLO
+                    "https://example.com/profile.jpg"
             );
             ReflectionTestUtils.setField(application, "id", applicationId);
             application.reject(adminId, "기존 거절 사유");
@@ -699,16 +699,16 @@ class ArtistServiceTest {
             Artist firstArtist = Artist.create(
                     userId,
                     "아이유",
+                    ArtistType.SOLO,
                     "가수",
-                    "https://example.com/iu.jpg",
-                    ArtistType.SOLO
+                    "https://example.com/iu.jpg"
             );
             Artist secondArtist = Artist.create(
                     userId,
                     "아이유 밴드",
+                    ArtistType.COLLABORATION,
                     "프로젝트 아티스트",
-                    "https://example.com/band.jpg",
-                    ArtistType.COLLABORATION
+                    "https://example.com/band.jpg"
             );
 
             ReflectionTestUtils.setField(firstArtist, "id", 2L);

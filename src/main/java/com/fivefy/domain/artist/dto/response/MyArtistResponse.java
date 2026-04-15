@@ -10,9 +10,9 @@ import java.time.LocalDateTime;
 public record MyArtistResponse(
         Long artistId,
         String name,
+        String artistType,
         String bio,
         String profileImageUrl,
-        String artistType,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
@@ -20,9 +20,9 @@ public record MyArtistResponse(
         return new MyArtistResponse(
                 artist.getId(),
                 artist.getName(),
+                artist.getArtistType().name(),
                 artist.getBio(),
                 artist.getProfileImageUrl(),
-                artist.getArtistType().name(),
                 artist.getCreatedAt(),
                 artist.getUpdatedAt()
         );

@@ -36,15 +36,15 @@ public class Artist extends BaseEntity {
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "artist_type", nullable = false, length = 20)
+    private ArtistType artistType;
+
     @Column(name = "bio", columnDefinition = "TEXT")
     private String bio;
 
     @Column(name = "profile_image_url", length = 255)
     private String profileImageUrl;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "artist_type", nullable = false, length = 20)
-    private ArtistType artistType;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -60,9 +60,9 @@ public class Artist extends BaseEntity {
     public static Artist create(
             Long ownerUserId,
             String name,
+            ArtistType artistType,
             String bio,
-            String profileImageUrl,
-            ArtistType artistType
+            String profileImageUrl
     ) {
         validateNonNull(ownerUserId, "ownerUserId");
         validateNonNull(name, "name");
@@ -72,9 +72,9 @@ public class Artist extends BaseEntity {
 
         artist.ownerUserId = ownerUserId;
         artist.name = name;
+        artist.artistType = artistType;
         artist.bio = bio;
         artist.profileImageUrl = profileImageUrl;
-        artist.artistType = artistType;
         artist.status = ArtistStatus.ACTIVE;
 
         return artist;

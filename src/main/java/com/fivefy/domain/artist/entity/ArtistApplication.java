@@ -37,15 +37,15 @@ public class ArtistApplication extends BaseEntity {
     @Column(name = "requested_name", nullable = false, length = 100)
     private String requestedName;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "artist_type", nullable = false, length = 20)
+    private ArtistType artistType;
+
     @Column(name = "bio", columnDefinition = "TEXT")
     private String bio;
 
     @Column(name = "profile_image_url", length = 255)
     private String profileImageUrl;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "artist_type", nullable = false, length = 20)
-    private ArtistType artistType;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -67,9 +67,9 @@ public class ArtistApplication extends BaseEntity {
     public static ArtistApplication create(
             Long requesterUserId,
             String requestedName,
+            ArtistType artistType,
             String bio,
-            String profileImageUrl,
-            ArtistType artistType
+            String profileImageUrl
     ) {
         validateNonNull(requesterUserId, "requesterUserId");
         validateNonNull(requestedName, "requestedName");
@@ -79,9 +79,9 @@ public class ArtistApplication extends BaseEntity {
 
         application.requesterUserId = requesterUserId;
         application.requestedName = requestedName;
+        application.artistType = artistType;
         application.bio = bio;
         application.profileImageUrl = profileImageUrl;
-        application.artistType = artistType;
         application.status = ApplicationStatus.PENDING;
 
         return application;
