@@ -184,4 +184,19 @@ public class ArtistController {
                 BaseResponse.success(HttpStatus.OK, "아티스트 삭제 성공", null)
         );
     }
+
+    /**
+     * 아티스트 활성화 API
+     */
+    @PatchMapping("/artists/{artistId}/activate")
+    public ResponseEntity<BaseResponse<ArtistDetailResponse>> activateArtist(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long artistId
+    ) {
+        ArtistDetailResponse response = artistService.activateArtist(userId, artistId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                BaseResponse.success(HttpStatus.OK, "아티스트 활성화 성공", response)
+        );
+    }
 }

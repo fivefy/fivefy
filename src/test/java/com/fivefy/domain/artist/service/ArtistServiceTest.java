@@ -6,6 +6,7 @@ import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationCreateRequest;
 import com.fivefy.domain.artist.dto.request.ArtistProfileUpdateRequest;
 import com.fivefy.domain.artist.enums.ArtistErrorCode;
+import com.fivefy.domain.artist.enums.ArtistStatus;
 import com.fivefy.domain.artist.enums.ArtistType;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationRejectRequest;
 import com.fivefy.domain.artist.dto.response.*;
@@ -1139,6 +1140,124 @@ class ArtistServiceTest {
 
             // when & then
             assertThatThrownBy(() -> artistService.deleteArtist(userId, artistId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistErrorCode.ERR_FORBIDDEN_ARTIST_ACCESS.getMessage());
+
+            verify(artistRepository, times(1)).findById(artistId);
+        }
+    }
+
+    @Nested
+    @DisplayName("아티스트 활성화")
+    class ActivateArtist {
+
+        @Test
+        @DisplayName("비활성화된 아티스트는 활성화에 성공한다")
+        void activateArtist_success() {
+            // given
+            Long userId = 10L;
+            Long artistId = 1L;
+
+            Artist artist = Artist.create(
+                    userId,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/iu.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+            ReflectionTestUtils.setField(artist, "createdAt",
+                    LocalDateTime.of(2026, 4, 15, 10, 0, 0));
+            ReflectionTestUtils.setField(artist, "updatedAt",
+                    LocalDateTime.of(2026, 4, 15, 11, 0, 0));
+            artist.deactivate();
+
+            when(artistRepository.findById(artistId))
+                    .thenReturn(java.util.Optional.of(artist));
+
+            // when
+            ArtistDetailResponse response = artistService.activateArtist(userId, artistId);
+
+            // then
+            assertThat(response.artistId()).isEqualTo(artistId);
+            assertThat(response.name()).isEqualTo("아이유");
+            assertThat(response.artistType()).isEqualTo(ArtistType.SOLO.name());
+            assertThat(response.bio()).isEqualTo("가수");
+            assertThat(response.profileImageUrl()).isEqualTo("https://example.com/iu.jpg");
+            assertThat(response.createdAt()).isEqualTo(LocalDateTime.of(2026, 4, 15, 10, 0, 0));
+            assertThat(response.updatedAt()).isEqualTo(LocalDateTime.of(2026, 4, 15, 11, 0, 0));
+            assertThat(artist.getStatus()).isEqualTo(ArtistStatus.ACTIVE);
+
+            verify(artistRepository, times(1)).findById(artistId);
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 아티스트는 활성화할 수 없다")
+        void activateArtist_fail_whenArtistNotFound() {
+            // given
+            Long userId = 10L;
+            Long artistId = 1L;
+
+            when(artistRepository.findById(artistId))
+                    .thenReturn(java.util.Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> artistService.activateArtist(userId, artistId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
+
+            verify(artistRepository, times(1)).findById(artistId);
+        }
+
+        @Test
+        @DisplayName("이미 활성화된 아티스트는 다시 활성화할 수 없다")
+        void activateArtist_fail_whenAlreadyActive() {
+            // given
+            Long userId = 10L;
+            Long artistId = 1L;
+
+            Artist artist = Artist.create(
+                    userId,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/iu.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+
+            when(artistRepository.findById(artistId))
+                    .thenReturn(java.util.Optional.of(artist));
+
+            // when & then
+            assertThatThrownBy(() -> artistService.activateArtist(userId, artistId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistErrorCode.ERR_ARTIST_ALREADY_ACTIVATED.getMessage());
+
+            verify(artistRepository, times(1)).findById(artistId);
+        }
+
+        @Test
+        @DisplayName("아티스트 소유자가 아니면 활성화할 수 없다")
+        void activateArtist_fail_whenNotOwner() {
+            // given
+            Long userId = 99L;
+            Long artistId = 1L;
+
+            Artist artist = Artist.create(
+                    10L,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/iu.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+            artist.deactivate();
+
+            when(artistRepository.findById(artistId))
+                    .thenReturn(java.util.Optional.of(artist));
+
+            // when & then
+            assertThatThrownBy(() -> artistService.activateArtist(userId, artistId))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(ArtistErrorCode.ERR_FORBIDDEN_ARTIST_ACCESS.getMessage());
 

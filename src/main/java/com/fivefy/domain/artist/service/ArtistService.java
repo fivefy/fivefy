@@ -234,6 +234,24 @@ public class ArtistService {
     }
 
     /**
+     * 아티스트 활성화
+     */
+    @Transactional
+    public ArtistDetailResponse activateArtist(Long userId, Long artistId) {
+        // 활성화할 아티스트를 조회하고 삭제 여부를 검증한다.
+        Artist artist = findNotDeletedArtist(artistId);
+
+        // 아티스트 소유자만 활성화할 수 있다.
+        validateArtistOwner(userId, artist);
+
+        // 아티스트를 활성 상태로 변경한다.
+        artist.activate();
+
+        // 변경된 엔티티를 상세 응답 DTO로 변환해 반환한다.
+        return ArtistDetailResponse.from(artist);
+    }
+
+    /**
      * 동일 이름의 진행 중인 아티스트 등록 요청 중복 검증
      */
     private void validateDuplicateActiveApplication(Long userId, String requestedName, ArtistType artistType) {
