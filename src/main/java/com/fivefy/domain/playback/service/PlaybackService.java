@@ -27,6 +27,8 @@ public class PlaybackService {
 
     @Transactional
     public PlaybackResponse play(Long userId, PlaybackPlayRequest request) {
+        validatePlaylistTrackRelation(request.playlistId(), request.trackId());
+
         Playback playback = playbackRepository
                 .findTopByUserIdAndPlaylistIdAndTrackIdAndSessionIdOrderByIdDesc(
                         userId,
@@ -151,5 +153,11 @@ public class PlaybackService {
         }
 
         throw new BusinessException(PlaybackErrorCode.PLAYBACK_TRACK_MISMATCH);
+    }
+
+    private void validatePlaylistTrackRelation(Long playlistId, Long trackId) {
+        if (!playlistTrackRepository.existsByPlaylistIdAndTrackId(playlistId, trackId)) {
+            throw new BusinessException(PlaybackErrorCode.PLAYLIST_TRACK_NOT_INCLUDED);
+        }
     }
 }
