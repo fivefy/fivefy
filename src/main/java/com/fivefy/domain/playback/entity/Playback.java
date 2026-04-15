@@ -39,7 +39,12 @@ public class Playback {
     private Integer playedDuration;
 
     @Column(nullable = false)
-    private LocalDateTime playedAt;
+    private LocalDateTime startedAt;
+
+    @Column(nullable = false)
+    private LocalDateTime lastPlayedAt;
+
+    private LocalDateTime endedAt;
 
     public static Playback create(Long trackId, Long userId, String sessionId, String deviceId) {
         ValidationUtils.validateNonNull(trackId, "trackId");
@@ -52,9 +57,12 @@ public class Playback {
         playback.sessionId = sessionId;
         playback.deviceId = deviceId;
 
-        playback.status = PlaybackStatus.START;
+        playback.status = PlaybackStatus.PLAYING;
         playback.playedDuration = 0;
-        playback.playedAt = LocalDateTime.now();
+
+        LocalDateTime now = LocalDateTime.now();
+        playback.startedAt = now;
+        playback.lastPlayedAt = now;
 
         return playback;
     }
