@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 public record ArtistApplicationApproveResponse(
         Long applicationId,
         Long artistId,
+        String artistType,
         String status,
         Long reviewedByAdminId,
         LocalDateTime reviewedAt
@@ -21,6 +22,7 @@ public record ArtistApplicationApproveResponse(
         return new ArtistApplicationApproveResponse(
                 application.getId(),
                 artistId,
+                application.getArtistType().name(),
                 application.getStatus().name(),
                 application.getReviewedByAdminId(),
                 application.getReviewedAt()

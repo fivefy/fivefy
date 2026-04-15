@@ -11,6 +11,7 @@ public record ArtistApplicationListResponse(
         Long applicationId,
         Long requesterUserId,
         String requestedName,
+        String artistType,
         String status,
         LocalDateTime createdAt
 ) {
@@ -19,6 +20,7 @@ public record ArtistApplicationListResponse(
                 artistApplication.getId(),
                 artistApplication.getRequesterUserId(),
                 artistApplication.getRequestedName(),
+                artistApplication.getArtistType().name(),
                 artistApplication.getStatus().name(),
                 artistApplication.getCreatedAt()
         );

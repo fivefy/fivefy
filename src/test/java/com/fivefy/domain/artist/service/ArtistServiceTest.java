@@ -4,6 +4,7 @@ import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationCreateRequest;
+import com.fivefy.domain.artist.enums.ArtistType;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationRejectRequest;
 import com.fivefy.domain.artist.dto.response.*;
 import com.fivefy.domain.artist.entity.Artist;
@@ -70,7 +71,8 @@ class ArtistServiceTest {
             ArtistApplicationCreateRequest request = new ArtistApplicationCreateRequest(
                     "아이유",
                     "가수",
-                    "https://example.com/profile.jpg"
+                    "https://example.com/profile.jpg",
+                    ArtistType.SOLO
             );
 
             User user = mock(User.class);
@@ -81,7 +83,8 @@ class ArtistServiceTest {
                     userId,
                     request.requestedName(),
                     request.bio(),
-                    request.profileImageUrl()
+                    request.profileImageUrl(),
+                    request.artistType()
             );
 
             // 단위 테스트에서는 JPA auditing이 동작하지 않으므로 createdAt을 직접 주입한다.
@@ -89,7 +92,7 @@ class ArtistServiceTest {
             ReflectionTestUtils.setField(savedApplication, "createdAt",
                     LocalDateTime.of(2026, 4, 14, 22, 30, 0));
 
-            when(artistApplicationRepository.existsActiveApplication(userId, request.requestedName()))
+            when(artistApplicationRepository.existsActiveApplication(userId, request.requestedName(), request.artistType()))
                     .thenReturn(false);
 
             when(artistApplicationRepository.save(any(ArtistApplication.class)))
@@ -102,13 +105,14 @@ class ArtistServiceTest {
             // then
             assertThat(response.applicationId()).isEqualTo(1L);
             assertThat(response.requestedName()).isEqualTo("아이유");
+            assertThat(response.artistType()).isEqualTo(ArtistType.SOLO.name());
             assertThat(response.status()).isEqualTo(PENDING.name());
             assertThat(response.createdAt()).isEqualTo(LocalDateTime.of(2026, 4, 14, 22, 30, 0));
 
             verify(artistApplicationRepository, times(1))
                     .save(any(ArtistApplication.class));
             verify(artistApplicationRepository, times(1))
-                    .existsActiveApplication(userId, request.requestedName());
+                    .existsActiveApplication(userId, request.requestedName(), request.artistType());
             verify(userRepository, times(1)).findById(userId);
         }
 
@@ -120,14 +124,15 @@ class ArtistServiceTest {
             ArtistApplicationCreateRequest request = new ArtistApplicationCreateRequest(
                     "아이유",
                     "가수",
-                    "https://example.com/profile.jpg"
+                    "https://example.com/profile.jpg",
+                    ArtistType.SOLO
             );
 
             User user = mock(User.class);
             when(userRepository.findById(userId))
                     .thenReturn(java.util.Optional.of(user));
 
-            when(artistApplicationRepository.existsActiveApplication(userId, request.requestedName()))
+            when(artistApplicationRepository.existsActiveApplication(userId, request.requestedName(), request.artistType()))
                     .thenReturn(true);
 
             // when & then
@@ -136,7 +141,7 @@ class ArtistServiceTest {
                     .hasMessage(ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_EXISTS.getMessage());
 
             verify(artistApplicationRepository, times(1))
-                    .existsActiveApplication(userId, request.requestedName());
+                    .existsActiveApplication(userId, request.requestedName(), request.artistType());
             verify(userRepository, times(1)).findById(userId);
             verify(artistApplicationRepository, never()).save(any(ArtistApplication.class));
         }
@@ -160,13 +165,15 @@ class ArtistServiceTest {
                     userId,
                     "아이유",
                     "가수",
-                    "https://example.com/iu.jpg"
+                    "https://example.com/iu.jpg",
+                    ArtistType.SOLO
             );
             ArtistApplication secondApplication = ArtistApplication.create(
                     userId,
                     "아이유 밴드",
                     "프로젝트 아티스트",
-                    "https://example.com/band.jpg"
+                    "https://example.com/band.jpg",
+                    ArtistType.COLLABORATION
             );
 
             ReflectionTestUtils.setField(firstApplication, "id", 2L);
@@ -187,10 +194,12 @@ class ArtistServiceTest {
             assertThat(response).hasSize(2);
             assertThat(response.get(0).applicationId()).isEqualTo(2L);
             assertThat(response.get(0).requestedName()).isEqualTo("아이유");
+            assertThat(response.get(0).artistType()).isEqualTo(ArtistType.SOLO.name());
             assertThat(response.get(0).status()).isEqualTo("PENDING");
 
             assertThat(response.get(1).applicationId()).isEqualTo(1L);
             assertThat(response.get(1).requestedName()).isEqualTo("아이유 밴드");
+            assertThat(response.get(1).artistType()).isEqualTo(ArtistType.COLLABORATION.name());
 
             verify(artistApplicationRepository, times(1))
                     .findAllByRequesterUserIdOrderByCreatedAtDesc(userId);
@@ -240,13 +249,15 @@ class ArtistServiceTest {
                     1L,
                     "아이유",
                     "가수",
-                    "https://example.com/iu.jpg"
+                    "https://example.com/iu.jpg",
+                    ArtistType.SOLO
             );
             ArtistApplication secondApplication = ArtistApplication.create(
                     2L,
                     "볼빨간사춘기",
                     "듀오",
-                    "https://example.com/bol4.jpg"
+                    "https://example.com/bol4.jpg",
+                    ArtistType.COLLABORATION
             );
 
             // 오래된 요청이 먼저 조회되도록 createdAt과 id를 직접 주입한다.
@@ -281,12 +292,14 @@ class ArtistServiceTest {
             assertThat(response.content().get(0).applicationId()).isEqualTo(1L);
             assertThat(response.content().get(0).requesterUserId()).isEqualTo(1L);
             assertThat(response.content().get(0).requestedName()).isEqualTo("아이유");
+            assertThat(response.content().get(0).artistType()).isEqualTo(ArtistType.SOLO.name());
             assertThat(response.content().get(0).status()).isEqualTo("PENDING");
             assertThat(response.content().get(0).createdAt()).isEqualTo(LocalDateTime.of(2026, 4, 14, 10, 0, 0));
 
             assertThat(response.content().get(1).applicationId()).isEqualTo(2L);
             assertThat(response.content().get(1).requesterUserId()).isEqualTo(2L);
             assertThat(response.content().get(1).requestedName()).isEqualTo("볼빨간사춘기");
+            assertThat(response.content().get(1).artistType()).isEqualTo(ArtistType.COLLABORATION.name());
             assertThat(response.content().get(1).status()).isEqualTo("PENDING");
             assertThat(response.content().get(1).createdAt()).isEqualTo(LocalDateTime.of(2026, 4, 15, 10, 0, 0));
 
@@ -338,7 +351,8 @@ class ArtistServiceTest {
                     1L,
                     "아이유",
                     "가수",
-                    "https://example.com/iu.jpg"
+                    "https://example.com/iu.jpg",
+                    ArtistType.SOLO
             );
 
             ReflectionTestUtils.setField(application, "id", 1L);
@@ -357,6 +371,7 @@ class ArtistServiceTest {
             // then
             assertThat(response.content()).hasSize(1);
             assertThat(response.content().get(0).status()).isEqualTo("PENDING");
+            assertThat(response.content().get(0).artistType()).isEqualTo(ArtistType.SOLO.name());
 
             verify(artistApplicationRepository, times(1))
                     .searchArtistApplications(ApplicationStatus.PENDING, pageable);
@@ -378,7 +393,8 @@ class ArtistServiceTest {
                     userId,
                     "아이유",
                     "가수",
-                    "https://example.com/iu.jpg"
+                    "https://example.com/iu.jpg",
+                    ArtistType.SOLO
             );
 
             // 상세 조회 검증을 위해 엔티티 필드를 직접 주입한다.
@@ -404,6 +420,7 @@ class ArtistServiceTest {
             assertThat(response.applicationId()).isEqualTo(applicationId);
             assertThat(response.requesterUserId()).isEqualTo(userId);
             assertThat(response.requestedName()).isEqualTo("아이유");
+            assertThat(response.artistType()).isEqualTo(ArtistType.SOLO.name());
             assertThat(response.bio()).isEqualTo("가수");
             assertThat(response.profileImageUrl()).isEqualTo("https://example.com/iu.jpg");
             assertThat(response.status()).isEqualTo("PENDING");
@@ -428,7 +445,8 @@ class ArtistServiceTest {
                     1L,
                     "아이유",
                     "가수",
-                    "https://example.com/iu.jpg"
+                    "https://example.com/iu.jpg",
+                    ArtistType.SOLO
             );
 
             // 상세 조회 검증을 위해 엔티티 필드를 직접 주입한다.
@@ -454,6 +472,7 @@ class ArtistServiceTest {
             assertThat(response.applicationId()).isEqualTo(applicationId);
             assertThat(response.requesterUserId()).isEqualTo(1L);
             assertThat(response.requestedName()).isEqualTo("아이유");
+            assertThat(response.artistType()).isEqualTo(ArtistType.SOLO.name());
             assertThat(response.status()).isEqualTo("PENDING");
 
             verify(artistApplicationRepository, times(1)).findById(applicationId);
@@ -471,7 +490,8 @@ class ArtistServiceTest {
                     1L,
                     "아이유",
                     "가수",
-                    "https://example.com/iu.jpg"
+                    "https://example.com/iu.jpg",
+                    ArtistType.SOLO
             );
 
             User user = mock(User.class);
@@ -526,7 +546,8 @@ class ArtistServiceTest {
                     2L,
                     "아이유",
                     "가수",
-                    "https://example.com/profile.jpg"
+                    "https://example.com/profile.jpg",
+                    ArtistType.SOLO
             );
             ReflectionTestUtils.setField(application, "id", applicationId);
 
@@ -534,7 +555,8 @@ class ArtistServiceTest {
                     application.getRequesterUserId(),
                     application.getRequestedName(),
                     application.getBio(),
-                    application.getProfileImageUrl()
+                    application.getProfileImageUrl(),
+                    application.getArtistType()
             );
             ReflectionTestUtils.setField(savedArtist, "id", 100L);
 
@@ -569,7 +591,8 @@ class ArtistServiceTest {
                     2L,
                     "아이유",
                     "가수",
-                    "https://example.com/profile.jpg"
+                    "https://example.com/profile.jpg",
+                    ArtistType.SOLO
             );
             ReflectionTestUtils.setField(application, "id", applicationId);
             application.approve(adminId);
@@ -604,7 +627,8 @@ class ArtistServiceTest {
                     2L,
                     "아이유",
                     "가수",
-                    "https://example.com/profile.jpg"
+                    "https://example.com/profile.jpg",
+                    ArtistType.SOLO
             );
             ReflectionTestUtils.setField(application, "id", applicationId);
 
@@ -639,7 +663,8 @@ class ArtistServiceTest {
                     2L,
                     "아이유",
                     "가수",
-                    "https://example.com/profile.jpg"
+                    "https://example.com/profile.jpg",
+                    ArtistType.SOLO
             );
             ReflectionTestUtils.setField(application, "id", applicationId);
             application.reject(adminId, "기존 거절 사유");
@@ -675,13 +700,15 @@ class ArtistServiceTest {
                     userId,
                     "아이유",
                     "가수",
-                    "https://example.com/iu.jpg"
+                    "https://example.com/iu.jpg",
+                    ArtistType.SOLO
             );
             Artist secondArtist = Artist.create(
                     userId,
                     "아이유 밴드",
                     "프로젝트 아티스트",
-                    "https://example.com/band.jpg"
+                    "https://example.com/band.jpg",
+                    ArtistType.COLLABORATION
             );
 
             ReflectionTestUtils.setField(firstArtist, "id", 2L);
@@ -706,6 +733,7 @@ class ArtistServiceTest {
             assertThat(response).hasSize(2);
             assertThat(response.get(0).artistId()).isEqualTo(2L);
             assertThat(response.get(0).name()).isEqualTo("아이유");
+            assertThat(response.get(0).artistType()).isEqualTo(ArtistType.SOLO.name());
             assertThat(response.get(0).bio()).isEqualTo("가수");
             assertThat(response.get(0).profileImageUrl()).isEqualTo("https://example.com/iu.jpg");
             assertThat(response.get(0).createdAt()).isEqualTo(LocalDateTime.of(2026, 4, 15, 10, 0, 0));
@@ -713,6 +741,7 @@ class ArtistServiceTest {
 
             assertThat(response.get(1).artistId()).isEqualTo(1L);
             assertThat(response.get(1).name()).isEqualTo("아이유 밴드");
+            assertThat(response.get(1).artistType()).isEqualTo(ArtistType.COLLABORATION.name());
             assertThat(response.get(1).bio()).isEqualTo("프로젝트 아티스트");
             assertThat(response.get(1).profileImageUrl()).isEqualTo("https://example.com/band.jpg");
             assertThat(response.get(1).createdAt()).isEqualTo(LocalDateTime.of(2026, 4, 14, 10, 0, 0));

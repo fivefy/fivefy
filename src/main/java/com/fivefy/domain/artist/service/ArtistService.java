@@ -1,8 +1,7 @@
 package com.fivefy.domain.artist.service;
 
-import com.fivefy.common.enums.ApplicationStatus;
-
 import com.fivefy.common.dto.response.PageResponse;
+import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationCreateRequest;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationRejectRequest;
@@ -10,6 +9,7 @@ import com.fivefy.domain.artist.dto.response.*;
 import com.fivefy.domain.artist.entity.Artist;
 import com.fivefy.domain.artist.entity.ArtistApplication;
 import com.fivefy.domain.artist.enums.ArtistApplicationErrorCode;
+import com.fivefy.domain.artist.enums.ArtistType;
 import com.fivefy.domain.artist.repository.ArtistApplicationRepository;
 import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.user.entity.User;
@@ -43,14 +43,15 @@ public class ArtistService {
         findUser(userId);
 
         // 동일한 이름의 진행 중이거나 승인된 등록 요청 검증
-        validateDuplicateActiveApplication(userId, request.requestedName());
+        validateDuplicateActiveApplication(userId, request.requestedName(), request.artistType());
 
         // 아티스트 등록 요청 엔티티 생성
         ArtistApplication application = ArtistApplication.create(
                 userId,
                 request.requestedName(),
                 request.bio(),
-                request.profileImageUrl()
+                request.profileImageUrl(),
+                request.artistType()
         );
 
         // DB 저장
@@ -177,10 +178,10 @@ public class ArtistService {
     /**
      * 동일 이름의 진행 중인 아티스트 등록 요청 중복 검증
      */
-    private void validateDuplicateActiveApplication(Long userId, String requestedName) {
+    private void validateDuplicateActiveApplication(Long userId, String requestedName, ArtistType artistType) {
         // 동일 유저의 동일 이름 진행 중이거나 승인된 요청이 있는지 확인한다.
         boolean existsActiveApplication =
-                artistApplicationRepository.existsActiveApplication(userId, requestedName);
+                artistApplicationRepository.existsActiveApplication(userId, requestedName, artistType);
 
         // 다시 신청할 수 없는 상태의 요청이 있으면 예외를 발생시킨다.
         if (existsActiveApplication) {
@@ -240,7 +241,8 @@ public class ArtistService {
                 application.getRequesterUserId(),
                 application.getRequestedName(),
                 application.getBio(),
-                application.getProfileImageUrl()
+                application.getProfileImageUrl(),
+                application.getArtistType()
         );
     }
 

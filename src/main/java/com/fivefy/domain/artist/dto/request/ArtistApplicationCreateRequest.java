@@ -1,6 +1,8 @@
 package com.fivefy.domain.artist.dto.request;
 
+import com.fivefy.domain.artist.enums.ArtistType;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -15,6 +17,9 @@ public record ArtistApplicationCreateRequest(
         String bio,
 
         @Size(max = 255, message = "이미지 URL은 255자 이하입니다")
-        String profileImageUrl
+        String profileImageUrl,
+
+        @NotNull(message = "아티스트 타입은 필수입니다")
+        ArtistType artistType
 ) {
 }

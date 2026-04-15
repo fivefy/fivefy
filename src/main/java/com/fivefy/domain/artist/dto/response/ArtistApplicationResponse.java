@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 public record ArtistApplicationResponse(
         Long applicationId,
         String requestedName,
+        String artistType,
         String status,
         LocalDateTime createdAt
 ) {
@@ -17,6 +18,7 @@ public record ArtistApplicationResponse(
         return new ArtistApplicationResponse(
                 artistApplication.getId(),
                 artistApplication.getRequestedName(),
+                artistApplication.getArtistType().name(),
                 artistApplication.getStatus().name(),
                 artistApplication.getCreatedAt()
         );

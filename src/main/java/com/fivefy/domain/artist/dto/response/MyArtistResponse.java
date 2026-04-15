@@ -12,6 +12,7 @@ public record MyArtistResponse(
         String name,
         String bio,
         String profileImageUrl,
+        String artistType,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
@@ -21,6 +22,7 @@ public record MyArtistResponse(
                 artist.getName(),
                 artist.getBio(),
                 artist.getProfileImageUrl(),
+                artist.getArtistType().name(),
                 artist.getCreatedAt(),
                 artist.getUpdatedAt()
         );

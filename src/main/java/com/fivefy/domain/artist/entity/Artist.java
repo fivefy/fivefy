@@ -4,6 +4,7 @@ import com.fivefy.common.entity.BaseEntity;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.artist.enums.ArtistErrorCode;
 import com.fivefy.domain.artist.enums.ArtistStatus;
+import com.fivefy.domain.artist.enums.ArtistType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -42,6 +43,10 @@ public class Artist extends BaseEntity {
     private String profileImageUrl;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "artist_type", nullable = false, length = 20)
+    private ArtistType artistType;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private ArtistStatus status;
 
@@ -56,10 +61,12 @@ public class Artist extends BaseEntity {
             Long ownerUserId,
             String name,
             String bio,
-            String profileImageUrl
+            String profileImageUrl,
+            ArtistType artistType
     ) {
         validateNonNull(ownerUserId, "ownerUserId");
         validateNonNull(name, "name");
+        validateNonNull(artistType, "artistType");
 
         Artist artist = new Artist();
 
@@ -67,6 +74,7 @@ public class Artist extends BaseEntity {
         artist.name = name;
         artist.bio = bio;
         artist.profileImageUrl = profileImageUrl;
+        artist.artistType = artistType;
         artist.status = ArtistStatus.ACTIVE;
 
         return artist;
