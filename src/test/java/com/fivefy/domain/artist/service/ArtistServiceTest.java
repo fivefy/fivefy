@@ -1264,4 +1264,105 @@ class ArtistServiceTest {
             verify(artistRepository, times(1)).findById(artistId);
         }
     }
+
+    @Nested
+    @DisplayName("아티스트 비활성화")
+    class DeactivateArtist {
+
+        @Test
+        @DisplayName("활성화된 아티스트는 비활성화에 성공한다")
+        void deactivateArtist_success() {
+            // given
+            Long userId = 10L;
+            Long artistId = 1L;
+
+            Artist artist = Artist.create(
+                    userId,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/iu.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+
+            when(artistRepository.findById(artistId))
+                    .thenReturn(java.util.Optional.of(artist));
+
+            // when
+            ArtistDetailResponse response = artistService.deactivateArtist(userId, artistId);
+
+            // then
+            assertThat(response.artistId()).isEqualTo(artistId);
+            assertThat(artist.getStatus()).isEqualTo(ArtistStatus.INACTIVE);
+
+            verify(artistRepository, times(1)).findById(artistId);
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 아티스트는 비활성화할 수 없다")
+        void deactivateArtist_fail_whenNotFound() {
+            // given
+            Long userId = 10L;
+            Long artistId = 1L;
+
+            when(artistRepository.findById(artistId))
+                    .thenReturn(java.util.Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> artistService.deactivateArtist(userId, artistId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("이미 비활성화된 아티스트는 다시 비활성화할 수 없다")
+        void deactivateArtist_fail_whenAlreadyInactive() {
+            // given
+            Long userId = 10L;
+            Long artistId = 1L;
+
+            Artist artist = Artist.create(
+                    userId,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/iu.jpg"
+            );
+            artist.deactivate();
+            ReflectionTestUtils.setField(artist, "id", artistId);
+
+            when(artistRepository.findById(artistId))
+                    .thenReturn(java.util.Optional.of(artist));
+
+            // when & then
+            assertThatThrownBy(() -> artistService.deactivateArtist(userId, artistId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistErrorCode.ERR_ARTIST_ALREADY_INACTIVE.getMessage());
+        }
+
+        @Test
+        @DisplayName("아티스트 소유자가 아니면 비활성화할 수 없다")
+        void deactivateArtist_fail_whenNotOwner() {
+            // given
+            Long userId = 99L;
+            Long artistId = 1L;
+
+            Artist artist = Artist.create(
+                    10L,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/iu.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+
+            when(artistRepository.findById(artistId))
+                    .thenReturn(java.util.Optional.of(artist));
+
+            // when & then
+            assertThatThrownBy(() -> artistService.deactivateArtist(userId, artistId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistErrorCode.ERR_FORBIDDEN_ARTIST_ACCESS.getMessage());
+        }
+    }
 }
