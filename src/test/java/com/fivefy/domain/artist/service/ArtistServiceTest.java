@@ -4,6 +4,8 @@ import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationCreateRequest;
+import com.fivefy.domain.artist.dto.request.ArtistProfileUpdateRequest;
+import com.fivefy.domain.artist.enums.ArtistErrorCode;
 import com.fivefy.domain.artist.enums.ArtistType;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationRejectRequest;
 import com.fivefy.domain.artist.dto.response.*;
@@ -826,5 +828,170 @@ class ArtistServiceTest {
             assertThatThrownBy(() -> artistService.getArtist(artistId))
                     .isInstanceOf(BusinessException.class);
         }
+
+        @Test
+        @DisplayName("삭제된 아티스트는 상세 조회할 수 없다")
+        void getArtist_fail_whenDeletedArtist() {
+            // given
+            Long artistId = 1L;
+
+            Artist artist = Artist.create(
+                    1L,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/iu.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+            ReflectionTestUtils.setField(artist, "deletedAt",
+                    LocalDateTime.of(2026, 4, 15, 12, 0, 0));
+
+            when(artistRepository.findById(artistId))
+                    .thenReturn(java.util.Optional.of(artist));
+
+            // when & then
+            assertThatThrownBy(() -> artistService.getArtist(artistId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
+
+            verify(artistRepository, times(1)).findById(artistId);
+        }
+    }
+
+    @Nested
+    @DisplayName("아티스트 프로필 수정")
+    class UpdateArtistProfile {
+
+        @Test
+        @DisplayName("아티스트 소유자는 프로필 수정에 성공한다")
+        void updateArtistProfile_success() {
+            // given
+            Long artistId = 1L;
+            Long userId = 10L;
+            ArtistProfileUpdateRequest request = new ArtistProfileUpdateRequest(
+                    "아이유 리브랜딩",
+                    "대한민국 솔로 가수",
+                    "https://example.com/new-iu.jpg"
+            );
+
+            Artist artist = Artist.create(
+                    userId,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/iu.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+            ReflectionTestUtils.setField(artist, "createdAt",
+                    LocalDateTime.of(2026, 4, 15, 10, 0, 0));
+            ReflectionTestUtils.setField(artist, "updatedAt",
+                    LocalDateTime.of(2026, 4, 15, 11, 0, 0));
+
+            when(artistRepository.findById(artistId))
+                    .thenReturn(java.util.Optional.of(artist));
+
+            // when
+            ArtistDetailResponse response =
+                    artistService.updateArtistProfile(artistId, userId, request);
+
+            // then
+            assertThat(response.artistId()).isEqualTo(artistId);
+            assertThat(response.name()).isEqualTo("아이유 리브랜딩");
+            assertThat(response.artistType()).isEqualTo(ArtistType.SOLO.name());
+            assertThat(response.bio()).isEqualTo("대한민국 솔로 가수");
+            assertThat(response.profileImageUrl()).isEqualTo("https://example.com/new-iu.jpg");
+            assertThat(response.createdAt()).isEqualTo(LocalDateTime.of(2026, 4, 15, 10, 0, 0));
+
+            verify(artistRepository, times(1)).findById(artistId);
+        }
+
+        @Test
+        @DisplayName("삭제된 아티스트는 프로필 수정할 수 없다")
+        void updateArtistProfile_fail_whenDeletedArtist() {
+            // given
+            Long artistId = 1L;
+            Long userId = 10L;
+            ArtistProfileUpdateRequest request = new ArtistProfileUpdateRequest(
+                    "아이유 리브랜딩",
+                    "대한민국 솔로 가수",
+                    "https://example.com/new-iu.jpg"
+            );
+
+            Artist artist = Artist.create(
+                    userId,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/iu.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+            ReflectionTestUtils.setField(artist, "deletedAt",
+                    LocalDateTime.of(2026, 4, 15, 12, 0, 0));
+
+            when(artistRepository.findById(artistId))
+                    .thenReturn(java.util.Optional.of(artist));
+
+            // when & then
+            assertThatThrownBy(() -> artistService.updateArtistProfile(artistId, userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
+
+            verify(artistRepository, times(1)).findById(artistId);
+        }
+
+        @Test
+        @DisplayName("아티스트 소유자가 아니면 프로필 수정할 수 없다")
+        void updateArtistProfile_fail_whenNotOwner() {
+            // given
+            Long artistId = 1L;
+            Long userId = 99L;
+            ArtistProfileUpdateRequest request = new ArtistProfileUpdateRequest(
+                    "아이유 리브랜딩",
+                    "대한민국 솔로 가수",
+                    "https://example.com/new-iu.jpg"
+            );
+
+            Artist artist = Artist.create(
+                    10L,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/iu.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+
+            when(artistRepository.findById(artistId))
+                    .thenReturn(java.util.Optional.of(artist));
+
+            // when & then
+            assertThatThrownBy(() -> artistService.updateArtistProfile(artistId, userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistErrorCode.ERR_FORBIDDEN_ARTIST_ACCESS.getMessage());
+
+            verify(artistRepository, times(1)).findById(artistId);
+        }
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 아티스트는 프로필 수정할 수 없다")
+    void updateArtistProfile_fail_whenArtistNotFound() {
+        // given
+        Long artistId = 1L;
+        Long userId = 10L;
+        ArtistProfileUpdateRequest request = new ArtistProfileUpdateRequest(
+                "아이유 리브랜딩",
+                "대한민국 솔로 가수",
+                "https://example.com/new-iu.jpg"
+        );
+
+        when(artistRepository.findById(artistId))
+                .thenReturn(java.util.Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> artistService.updateArtistProfile(artistId, userId, request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
+
+        verify(artistRepository, times(1)).findById(artistId);
     }
 }

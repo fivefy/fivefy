@@ -5,6 +5,7 @@ import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationCreateRequest;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationRejectRequest;
+import com.fivefy.domain.artist.dto.request.ArtistProfileUpdateRequest;
 import com.fivefy.domain.artist.dto.response.*;
 import com.fivefy.domain.artist.entity.Artist;
 import com.fivefy.domain.artist.entity.ArtistApplication;
@@ -189,15 +190,41 @@ public class ArtistService {
             throw new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND);
         }
 
-        return new ArtistDetailResponse(
-                artist.getId(),
-                artist.getName(),
-                artist.getArtistType().name(),
-                artist.getBio(),
-                artist.getProfileImageUrl(),
-                artist.getCreatedAt(),
-                artist.getUpdatedAt()
+        return ArtistDetailResponse.from(artist);
+    }
+
+    /**
+     * 아티스트 프로필 수정
+     */
+    @Transactional
+    public ArtistDetailResponse updateArtistProfile(
+            Long userId,
+            Long artistId,
+            ArtistProfileUpdateRequest request
+    ) {
+        // 아티스트 조회
+        Artist artist = artistRepository.findById(artistId)
+                .orElseThrow(() -> new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND));
+
+        // soft delete 검증
+        if (artist.isDeleted()) {
+            throw new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND);
+        }
+
+        // 소유자 검증
+        if (!artist.isOwnedBy(userId)) {
+            throw new BusinessException(ArtistErrorCode.ERR_FORBIDDEN_ARTIST_ACCESS);
+        }
+
+        // PATCH 적용
+        artist.updateProfile(
+                request.name(),
+                request.bio(),
+                request.profileImageUrl()
         );
+
+        // 응답 반환
+        return ArtistDetailResponse.from(artist);
     }
 
     /**

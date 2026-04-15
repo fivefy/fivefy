@@ -5,6 +5,7 @@ import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationCreateRequest;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationRejectRequest;
+import com.fivefy.domain.artist.dto.request.ArtistProfileUpdateRequest;
 import com.fivefy.domain.artist.dto.response.*;
 import com.fivefy.domain.artist.service.ArtistService;
 import jakarta.validation.Valid;
@@ -71,7 +72,8 @@ public class ArtistController {
                 artistService.getArtistApplications(status, pageable);
 
         return ResponseEntity.status(HttpStatus.OK).body(
-                BaseResponse.success(HttpStatus.OK, "아티스트 등록 요청 목록 조회 성공", response));
+                BaseResponse.success(HttpStatus.OK, "아티스트 등록 요청 목록 조회 성공", response)
+        );
     }
 
     /**
@@ -86,7 +88,8 @@ public class ArtistController {
                 artistService.getArtistApplication(userId, applicationId);
 
         return ResponseEntity.status(HttpStatus.OK).body(
-                BaseResponse.success(HttpStatus.OK, "아티스트 등록 요청 상세 조회 성공", response));
+                BaseResponse.success(HttpStatus.OK, "아티스트 등록 요청 상세 조회 성공", response)
+        );
     }
 
     /**
@@ -137,7 +140,7 @@ public class ArtistController {
     }
 
     /**
-     * 아티스트 상세 조회
+     * 아티스트 상세 조회 API
      */
     @GetMapping("/artists/{artistId}")
     public ResponseEntity<BaseResponse<ArtistDetailResponse>> getArtist(
@@ -145,8 +148,25 @@ public class ArtistController {
     ) {
         ArtistDetailResponse response = artistService.getArtist(artistId);
 
-        return ResponseEntity.ok(
+        return ResponseEntity.status(HttpStatus.OK).body(
                 BaseResponse.success(HttpStatus.OK, "아티스트 상세 조회 성공", response)
+        );
+    }
+
+    /**
+     * 아티스트 프로필 수정 API
+     */
+    @PatchMapping("/artists/{artistId}")
+    public ResponseEntity<BaseResponse<ArtistDetailResponse>> updateArtistProfile(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long artistId,
+            @Valid @RequestBody ArtistProfileUpdateRequest request
+    ) {
+        ArtistDetailResponse response =
+                artistService.updateArtistProfile(userId, artistId, request);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                BaseResponse.success(HttpStatus.OK, "아티스트 프로필 수정 성공", response)
         );
     }
 }

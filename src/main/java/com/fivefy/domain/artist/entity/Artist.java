@@ -80,9 +80,12 @@ public class Artist extends BaseEntity {
         return artist;
     }
 
-    public void updateProfile(String bio, String profileImageUrl) {
+    public void updateProfile(String name, String bio, String profileImageUrl) {
         validateNotDeleted();
 
+        if (name != null) {
+            this.name = name;
+        }
         if (bio != null) {
             this.bio = bio;
         }
