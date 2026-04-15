@@ -8,6 +8,7 @@ import com.fivefy.domain.playback.dto.request.PlaybackStopRequest;
 import com.fivefy.domain.playback.dto.response.PlaybackResponse;
 import com.fivefy.domain.playback.entity.Playback;
 import com.fivefy.domain.playback.enums.PlaybackErrorCode;
+import com.fivefy.domain.playback.enums.PlaybackStatus;
 import com.fivefy.domain.playback.repository.PlaybackRepository;
 import com.fivefy.domain.playlisttrack.entity.PlaylistTrack;
 import com.fivefy.domain.playlisttrack.repository.PlaylistTrackRepository;
@@ -29,6 +30,25 @@ public class PlaybackService {
     public PlaybackResponse play(Long userId, PlaybackPlayRequest request) {
         validatePlaylistTrackRelation(request.playlistId(), request.trackId());
 
+        Playback currentPlayback = playbackRepository
+                .findTopByUserIdAndSessionIdAndStatusOrderByIdDesc(
+                        userId,
+                        request.sessionId(),
+                        PlaybackStatus.PLAYING
+                )
+                .orElse(null);
+
+        if (currentPlayback != null) {
+            if (currentPlayback.getPlaylistId().equals(request.playlistId())
+                    && currentPlayback.getTrackId().equals(request.trackId())) {
+                Playback handledPlayback = handlePlay(currentPlayback, request);
+                Playback savedPlayback = playbackRepository.save(handledPlayback);
+                return PlaybackResponse.from(savedPlayback);
+            }
+
+            currentPlayback.stop();
+        }
+
         Playback playback = playbackRepository
                 .findTopByUserIdAndPlaylistIdAndTrackIdAndSessionIdOrderByIdDesc(
                         userId,
@@ -36,6 +56,7 @@ public class PlaybackService {
                         request.trackId(),
                         request.sessionId()
                 )
+                .filter(existing -> !existing.isPlaying())
                 .map(existing -> handlePlay(existing, request))
                 .orElseGet(() -> Playback.create(
                         request.playlistId(),
