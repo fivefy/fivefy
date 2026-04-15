@@ -118,7 +118,7 @@ public class PlaybackService {
             return playback;
         }
 
-        if (playback.isStopped() || playback.isCompleted()) {
+        if (playback.isStopped() || playback.isCompleted() || playback.isSkipped()) {
             return Playback.create(
                     request.playlistId(),
                     request.trackId(),
