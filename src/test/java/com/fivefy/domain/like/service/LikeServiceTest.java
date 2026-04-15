@@ -195,6 +195,7 @@ class LikeServiceTest {
     @Nested
     @DisplayName("좋아요 목록 조회")
     class getLikes{
+
         @Test
         @DisplayName("좋아요 목록 조회 성공 - 전체 조회")
         void getLikes_success() {
@@ -246,6 +247,50 @@ class LikeServiceTest {
                     PageRequest.of(0, 20)))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(UserErrorCode.ERR_USER_NOT_FOUND.getMessage());
+        }
+    }
+
+    @Nested
+    @DisplayName("좋아요 취소")
+    class deleteLike{
+
+        @Test
+        @DisplayName("좋아요 취소 성공")
+        void deleteLike_success() {
+            // given
+            given(userRepository.findById(USER_ID)).willReturn(Optional.of(mockUser));
+            given(likeRepository.findByIdAndUserId(LIKE_ID, USER_ID)).willReturn(Optional.of(mockLike));
+
+            // when
+            likeService.deleteLike(USER_ID, LIKE_ID);
+
+            // then
+            verify(likeRepository).delete(mockLike);
+        }
+
+        @Test
+        @DisplayName("좋아요 취소 실패 - 유저 없음")
+        void deleteLike_userNotFound() {
+            // given
+            given(userRepository.findById(any())).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> likeService.deleteLike(USER_ID, LIKE_ID))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(UserErrorCode.ERR_USER_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("좋아요 취소 실패 - 좋아요 없음")
+        void deleteLike_notFound() {
+            // given
+            given(userRepository.findById(USER_ID)).willReturn(Optional.of(mockUser));
+            given(likeRepository.findByIdAndUserId(any(), any())).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> likeService.deleteLike(USER_ID, LIKE_ID))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(LikeErrorCode.ERR_LIKE_NOT_FOUND.getMessage());
         }
     }
 }
