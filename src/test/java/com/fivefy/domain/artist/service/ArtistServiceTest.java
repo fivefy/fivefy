@@ -656,4 +656,93 @@ class ArtistServiceTest {
             verify(artistRepository, never()).save(any(Artist.class));
         }
     }
+
+    @Nested
+    @DisplayName("내 아티스트 목록 조회")
+    class GetMyArtists {
+
+        @Test
+        @DisplayName("내 아티스트 목록 조회에 성공한다")
+        void getMyArtists_success() {
+            // given
+            Long userId = 1L;
+
+            User user = mock(User.class);
+            when(userRepository.findById(userId))
+                    .thenReturn(java.util.Optional.of(user));
+
+            Artist firstArtist = Artist.create(
+                    userId,
+                    "아이유",
+                    "가수",
+                    "https://example.com/iu.jpg"
+            );
+            Artist secondArtist = Artist.create(
+                    userId,
+                    "아이유 밴드",
+                    "프로젝트 아티스트",
+                    "https://example.com/band.jpg"
+            );
+
+            ReflectionTestUtils.setField(firstArtist, "id", 2L);
+            ReflectionTestUtils.setField(firstArtist, "createdAt",
+                    LocalDateTime.of(2026, 4, 15, 10, 0, 0));
+            ReflectionTestUtils.setField(firstArtist, "updatedAt",
+                    LocalDateTime.of(2026, 4, 15, 11, 0, 0));
+
+            ReflectionTestUtils.setField(secondArtist, "id", 1L);
+            ReflectionTestUtils.setField(secondArtist, "createdAt",
+                    LocalDateTime.of(2026, 4, 14, 10, 0, 0));
+            ReflectionTestUtils.setField(secondArtist, "updatedAt",
+                    LocalDateTime.of(2026, 4, 14, 11, 0, 0));
+
+            when(artistRepository.findMyArtists(userId))
+                    .thenReturn(List.of(firstArtist, secondArtist));
+
+            // when
+            List<MyArtistResponse> response = artistService.getMyArtists(userId);
+
+            // then
+            assertThat(response).hasSize(2);
+            assertThat(response.get(0).artistId()).isEqualTo(2L);
+            assertThat(response.get(0).name()).isEqualTo("아이유");
+            assertThat(response.get(0).bio()).isEqualTo("가수");
+            assertThat(response.get(0).profileImageUrl()).isEqualTo("https://example.com/iu.jpg");
+            assertThat(response.get(0).createdAt()).isEqualTo(LocalDateTime.of(2026, 4, 15, 10, 0, 0));
+            assertThat(response.get(0).updatedAt()).isEqualTo(LocalDateTime.of(2026, 4, 15, 11, 0, 0));
+
+            assertThat(response.get(1).artistId()).isEqualTo(1L);
+            assertThat(response.get(1).name()).isEqualTo("아이유 밴드");
+            assertThat(response.get(1).bio()).isEqualTo("프로젝트 아티스트");
+            assertThat(response.get(1).profileImageUrl()).isEqualTo("https://example.com/band.jpg");
+            assertThat(response.get(1).createdAt()).isEqualTo(LocalDateTime.of(2026, 4, 14, 10, 0, 0));
+            assertThat(response.get(1).updatedAt()).isEqualTo(LocalDateTime.of(2026, 4, 14, 11, 0, 0));
+
+            verify(userRepository, times(1)).findById(userId);
+            verify(artistRepository, times(1)).findMyArtists(userId);
+        }
+
+        @Test
+        @DisplayName("소유한 아티스트가 없으면 빈 목록을 반환한다")
+        void getMyArtists_empty() {
+            // given
+            Long userId = 1L;
+
+            User user = mock(User.class);
+            when(userRepository.findById(userId))
+                    .thenReturn(java.util.Optional.of(user));
+
+            when(artistRepository.findMyArtists(userId))
+                    .thenReturn(List.of());
+
+            // when
+            List<MyArtistResponse> response = artistService.getMyArtists(userId);
+
+            // then
+            assertThat(response).isEmpty();
+
+            verify(userRepository, times(1)).findById(userId);
+            verify(artistRepository, times(1)).findMyArtists(userId);
+        }
+    }
 }

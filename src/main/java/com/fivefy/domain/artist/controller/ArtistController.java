@@ -121,4 +121,18 @@ public class ArtistController {
                 BaseResponse.success(HttpStatus.OK, "아티스트 등록 요청 거절 성공", response)
         );
     }
+
+    /**
+     * 내 아티스트 목록 조회 API
+     */
+    @GetMapping("/my/artists")
+    public ResponseEntity<BaseResponse<List<MyArtistResponse>>> getMyArtists(
+            @AuthenticationPrincipal Long userId
+    ) {
+        List<MyArtistResponse> response = artistService.getMyArtists(userId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                BaseResponse.success(HttpStatus.OK, "내 아티스트 목록 조회 성공", response)
+        );
+    }
 }

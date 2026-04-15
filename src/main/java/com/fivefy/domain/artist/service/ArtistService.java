@@ -157,6 +157,24 @@ public class ArtistService {
     }
 
     /**
+     * 내 아티스트 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public List<MyArtistResponse> getMyArtists(Long userId) {
+
+        // 조회 요청 유저가 존재하는지 확인한다.
+        findUser(userId);
+
+        // Querydsl 기반 조회
+        List<Artist> artists = artistRepository.findMyArtists(userId);
+
+        // DTO 변환
+        return artists.stream()
+                .map(MyArtistResponse::from)
+                .toList();
+    }
+
+    /**
      * 동일 이름의 진행 중인 아티스트 등록 요청 중복 검증
      */
     private void validateDuplicateActiveApplication(Long userId, String requestedName) {
