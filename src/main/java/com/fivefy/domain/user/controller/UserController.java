@@ -13,6 +13,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
@@ -53,6 +54,23 @@ public class UserController {
                 .header(HttpHeaders.PRAGMA, "no-cache")
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body(BaseResponse.success(HttpStatus.OK, "토큰 재발급 성공", UserLoginResponse.from(result.accessToken())));
+    }
+
+    @PostMapping("/users/logout")
+    public ResponseEntity<BaseResponse<Void>> logoutUser(@AuthenticationPrincipal Long userId) {
+        userService.logoutUser(userId);
+
+        ResponseCookie expiredCookie = ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/api/users/reissue")
+                .maxAge(0)
+                .sameSite("Strict")
+                .build();
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .header(HttpHeaders.SET_COOKIE, expiredCookie.toString())
+                .body(BaseResponse.success(HttpStatus.OK, "로그아웃 성공", null));
     }
 
     private ResponseCookie buildRefreshTokenCookie(String refreshToken) {

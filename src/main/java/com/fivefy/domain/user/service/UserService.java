@@ -189,4 +189,9 @@ public class UserService {
 
         return UserLoginResponse.of(newAccessToken, newRefreshToken);
     }
+
+    public void logoutUser(Long userId) {
+        redisTemplate.delete(RT_PREFIX + userId);
+        redisTemplate.delete(PREV_RT_PREFIX + userId);
+    }
 }
