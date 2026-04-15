@@ -1,13 +1,17 @@
 package com.fivefy.domain.playback.entity;
 
+import com.fivefy.common.exception.BusinessException;
 import com.fivefy.common.util.ValidationUtils;
+import com.fivefy.domain.playback.enums.PlaybackErrorCode;
 import com.fivefy.domain.playback.enums.PlaybackStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Getter
 @Entity
@@ -56,14 +60,95 @@ public class Playback {
         playback.userId = userId;
         playback.sessionId = sessionId;
         playback.deviceId = deviceId;
-
         playback.status = PlaybackStatus.PLAYING;
         playback.playedDuration = 0;
-
         LocalDateTime now = LocalDateTime.now();
         playback.startedAt = now;
         playback.lastPlayedAt = now;
 
         return playback;
+    }
+
+    public boolean isOwner(Long userId) {
+        return Objects.equals(this.userId, userId);
+    }
+
+    public boolean isPaused() {
+        return this.status == PlaybackStatus.PAUSED;
+    }
+
+    public boolean isPlaying() {
+        return this.status == PlaybackStatus.PLAYING;
+    }
+
+    public boolean isEnded() {
+        return this.status == PlaybackStatus.STOPPED
+                || this.status == PlaybackStatus.SKIPPED
+                || this.status == PlaybackStatus.COMPLETED;
+    }
+
+    public void resume() {
+        if (this.status != PlaybackStatus.PAUSED) {
+            throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
+        }
+
+        this.status = PlaybackStatus.PLAYING;
+        this.lastPlayedAt = LocalDateTime.now();
+    }
+
+    public void pause() {
+        if (this.status != PlaybackStatus.PLAYING) {
+            throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
+        }
+
+        accumulatePlayedDuration();
+        this.status = PlaybackStatus.PAUSED;
+    }
+
+    public void skip() {
+        if (this.status != PlaybackStatus.PLAYING && this.status != PlaybackStatus.PAUSED) {
+            throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
+        }
+
+        if (this.status == PlaybackStatus.PLAYING) {
+            accumulatePlayedDuration();
+        }
+
+        this.status = PlaybackStatus.SKIPPED;
+        this.endedAt = LocalDateTime.now();
+    }
+
+    public void stop() {
+        if (this.status != PlaybackStatus.PLAYING && this.status != PlaybackStatus.PAUSED) {
+            throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
+        }
+
+        if (this.status == PlaybackStatus.PLAYING) {
+            accumulatePlayedDuration();
+        }
+
+        this.status = PlaybackStatus.STOPPED;
+        this.endedAt = LocalDateTime.now();
+    }
+
+    public void complete() {
+        if (this.status != PlaybackStatus.PLAYING) {
+            throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
+        }
+
+        accumulatePlayedDuration();
+        this.status = PlaybackStatus.COMPLETED;
+        this.endedAt = LocalDateTime.now();
+    }
+
+    private void accumulatePlayedDuration() {
+        LocalDateTime now = LocalDateTime.now();
+        long seconds = Duration.between(this.lastPlayedAt, now).getSeconds();
+
+        if (seconds > 0) {
+            this.playedDuration += (int) seconds;
+        }
+
+        this.lastPlayedAt = now;
     }
 }
