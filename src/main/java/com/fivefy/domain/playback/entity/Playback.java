@@ -51,9 +51,14 @@ public class Playback {
     private LocalDateTime endedAt;
 
     public static Playback create(Long trackId, Long userId, String sessionId, String deviceId) {
+        return create(trackId, userId, sessionId, deviceId, LocalDateTime.now());
+    }
+
+    public static Playback create(Long trackId, Long userId, String sessionId, String deviceId, LocalDateTime now) {
         ValidationUtils.validateNonNull(trackId, "trackId");
         ValidationUtils.validateNonNull(userId, "userId");
         ValidationUtils.validateNonNull(sessionId, "sessionId");
+        ValidationUtils.validateNonNull(now, "now");
 
         Playback playback = new Playback();
         playback.trackId = trackId;
@@ -62,7 +67,6 @@ public class Playback {
         playback.deviceId = deviceId;
         playback.status = PlaybackStatus.PLAYING;
         playback.playedDuration = 0;
-        LocalDateTime now = LocalDateTime.now();
         playback.startedAt = now;
         playback.lastPlayedAt = now;
 
@@ -88,67 +92,95 @@ public class Playback {
     }
 
     public void resume() {
+        resume(LocalDateTime.now());
+    }
+
+    public void resume(LocalDateTime now) {
+        ValidationUtils.validateNonNull(now, "now");
+
         if (this.status != PlaybackStatus.PAUSED) {
             throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
         }
 
         this.status = PlaybackStatus.PLAYING;
-        this.lastPlayedAt = LocalDateTime.now();
+        this.lastPlayedAt = now;
     }
 
     public void pause() {
-        if (this.status != PlaybackStatus.PLAYING) {
-            throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
-        }
+        pause(LocalDateTime.now());
+    }
 
-        accumulatePlayedDuration();
+    public void pause(LocalDateTime now) {
+        validatePlayingState();
+        accumulatePlayedDuration(now);
         this.status = PlaybackStatus.PAUSED;
     }
 
     public void skip() {
-        if (this.status != PlaybackStatus.PLAYING && this.status != PlaybackStatus.PAUSED) {
-            throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
-        }
+        skip(LocalDateTime.now());
+    }
+
+    public void skip(LocalDateTime now) {
+        validateSkippableState();
 
         if (this.status == PlaybackStatus.PLAYING) {
-            accumulatePlayedDuration();
+            accumulatePlayedDuration(now);
         }
 
         this.status = PlaybackStatus.SKIPPED;
-        this.endedAt = LocalDateTime.now();
+        this.endedAt = now;
     }
 
     public void stop() {
-        if (this.status != PlaybackStatus.PLAYING && this.status != PlaybackStatus.PAUSED) {
-            throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
-        }
+        stop(LocalDateTime.now());
+    }
+
+    public void stop(LocalDateTime now) {
+        validateSkippableState();
 
         if (this.status == PlaybackStatus.PLAYING) {
-            accumulatePlayedDuration();
+            accumulatePlayedDuration(now);
         }
 
         this.status = PlaybackStatus.STOPPED;
-        this.endedAt = LocalDateTime.now();
+        this.endedAt = now;
     }
 
     public void complete() {
+        complete(LocalDateTime.now());
+    }
+
+    public void complete(LocalDateTime now) {
+        ValidationUtils.validateNonNull(now, "now");
+
         if (this.status != PlaybackStatus.PLAYING) {
             throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
         }
 
-        accumulatePlayedDuration();
+        accumulatePlayedDuration(now);
         this.status = PlaybackStatus.COMPLETED;
-        this.endedAt = LocalDateTime.now();
+        this.endedAt = now;
     }
 
-    private void accumulatePlayedDuration() {
-        LocalDateTime now = LocalDateTime.now();
-        long seconds = Duration.between(this.lastPlayedAt, now).getSeconds();
+    private void validatePlayingState() {
+        if (this.status != PlaybackStatus.PLAYING) {
+            throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
+        }
+    }
 
+    private void validateSkippableState() {
+        if (this.status != PlaybackStatus.PLAYING && this.status != PlaybackStatus.PAUSED) {
+            throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
+        }
+    }
+
+    private void accumulatePlayedDuration(LocalDateTime now) {
+        ValidationUtils.validateNonNull(now, "now");
+
+        long seconds = Duration.between(this.lastPlayedAt, now).getSeconds();
         if (seconds > 0) {
             this.playedDuration += (int) seconds;
         }
-
         this.lastPlayedAt = now;
     }
 }
