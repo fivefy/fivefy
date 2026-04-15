@@ -1,5 +1,7 @@
 package com.fivefy.domain.artist.service;
 
+import com.fivefy.common.enums.ApplicationStatus;
+
 import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationCreateRequest;
@@ -74,12 +76,16 @@ public class ArtistService {
     }
 
     /**
-     * 아티스트 등록 요청 목록 조회
+     * 아티스트 등록 요청 목록 조회 (관리자)
      */
     @Transactional(readOnly = true)
-    public PageResponse<ArtistApplicationListResponse> getArtistApplications(Pageable pageable) {
-        // Querydsl 기반으로 아티스트 등록 요청을 정렬조건에 따라 조회한다.
-        Page<ArtistApplication> page = artistApplicationRepository.searchArtistApplications(pageable);
+    public PageResponse<ArtistApplicationListResponse> getArtistApplications(
+            ApplicationStatus status,
+            Pageable pageable
+    ) {
+        // Querydsl 기반으로 상태 조건과 정렬 조건을 적용하여 조회한다.
+        Page<ArtistApplication> page =
+                artistApplicationRepository.searchArtistApplications(status, pageable);
 
         // 엔티티 목록을 관리자용 응답 DTO 페이지로 변환한다.
         Page<ArtistApplicationListResponse> response =
@@ -115,6 +121,9 @@ public class ArtistService {
         // 승인할 아티스트 등록 요청을 조회한다.
         ArtistApplication application = findArtistApplication(applicationId);
 
+        // 등록 요청이 대기 상태인지 검증한다.
+        validateProcessableApplication(application);
+
         // 아티스트 등록 요청을 승인 상태로 변경한다.
         application.approve(adminId);
 
@@ -136,6 +145,9 @@ public class ArtistService {
     ) {
         // 거절할 아티스트 등록 요청을 조회한다.
         ArtistApplication application = findArtistApplication(applicationId);
+
+        // 등록 요청이 대기 상태인지 검증한다.
+        validateProcessableApplication(application);
 
         // 아티스트 등록 요청을 거절 상태로 변경한다.
         application.reject(adminId, request.rejectionReason());
@@ -212,5 +224,16 @@ public class ArtistService {
                 application.getBio(),
                 application.getProfileImageUrl()
         );
+    }
+
+    /**
+     * 아티스트 등록 요청 처리 가능 상태 검증 (PENDING만 허용)
+     */
+    private void validateProcessableApplication(ArtistApplication application) {
+        if (!application.isPending()) {
+            throw new BusinessException(
+                    ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_PROCESSED
+            );
+        }
     }
 }

@@ -1,9 +1,11 @@
 package com.fivefy.domain.artist.repository;
 
+import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.domain.artist.entity.ArtistApplication;
 import com.fivefy.domain.artist.entity.QArtistApplication;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,10 +28,11 @@ public class ArtistApplicationCustomRepositoryImpl implements ArtistApplicationC
      * 관리자용 아티스트 등록 요청 목록을 페이징 조회한다.
      */
     @Override
-    public Page<ArtistApplication> searchArtistApplications(Pageable pageable) {
+    public Page<ArtistApplication> searchArtistApplications(ApplicationStatus status, Pageable pageable) {
         // 페이징 조건과 정렬 조건을 반영해 등록 요청 목록을 조회한다.
         List<ArtistApplication> contents = queryFactory
                 .selectFrom(artistApplication)
+                .where(statusEq(status))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .orderBy(getOrderSpecifiers(pageable))
@@ -39,6 +42,7 @@ public class ArtistApplicationCustomRepositoryImpl implements ArtistApplicationC
         Long total = queryFactory
                 .select(artistApplication.count())
                 .from(artistApplication)
+                .where(statusEq(status))
                 .fetchOne();
 
         // 조회 결과를 Page 객체로 변환해 반환한다.
@@ -66,5 +70,12 @@ public class ArtistApplicationCustomRepositoryImpl implements ArtistApplicationC
                     };
                 })
                 .toArray(OrderSpecifier[]::new);
+    }
+
+    /**
+     * 상태 조건이 있으면 해당 상태만 조회한다.
+     */
+    private BooleanExpression statusEq(ApplicationStatus status) {
+        return status == null ? null : artistApplication.status.eq(status);
     }
 }

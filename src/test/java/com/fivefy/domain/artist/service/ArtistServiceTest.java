@@ -40,6 +40,8 @@ import static org.mockito.Mockito.*;
  * 내 아티스트 등록 요청 목록 조회 기능을 검증한다.
  * 관리자용 아티스트 등록 요청 목록 조회 기능을 검증한다.
  * 아티스트 등록 요청 상세 조회 기능을 검증한다.
+ * 아티스트 등록 요청 승인 기능을 검증한다.
+ * 아티스트 등록 요청 거절 기능을 검증한다.
  */
 @ExtendWith(MockitoExtension.class)
 class ArtistServiceTest {
@@ -262,12 +264,12 @@ class ArtistServiceTest {
                     2
             );
 
-            when(artistApplicationRepository.searchArtistApplications(pageable))
+            // when
+            when(artistApplicationRepository.searchArtistApplications(null, pageable))
                     .thenReturn(page);
 
-            // when
             PageResponse<ArtistApplicationListResponse> response =
-                    artistService.getArtistApplications(pageable);
+                    artistService.getArtistApplications(null, pageable);
 
             // then
             assertThat(response.content()).hasSize(2);
@@ -289,7 +291,7 @@ class ArtistServiceTest {
             assertThat(response.content().get(1).createdAt()).isEqualTo(LocalDateTime.of(2026, 4, 15, 10, 0, 0));
 
             verify(artistApplicationRepository, times(1))
-                    .searchArtistApplications(pageable);
+                    .searchArtistApplications(null, pageable);
         }
 
         @Test
@@ -304,12 +306,12 @@ class ArtistServiceTest {
 
             Page<ArtistApplication> emptyPage = new PageImpl<>(List.of(), pageable, 0);
 
-            when(artistApplicationRepository.searchArtistApplications(pageable))
+            when(artistApplicationRepository.searchArtistApplications(null, pageable))
                     .thenReturn(emptyPage);
 
             // when
             PageResponse<ArtistApplicationListResponse> response =
-                    artistService.getArtistApplications(pageable);
+                    artistService.getArtistApplications(null, pageable);
 
             // then
             assertThat(response.content()).isEmpty();
@@ -319,7 +321,45 @@ class ArtistServiceTest {
             assertThat(response.totalPages()).isZero();
 
             verify(artistApplicationRepository, times(1))
-                    .searchArtistApplications(pageable);
+                    .searchArtistApplications(null, pageable);
+        }
+
+        @Test
+        @DisplayName("관리자는 상태 조건으로 아티스트 등록 요청 목록을 조회한다")
+        void getArtistApplications_withStatus_success() {
+            // given
+            Pageable pageable = PageRequest.of(
+                    0,
+                    5,
+                    Sort.by(Sort.Direction.ASC, "createdAt")
+            );
+
+            ArtistApplication application = ArtistApplication.create(
+                    1L,
+                    "아이유",
+                    "가수",
+                    "https://example.com/iu.jpg"
+            );
+
+            ReflectionTestUtils.setField(application, "id", 1L);
+            ReflectionTestUtils.setField(application, "createdAt",
+                    LocalDateTime.of(2026, 4, 14, 10, 0, 0));
+
+            Page<ArtistApplication> page = new PageImpl<>(List.of(application), pageable, 1);
+
+            when(artistApplicationRepository.searchArtistApplications(ApplicationStatus.PENDING, pageable))
+                    .thenReturn(page);
+
+            // when
+            PageResponse<ArtistApplicationListResponse> response =
+                    artistService.getArtistApplications(ApplicationStatus.PENDING, pageable);
+
+            // then
+            assertThat(response.content()).hasSize(1);
+            assertThat(response.content().get(0).status()).isEqualTo("PENDING");
+
+            verify(artistApplicationRepository, times(1))
+                    .searchArtistApplications(ApplicationStatus.PENDING, pageable);
         }
     }
 

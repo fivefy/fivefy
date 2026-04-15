@@ -2,6 +2,7 @@ package com.fivefy.domain.artist.controller;
 
 import com.fivefy.common.dto.response.BaseResponse;
 import com.fivefy.common.dto.response.PageResponse;
+import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationCreateRequest;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationRejectRequest;
 import com.fivefy.domain.artist.dto.response.*;
@@ -59,6 +60,7 @@ public class ArtistController {
      */
     @GetMapping("/admin/artist-applications")
     public ResponseEntity<BaseResponse<PageResponse<ArtistApplicationListResponse>>> getArtistApplications(
+            @RequestParam(required = false) ApplicationStatus status,
             @PageableDefault(
                     size = 10,
                     sort = "createdAt",
@@ -66,7 +68,7 @@ public class ArtistController {
             ) Pageable pageable
     ) {
         PageResponse<ArtistApplicationListResponse> response =
-                artistService.getArtistApplications(pageable);
+                artistService.getArtistApplications(status, pageable);
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 BaseResponse.success(HttpStatus.OK, "아티스트 등록 요청 목록 조회 성공", response));
