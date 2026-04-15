@@ -3,12 +3,15 @@ package com.fivefy.domain.artist.service;
 import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationCreateRequest;
+import com.fivefy.domain.artist.dto.response.ArtistApplicationApproveResponse;
 import com.fivefy.domain.artist.dto.response.ArtistApplicationDetailResponse;
 import com.fivefy.domain.artist.dto.response.ArtistApplicationListResponse;
 import com.fivefy.domain.artist.dto.response.ArtistApplicationResponse;
+import com.fivefy.domain.artist.entity.Artist;
 import com.fivefy.domain.artist.entity.ArtistApplication;
 import com.fivefy.domain.artist.enums.ArtistApplicationErrorCode;
 import com.fivefy.domain.artist.repository.ArtistApplicationRepository;
+import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.enums.UserRole;
@@ -27,6 +30,7 @@ public class ArtistService {
 
     private final ArtistApplicationRepository artistApplicationRepository;
     private final UserRepository userRepository;
+    private final ArtistRepository artistRepository;
 
     /**
      * 아티스트 등록 요청 생성
@@ -106,6 +110,24 @@ public class ArtistService {
     }
 
     /**
+     * 아티스트 등록 요청 승인
+     */
+    @Transactional
+    public ArtistApplicationApproveResponse approveArtistApplication(Long adminId, Long applicationId) {
+        // 승인할 아티스트 등록 요청을 조회한다.
+        ArtistApplication application = findArtistApplication(applicationId);
+
+        // 아티스트 등록 요청을 승인 상태로 변경한다.
+        application.approve(adminId);
+
+        // 승인된 요청 정보로 실제 아티스트를 생성한다.
+        Artist savedArtist = artistRepository.save(createArtist(application));
+
+        // 승인 결과를 응답 DTO로 변환해 반환한다.
+        return ArtistApplicationApproveResponse.from(application, savedArtist.getId());
+    }
+
+    /**
      * 동일 이름의 진행 중인 아티스트 등록 요청 중복 검증
      */
     private void validateDuplicateActiveApplication(Long userId, String requestedName) {
@@ -160,5 +182,18 @@ public class ArtistService {
             throw new BusinessException(
                     ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_DETAIL_FORBIDDEN);
         }
+    }
+
+    /**
+     * 승인된 요청 정보로 실제 아티스트 생성
+     */
+    private Artist createArtist(ArtistApplication application) {
+        // 승인된 요청 정보로 실제 아티스트 엔티티를 생성한다.
+        return Artist.create(
+                application.getRequesterUserId(),
+                application.getRequestedName(),
+                application.getBio(),
+                application.getProfileImageUrl()
+        );
     }
 }

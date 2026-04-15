@@ -1,14 +1,18 @@
 package com.fivefy.domain.artist.service;
 
 import com.fivefy.common.dto.response.PageResponse;
+import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationCreateRequest;
+import com.fivefy.domain.artist.dto.response.ArtistApplicationApproveResponse;
 import com.fivefy.domain.artist.dto.response.ArtistApplicationDetailResponse;
 import com.fivefy.domain.artist.dto.response.ArtistApplicationListResponse;
 import com.fivefy.domain.artist.dto.response.ArtistApplicationResponse;
+import com.fivefy.domain.artist.entity.Artist;
 import com.fivefy.domain.artist.entity.ArtistApplication;
 import com.fivefy.domain.artist.enums.ArtistApplicationErrorCode;
 import com.fivefy.domain.artist.repository.ArtistApplicationRepository;
+import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserRole;
 import com.fivefy.domain.user.repository.UserRepository;
@@ -47,6 +51,9 @@ class ArtistServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private ArtistRepository artistRepository;
 
     @InjectMocks
     private ArtistService artistService;
@@ -463,6 +470,82 @@ class ArtistServiceTest {
 
             verify(artistApplicationRepository, times(1)).findById(applicationId);
             verify(userRepository, never()).findById(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("아티스트 등록 요청 승인")
+    class ApproveArtistApplication {
+
+        @Test
+        @DisplayName("아티스트 등록 요청 승인에 성공한다")
+        void approveArtistApplication_success() {
+            // given
+            Long adminId = 1L;
+            Long applicationId = 10L;
+
+            ArtistApplication application = ArtistApplication.create(
+                    2L,
+                    "아이유",
+                    "가수",
+                    "https://example.com/profile.jpg"
+            );
+            ReflectionTestUtils.setField(application, "id", applicationId);
+
+            Artist savedArtist = Artist.create(
+                    application.getRequesterUserId(),
+                    application.getRequestedName(),
+                    application.getBio(),
+                    application.getProfileImageUrl()
+            );
+            ReflectionTestUtils.setField(savedArtist, "id", 100L);
+
+            when(artistApplicationRepository.findById(applicationId))
+                    .thenReturn(java.util.Optional.of(application));
+            when(artistRepository.save(any(Artist.class)))
+                    .thenReturn(savedArtist);
+
+            // when
+            ArtistApplicationApproveResponse response =
+                    artistService.approveArtistApplication(adminId, applicationId);
+
+            // then
+            assertThat(response.applicationId()).isEqualTo(applicationId);
+            assertThat(response.artistId()).isEqualTo(100L);
+            assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED.name());
+            assertThat(response.reviewedByAdminId()).isEqualTo(adminId);
+            assertThat(response.reviewedAt()).isNotNull();
+
+            verify(artistApplicationRepository, times(1)).findById(applicationId);
+            verify(artistRepository, times(1)).save(any(Artist.class));
+        }
+
+        @Test
+        @DisplayName("이미 처리된 아티스트 등록 요청이면 승인에 실패한다")
+        void approveArtistApplication_fail_whenAlreadyProcessed() {
+            // given
+            Long adminId = 1L;
+            Long applicationId = 10L;
+
+            ArtistApplication application = ArtistApplication.create(
+                    2L,
+                    "아이유",
+                    "가수",
+                    "https://example.com/profile.jpg"
+            );
+            ReflectionTestUtils.setField(application, "id", applicationId);
+            application.approve(adminId);
+
+            when(artistApplicationRepository.findById(applicationId))
+                    .thenReturn(java.util.Optional.of(application));
+
+            // when & then
+            assertThatThrownBy(() -> artistService.approveArtistApplication(adminId, applicationId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_PROCESSED.getMessage());
+
+            verify(artistApplicationRepository, times(1)).findById(applicationId);
+            verify(artistRepository, never()).save(any(Artist.class));
         }
     }
 }
