@@ -78,22 +78,28 @@ public class Playback {
         return Objects.equals(this.userId, userId);
     }
 
-    public boolean isPaused() {
-        return this.status == PlaybackStatus.PAUSED;
-    }
-
     public boolean isPlaying() {
         return this.status == PlaybackStatus.PLAYING;
     }
 
-    public boolean isEnded() {
-        return this.status == PlaybackStatus.STOPPED
-                || this.status == PlaybackStatus.SKIPPED
-                || this.status == PlaybackStatus.COMPLETED;
+    public boolean isPaused() {
+        return this.status == PlaybackStatus.PAUSED;
+    }
+
+    public boolean isStopped() {
+        return this.status == PlaybackStatus.STOPPED;
+    }
+
+    public boolean isSkipped() {
+        return this.status == PlaybackStatus.SKIPPED;
+    }
+
+    public boolean isCompleted() {
+        return this.status == PlaybackStatus.COMPLETED;
     }
 
     public void resume() {
-        if (this.status != PlaybackStatus.PAUSED) {
+        if (!isPaused()) {
             throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
         }
 
@@ -102,7 +108,7 @@ public class Playback {
     }
 
     public void pause() {
-        if (this.status != PlaybackStatus.PLAYING) {
+        if (!isPlaying()) {
             throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
         }
 
@@ -111,11 +117,11 @@ public class Playback {
     }
 
     public void stop() {
-        if (this.status != PlaybackStatus.PLAYING && this.status != PlaybackStatus.PAUSED) {
+        if (!isPlaying() && !isPaused()) {
             throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
         }
 
-        if (this.status == PlaybackStatus.PLAYING) {
+        if (isPlaying()) {
             accumulatePlayedDuration();
         }
 
@@ -124,11 +130,11 @@ public class Playback {
     }
 
     public void skip() {
-        if (this.status != PlaybackStatus.PLAYING && this.status != PlaybackStatus.PAUSED) {
+        if (!isPlaying() && !isPaused()) {
             throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
         }
 
-        if (this.status == PlaybackStatus.PLAYING) {
+        if (isPlaying()) {
             accumulatePlayedDuration();
         }
 
@@ -137,7 +143,7 @@ public class Playback {
     }
 
     public void complete() {
-        if (this.status != PlaybackStatus.PLAYING) {
+        if (!isPlaying()) {
             throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
         }
 
