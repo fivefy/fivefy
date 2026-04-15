@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 
 @Getter
 public enum AlbumErrorCode implements ErrorCode {
+    ERR_ALBUM_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 앨범입니다"),
     ERR_ALBUM_ALREADY_PUBLISHED(HttpStatus.BAD_REQUEST, "이미 발매된 앨범입니다"),
     ERR_ALBUM_ALREADY_BLOCKED(HttpStatus.BAD_REQUEST, "이미 차단된 앨범입니다"),
     ERR_ALBUM_ALREADY_DELETED(HttpStatus.BAD_REQUEST, "이미 삭제된 앨범입니다"),
