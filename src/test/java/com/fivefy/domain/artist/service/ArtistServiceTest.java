@@ -278,10 +278,10 @@ class ArtistServiceTest {
                     2
             );
 
-            // when
             when(artistApplicationRepository.searchArtistApplications(null, pageable))
                     .thenReturn(page);
 
+            // when
             PageResponse<ArtistApplicationListResponse> response =
                     artistService.getArtistApplications(null, pageable);
 
@@ -812,6 +812,7 @@ class ArtistServiceTest {
             assertThat(response.artistId()).isEqualTo(artistId);
             assertThat(response.name()).isEqualTo("아이유");
             assertThat(response.artistType()).isEqualTo(ArtistType.SOLO.name());
+            assertThat(response.status()).isEqualTo(ArtistStatus.ACTIVE.name());
 
             verify(artistRepository, times(1)).findById(artistId);
         }
@@ -900,6 +901,7 @@ class ArtistServiceTest {
             assertThat(response.name()).isEqualTo("아이유 리브랜딩");
             assertThat(response.artistType()).isEqualTo(ArtistType.SOLO.name());
             assertThat(response.bio()).isEqualTo("대한민국 솔로 가수");
+            assertThat(response.status()).isEqualTo(ArtistStatus.ACTIVE.name());
             assertThat(response.profileImageUrl()).isEqualTo("https://example.com/new-iu.jpg");
             assertThat(response.createdAt()).isEqualTo(LocalDateTime.of(2026, 4, 15, 10, 0, 0));
 
@@ -1010,6 +1012,7 @@ class ArtistServiceTest {
             assertThat(response.artistId()).isEqualTo(artistId);
             assertThat(response.name()).isEqualTo("아이유 리브랜딩");
             assertThat(response.artistType()).isEqualTo(ArtistType.SOLO.name());
+            assertThat(response.status()).isEqualTo(ArtistStatus.INACTIVE.name());
             assertThat(response.bio()).isEqualTo("대한민국 솔로 가수");
             assertThat(response.profileImageUrl()).isEqualTo("https://example.com/new-iu.jpg");
 
@@ -1182,6 +1185,7 @@ class ArtistServiceTest {
             assertThat(response.artistId()).isEqualTo(artistId);
             assertThat(response.name()).isEqualTo("아이유");
             assertThat(response.artistType()).isEqualTo(ArtistType.SOLO.name());
+            assertThat(response.status()).isEqualTo(ArtistStatus.ACTIVE.name());
             assertThat(response.bio()).isEqualTo("가수");
             assertThat(response.profileImageUrl()).isEqualTo("https://example.com/iu.jpg");
             assertThat(response.createdAt()).isEqualTo(LocalDateTime.of(2026, 4, 15, 10, 0, 0));
@@ -1293,6 +1297,11 @@ class ArtistServiceTest {
 
             // then
             assertThat(response.artistId()).isEqualTo(artistId);
+            assertThat(response.name()).isEqualTo("아이유");
+            assertThat(response.artistType()).isEqualTo(ArtistType.SOLO.name());
+            assertThat(response.status()).isEqualTo(ArtistStatus.INACTIVE.name());
+            assertThat(response.bio()).isEqualTo("가수");
+            assertThat(response.profileImageUrl()).isEqualTo("https://example.com/iu.jpg");
             assertThat(artist.getStatus()).isEqualTo(ArtistStatus.INACTIVE);
 
             verify(artistRepository, times(1)).findById(artistId);
