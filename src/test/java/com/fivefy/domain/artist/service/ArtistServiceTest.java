@@ -866,8 +866,8 @@ class ArtistServiceTest {
         @DisplayName("아티스트 소유자는 프로필 수정에 성공한다")
         void updateArtistProfile_success() {
             // given
-            Long artistId = 1L;
             Long userId = 10L;
+            Long artistId = 1L;
             ArtistProfileUpdateRequest request = new ArtistProfileUpdateRequest(
                     "아이유 리브랜딩",
                     "대한민국 솔로 가수",
@@ -892,7 +892,7 @@ class ArtistServiceTest {
 
             // when
             ArtistDetailResponse response =
-                    artistService.updateArtistProfile(artistId, userId, request);
+                    artistService.updateArtistProfile(userId, artistId, request);
 
             // then
             assertThat(response.artistId()).isEqualTo(artistId);
@@ -909,8 +909,8 @@ class ArtistServiceTest {
         @DisplayName("삭제된 아티스트는 프로필 수정할 수 없다")
         void updateArtistProfile_fail_whenDeletedArtist() {
             // given
-            Long artistId = 1L;
             Long userId = 10L;
+            Long artistId = 1L;
             ArtistProfileUpdateRequest request = new ArtistProfileUpdateRequest(
                     "아이유 리브랜딩",
                     "대한민국 솔로 가수",
@@ -932,7 +932,7 @@ class ArtistServiceTest {
                     .thenReturn(java.util.Optional.of(artist));
 
             // when & then
-            assertThatThrownBy(() -> artistService.updateArtistProfile(artistId, userId, request))
+            assertThatThrownBy(() -> artistService.updateArtistProfile(userId, artistId, request))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
 
@@ -943,8 +943,8 @@ class ArtistServiceTest {
         @DisplayName("아티스트 소유자가 아니면 프로필 수정할 수 없다")
         void updateArtistProfile_fail_whenNotOwner() {
             // given
-            Long artistId = 1L;
             Long userId = 99L;
+            Long artistId = 1L;
             ArtistProfileUpdateRequest request = new ArtistProfileUpdateRequest(
                     "아이유 리브랜딩",
                     "대한민국 솔로 가수",
@@ -964,7 +964,7 @@ class ArtistServiceTest {
                     .thenReturn(java.util.Optional.of(artist));
 
             // when & then
-            assertThatThrownBy(() -> artistService.updateArtistProfile(artistId, userId, request))
+            assertThatThrownBy(() -> artistService.updateArtistProfile(userId, artistId, request))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(ArtistErrorCode.ERR_FORBIDDEN_ARTIST_ACCESS.getMessage());
 
@@ -988,9 +988,42 @@ class ArtistServiceTest {
                 .thenReturn(java.util.Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> artistService.updateArtistProfile(artistId, userId, request))
+        assertThatThrownBy(() -> artistService.updateArtistProfile(userId, artistId, request))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
+
+        verify(artistRepository, times(1)).findById(artistId);
+    }
+
+    @Test
+    @DisplayName("정지된 아티스트는 프로필 수정할 수 없다")
+    void updateArtistProfile_fail_whenSuspendedArtist() {
+        // given
+        Long artistId = 1L;
+        Long userId = 10L;
+        ArtistProfileUpdateRequest request = new ArtistProfileUpdateRequest(
+                "아이유 리브랜딩",
+                "대한민국 솔로 가수",
+                "https://example.com/new-iu.jpg"
+        );
+
+        Artist artist = Artist.create(
+                userId,
+                "아이유",
+                ArtistType.SOLO,
+                "가수",
+                "https://example.com/iu.jpg"
+        );
+        ReflectionTestUtils.setField(artist, "id", artistId);
+        artist.suspend();
+
+        when(artistRepository.findById(artistId))
+                .thenReturn(java.util.Optional.of(artist));
+
+        // when & then
+        assertThatThrownBy(() -> artistService.updateArtistProfile(userId, artistId, request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(ArtistErrorCode.ERR_SUSPENDED_ARTIST_CANNOT_BE_UPDATED.getMessage());
 
         verify(artistRepository, times(1)).findById(artistId);
     }
