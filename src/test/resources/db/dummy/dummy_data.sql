@@ -66,23 +66,23 @@ TRUNCATE TABLE users;
 -- 비밀번호 : test1234!
 INSERT INTO users (id, email, password, name, role, status, last_active_at, created_at, updated_at, deleted_at) VALUES
 -- 관리자 5명
-(1,  'admin1@music.com', '$2a$10$8u9Y7uVlU9G.XkX0Z3WlTeR7XjG2K5S7v0o4B/6fK6A7Uv8y5C6yS', '관리자1', 'ADMIN', 'ACTIVE', NOW(), '2024-06-01 09:00:00', NOW(), NULL),
-(2,  'admin2@music.com', '$2a$10$8u9Y7uVlU9G.XkX0Z3WlTeR7XjG2K5S7v0o4B/6fK6A7Uv8y5C6yS', '관리자2', 'ADMIN', 'ACTIVE', NOW(), '2024-06-01 09:00:00', NOW(), NULL),
-(3,  'admin3@music.com', '$2a$10$8u9Y7uVlU9G.XkX0Z3WlTeR7XjG2K5S7v0o4B/6fK6A7Uv8y5C6yS', '관리자3', 'ADMIN', 'ACTIVE', NOW(), '2024-06-01 09:00:00', NOW(), NULL),
-(4,  'admin4@music.com', '$2a$10$8u9Y7uVlU9G.XkX0Z3WlTeR7XjG2K5S7v0o4B/6fK6A7Uv8y5C6yS', '관리자4', 'ADMIN', 'ACTIVE', NOW(), '2024-06-01 09:00:00', NOW(), NULL),
-(5,  'admin5@music.com', '$2a$10$8u9Y7uVlU9G.XkX0Z3WlTeR7XjG2K5S7v0o4B/6fK6A7Uv8y5C6yS', '관리자5', 'ADMIN', 'ACTIVE', NOW(), '2024-06-01 09:00:00', NOW(), NULL),
+(1,  'admin1@music.com', '$2a$10$5sE6mDkqsJWc/XahxQH6T.ryKvGhqTg8xwzoujxVHtl8YIOlbSBGu', '관리자1', 'ADMIN', 'ACTIVE', NOW(), '2024-06-01 09:00:00', NOW(), NULL),
+(2,  'admin2@music.com', '$2a$10$5sE6mDkqsJWc/XahxQH6T.ryKvGhqTg8xwzoujxVHtl8YIOlbSBGu', '관리자2', 'ADMIN', 'ACTIVE', NOW(), '2024-06-01 09:00:00', NOW(), NULL),
+(3,  'admin3@music.com', '$2a$10$5sE6mDkqsJWc/XahxQH6T.ryKvGhqTg8xwzoujxVHtl8YIOlbSBGu', '관리자3', 'ADMIN', 'ACTIVE', NOW(), '2024-06-01 09:00:00', NOW(), NULL),
+(4,  'admin4@music.com', '$2a$10$5sE6mDkqsJWc/XahxQH6T.ryKvGhqTg8xwzoujxVHtl8YIOlbSBGu', '관리자4', 'ADMIN', 'ACTIVE', NOW(), '2024-06-01 09:00:00', NOW(), NULL),
+(5,  'admin5@music.com', '$2a$10$5sE6mDkqsJWc/XahxQH6T.ryKvGhqTg8xwzoujxVHtl8YIOlbSBGu', '관리자5', 'ADMIN', 'ACTIVE', NOW(), '2024-06-01 09:00:00', NOW(), NULL),
 -- 아티스트 계정 5명
-(6,  'artist_luna@music.com',  '$2a$10$8u9Y7uVlU9G.XkX0Z3WlTeR7XjG2K5S7v0o4B/6fK6A7Uv8y5C6yS', '루나',  'USER', 'ACTIVE', NOW(), '2024-07-01 10:00:00', NOW(), NULL),
-(7,  'artist_nova@music.com',  '$2a$10$8u9Y7uVlU9G.XkX0Z3WlTeR7XjG2K5S7v0o4B/6fK6A7Uv8y5C6yS', '노바',  'USER', 'ACTIVE', NOW(), '2024-07-02 10:00:00', NOW(), NULL),
-(8,  'artist_echo@music.com',  '$2a$10$8u9Y7uVlU9G.XkX0Z3WlTeR7XjG2K5S7v0o4B/6fK6A7Uv8y5C6yS', '에코',  'USER', 'ACTIVE', NOW(), '2024-07-03 10:00:00', NOW(), NULL),
-(9,  'artist_dawn@music.com',  '$2a$10$8u9Y7uVlU9G.XkX0Z3WlTeR7XjG2K5S7v0o4B/6fK6A7Uv8y5C6yS', '던',    'USER', 'ACTIVE', NOW(), '2024-07-04 10:00:00', NOW(), NULL),
-(10, 'artist_pulse@music.com', '$2a$10$8u9Y7uVlU9G.XkX0Z3WlTeR7XjG2K5S7v0o4B/6fK6A7Uv8y5C6yS', '펄스',  'USER', 'ACTIVE', NOW(), '2024-07-05 10:00:00', NOW(), NULL),
+(6,  'artist_luna@music.com',  '$2a$10$5sE6mDkqsJWc/XahxQH6T.ryKvGhqTg8xwzoujxVHtl8YIOlbSBGu', '루나',  'USER', 'ACTIVE', NOW(), '2024-07-01 10:00:00', NOW(), NULL),
+(7,  'artist_nova@music.com',  '$2a$10$5sE6mDkqsJWc/XahxQH6T.ryKvGhqTg8xwzoujxVHtl8YIOlbSBGu', '노바',  'USER', 'ACTIVE', NOW(), '2024-07-02 10:00:00', NOW(), NULL),
+(8,  'artist_echo@music.com',  '$2a$10$5sE6mDkqsJWc/XahxQH6T.ryKvGhqTg8xwzoujxVHtl8YIOlbSBGu', '에코',  'USER', 'ACTIVE', NOW(), '2024-07-03 10:00:00', NOW(), NULL),
+(9,  'artist_dawn@music.com',  '$2a$10$5sE6mDkqsJWc/XahxQH6T.ryKvGhqTg8xwzoujxVHtl8YIOlbSBGu', '던',    'USER', 'ACTIVE', NOW(), '2024-07-04 10:00:00', NOW(), NULL),
+(10, 'artist_pulse@music.com', '$2a$10$5sE6mDkqsJWc/XahxQH6T.ryKvGhqTg8xwzoujxVHtl8YIOlbSBGu', '펄스',  'USER', 'ACTIVE', NOW(), '2024-07-05 10:00:00', NOW(), NULL),
 -- SUSPENDED (30일 미접속)
-(11, 'inactive1@music.com', '$2a$10$8u9Y7uVlU9G.XkX0Z3WlTeR7XjG2K5S7v0o4B/6fK6A7Uv8y5C6yS', '비활성1', 'USER', 'SUSPENDED', DATE_SUB(NOW(), INTERVAL 35 DAY), '2024-08-01 10:00:00', NOW(), NULL),
-(12, 'inactive2@music.com', '$2a$10$8u9Y7uVlU9G.XkX0Z3WlTeR7XjG2K5S7v0o4B/6fK6A7Uv8y5C6yS', '비활성2', 'USER', 'SUSPENDED', DATE_SUB(NOW(), INTERVAL 40 DAY), '2024-08-02 10:00:00', NOW(), NULL),
+(11, 'inactive1@music.com', '$2a$10$5sE6mDkqsJWc/XahxQH6T.ryKvGhqTg8xwzoujxVHtl8YIOlbSBGu', '비활성1', 'USER', 'SUSPENDED', DATE_SUB(NOW(), INTERVAL 35 DAY), '2024-08-01 10:00:00', NOW(), NULL),
+(12, 'inactive2@music.com', '$2a$10$5sE6mDkqsJWc/XahxQH6T.ryKvGhqTg8xwzoujxVHtl8YIOlbSBGu', '비활성2', 'USER', 'SUSPENDED', DATE_SUB(NOW(), INTERVAL 40 DAY), '2024-08-02 10:00:00', NOW(), NULL),
 -- DELETED (소프트 삭제)
-(13, 'deleted1@music.com', '$2a$10$8u9Y7uVlU9G.XkX0Z3WlTeR7XjG2K5S7v0o4B/6fK6A7Uv8y5C6yS', '탈퇴유저1', 'USER', 'DELETED', '2025-10-04 10:00:00', '2024-09-01 10:00:00', NOW(), '2025-10-04 10:00:00'),
-(14, 'deleted2@music.com', '$2a$10$8u9Y7uVlU9G.XkX0Z3WlTeR7XjG2K5S7v0o4B/6fK6A7Uv8y5C6yS', '탈퇴유저2', 'USER', 'DELETED', '2025-07-26 10:00:00', '2024-09-02 10:00:00', NOW(), '2025-07-26 10:00:00');
+(13, 'deleted1@music.com', '$2a$10$5sE6mDkqsJWc/XahxQH6T.ryKvGhqTg8xwzoujxVHtl8YIOlbSBGu', '탈퇴유저1', 'USER', 'DELETED', '2025-10-04 10:00:00', '2024-09-01 10:00:00', NOW(), '2025-10-04 10:00:00'),
+(14, 'deleted2@music.com', '$2a$10$5sE6mDkqsJWc/XahxQH6T.ryKvGhqTg8xwzoujxVHtl8YIOlbSBGu', '탈퇴유저2', 'USER', 'DELETED', '2025-07-26 10:00:00', '2024-09-02 10:00:00', NOW(), '2025-07-26 10:00:00');
 
 -- 일반 유저 96명 (id 15~110)
 DELIMITER $$
@@ -95,7 +95,7 @@ BEGIN
             VALUES (
                        i,
                        CONCAT('user', i, '@music.com'),
-                       '$2a$10$8u9Y7uVlU9G.XkX0Z3WlTeR7XjG2K5S7v0o4B/6fK6A7Uv8y5C6yS',
+                       '$2a$10$5sE6mDkqsJWc/XahxQH6T.ryKvGhqTg8xwzoujxVHtl8YIOlbSBGu',
                        CONCAT('유저', i),
                        'USER',
                        'ACTIVE',
