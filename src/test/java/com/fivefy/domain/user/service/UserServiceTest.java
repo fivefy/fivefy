@@ -153,7 +153,7 @@ class UserServiceTest {
             given(userRepository.findByEmail(request.email())).willReturn(Optional.of(user));
             given(passwordEncoder.matches(request.password(), user.getPassword())).willReturn(true);
             given(jwtUtil.createAccessToken(any(), any())).willReturn("accessToken");
-            given(jwtUtil.createRefreshToken()).willReturn("refreshToken");
+            given(jwtUtil.createRefreshToken(any())).willReturn("refreshToken");
             given(redisTemplate.opsForValue()).willReturn(valueOperations);
 
             // when
@@ -171,7 +171,7 @@ class UserServiceTest {
             given(userRepository.findByEmail(request.email())).willReturn(Optional.of(user));
             given(passwordEncoder.matches(request.password(), user.getPassword())).willReturn(true);
             given(jwtUtil.createAccessToken(any(), any())).willReturn("accessToken");
-            given(jwtUtil.createRefreshToken()).willReturn("refreshToken");
+            given(jwtUtil.createRefreshToken(any())).willReturn("refreshToken");
             given(redisTemplate.opsForValue()).willReturn(valueOperations);
 
             // when

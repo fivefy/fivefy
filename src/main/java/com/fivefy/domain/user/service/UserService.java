@@ -94,7 +94,7 @@ public class UserService {
         }
 
         String accessToken = jwtUtil.createAccessToken(user.getId(), user.getRole());
-        String refreshToken = jwtUtil.createRefreshToken();
+        String refreshToken = jwtUtil.createRefreshToken(user.getId());
 
         redisTemplate.opsForValue().set(
                 RT_PREFIX + user.getId(),
@@ -163,7 +163,7 @@ public class UserService {
 
         // 새로운 AT, RT 발급
         String newAccessToken = jwtUtil.createAccessToken(user.getId(), user.getRole());
-        String newRefreshToken = jwtUtil.createRefreshToken();
+        String newRefreshToken = jwtUtil.createRefreshToken(user.getId());
 
         // Redis 업데이트 (트랜잭션)
         redisTemplate.execute(new SessionCallback<List<Object>>() {
