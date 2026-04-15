@@ -11,5 +11,6 @@ public interface PlaybackRepository extends JpaRepository<Playback, Long> {
 
     Optional<Playback> findTopByUserIdAndPlaylistIdAndTrackIdAndSessionIdOrderByIdDesc(Long userId, Long playlistId, Long trackId, String sessionId);
     Optional<Playback> findTopByUserIdAndSessionIdAndStatusOrderByIdDesc(Long userId, String sessionId, PlaybackStatus status);
+    Optional<Playback> findByIdAndUserId(Long playbackId, Long userId);
     List<Playback> findAllByUserIdOrderByIdDesc(Long userId);
 }

@@ -155,14 +155,8 @@ public class PlaybackService {
     }
 
     private Playback getOwnedPlayback(Long userId, Long playbackId) {
-        Playback playback = playbackRepository.findById(playbackId)
+        return playbackRepository.findByIdAndUserId(playbackId, userId)
                 .orElseThrow(() -> new BusinessException(PlaybackErrorCode.PLAYBACK_NOT_FOUND));
-
-        if (!playback.isOwner(userId)) {
-            throw new BusinessException(PlaybackErrorCode.PLAYBACK_ACCESS_DENIED);
-        }
-
-        return playback;
     }
 
     private Long resolveNextTrackId(List<PlaylistTrack> playlistTracks, Long currentTrackId) {
