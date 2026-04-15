@@ -9,6 +9,7 @@ import com.fivefy.domain.artist.dto.response.*;
 import com.fivefy.domain.artist.entity.Artist;
 import com.fivefy.domain.artist.entity.ArtistApplication;
 import com.fivefy.domain.artist.enums.ArtistApplicationErrorCode;
+import com.fivefy.domain.artist.enums.ArtistErrorCode;
 import com.fivefy.domain.artist.enums.ArtistType;
 import com.fivefy.domain.artist.repository.ArtistApplicationRepository;
 import com.fivefy.domain.artist.repository.ArtistRepository;
@@ -173,6 +174,30 @@ public class ArtistService {
         return artists.stream()
                 .map(MyArtistResponse::from)
                 .toList();
+    }
+
+    /**
+     * 아티스트 상세 조회
+     */
+    @Transactional(readOnly = true)
+    public ArtistDetailResponse getArtist(Long artistId) {
+        Artist artist = artistRepository.findById(artistId)
+                .orElseThrow(() -> new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND));
+
+        // soft delete 검증
+        if (artist.isDeleted()) {
+            throw new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND);
+        }
+
+        return new ArtistDetailResponse(
+                artist.getId(),
+                artist.getName(),
+                artist.getArtistType().name(),
+                artist.getBio(),
+                artist.getProfileImageUrl(),
+                artist.getCreatedAt(),
+                artist.getUpdatedAt()
+        );
     }
 
     /**

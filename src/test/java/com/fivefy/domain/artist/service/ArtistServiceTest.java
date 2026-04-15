@@ -774,4 +774,57 @@ class ArtistServiceTest {
             verify(artistRepository, times(1)).findMyArtists(userId);
         }
     }
+
+    @Nested
+    @DisplayName("아티스트 상세 조회")
+    class GetArtist {
+
+        @Test
+        @DisplayName("아티스트 상세 조회에 성공한다")
+        void getArtist_success() {
+            // given
+            Long artistId = 1L;
+
+            Artist artist = Artist.create(
+                    1L,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/iu.jpg"
+            );
+
+            ReflectionTestUtils.setField(artist, "id", artistId);
+            ReflectionTestUtils.setField(artist, "createdAt",
+                    LocalDateTime.of(2026, 4, 15, 10, 0, 0));
+            ReflectionTestUtils.setField(artist, "updatedAt",
+                    LocalDateTime.of(2026, 4, 15, 11, 0, 0));
+
+            when(artistRepository.findById(artistId))
+                    .thenReturn(java.util.Optional.of(artist));
+
+            // when
+            ArtistDetailResponse response = artistService.getArtist(artistId);
+
+            // then
+            assertThat(response.artistId()).isEqualTo(artistId);
+            assertThat(response.name()).isEqualTo("아이유");
+            assertThat(response.artistType()).isEqualTo(ArtistType.SOLO.name());
+
+            verify(artistRepository, times(1)).findById(artistId);
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 아티스트면 예외가 발생한다")
+        void getArtist_notFound() {
+            // given
+            Long artistId = 1L;
+
+            when(artistRepository.findById(artistId))
+                    .thenReturn(java.util.Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> artistService.getArtist(artistId))
+                    .isInstanceOf(BusinessException.class);
+        }
+    }
 }

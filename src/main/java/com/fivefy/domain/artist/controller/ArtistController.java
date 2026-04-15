@@ -135,4 +135,18 @@ public class ArtistController {
                 BaseResponse.success(HttpStatus.OK, "내 아티스트 목록 조회 성공", response)
         );
     }
+
+    /**
+     * 아티스트 상세 조회
+     */
+    @GetMapping("/artists/{artistId}")
+    public ResponseEntity<BaseResponse<ArtistDetailResponse>> getArtist(
+            @PathVariable Long artistId
+    ) {
+        ArtistDetailResponse response = artistService.getArtist(artistId);
+
+        return ResponseEntity.ok(
+                BaseResponse.success(HttpStatus.OK, "아티스트 상세 조회 성공", response)
+        );
+    }
 }

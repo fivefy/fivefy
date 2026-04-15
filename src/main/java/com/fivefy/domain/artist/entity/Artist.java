@@ -126,4 +126,8 @@ public class Artist extends BaseEntity {
             throw new BusinessException(ArtistErrorCode.ERR_DELETED_ARTIST_CANNOT_BE_UPDATED);
         }
     }
+
+    public boolean isDeleted() {
+        return this.deletedAt != null;
+    }
 }
