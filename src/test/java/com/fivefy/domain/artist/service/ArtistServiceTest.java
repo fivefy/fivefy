@@ -4,10 +4,8 @@ import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationCreateRequest;
-import com.fivefy.domain.artist.dto.response.ArtistApplicationApproveResponse;
-import com.fivefy.domain.artist.dto.response.ArtistApplicationDetailResponse;
-import com.fivefy.domain.artist.dto.response.ArtistApplicationListResponse;
-import com.fivefy.domain.artist.dto.response.ArtistApplicationResponse;
+import com.fivefy.domain.artist.dto.request.ArtistApplicationRejectRequest;
+import com.fivefy.domain.artist.dto.response.*;
 import com.fivefy.domain.artist.entity.Artist;
 import com.fivefy.domain.artist.entity.ArtistApplication;
 import com.fivefy.domain.artist.enums.ArtistApplicationErrorCode;
@@ -541,6 +539,76 @@ class ArtistServiceTest {
 
             // when & then
             assertThatThrownBy(() -> artistService.approveArtistApplication(adminId, applicationId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_PROCESSED.getMessage());
+
+            verify(artistApplicationRepository, times(1)).findById(applicationId);
+            verify(artistRepository, never()).save(any(Artist.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("아티스트 등록 요청 거절")
+    class RejectArtistApplication {
+
+        @Test
+        @DisplayName("아티스트 등록 요청 거절에 성공한다")
+        void rejectArtistApplication_success() {
+            // given
+            Long adminId = 1L;
+            Long applicationId = 10L;
+            ArtistApplicationRejectRequest request =
+                    new ArtistApplicationRejectRequest("정보 부족");
+
+            ArtistApplication application = ArtistApplication.create(
+                    2L,
+                    "아이유",
+                    "가수",
+                    "https://example.com/profile.jpg"
+            );
+            ReflectionTestUtils.setField(application, "id", applicationId);
+
+            when(artistApplicationRepository.findById(applicationId))
+                    .thenReturn(java.util.Optional.of(application));
+
+            // when
+            ArtistApplicationRejectResponse response =
+                    artistService.rejectArtistApplication(adminId, applicationId, request);
+
+            // then
+            assertThat(response.applicationId()).isEqualTo(applicationId);
+            assertThat(response.status()).isEqualTo(ApplicationStatus.REJECTED.name());
+            assertThat(response.reviewedByAdminId()).isEqualTo(adminId);
+            assertThat(response.reviewedAt()).isNotNull();
+            assertThat(response.rejectionReason()).isEqualTo("정보 부족");
+
+            verify(artistApplicationRepository, times(1)).findById(applicationId);
+            verify(artistRepository, never()).save(any(Artist.class));
+        }
+
+        @Test
+        @DisplayName("이미 처리된 아티스트 등록 요청이면 거절에 실패한다")
+        void rejectArtistApplication_fail_whenAlreadyProcessed() {
+            // given
+            Long adminId = 1L;
+            Long applicationId = 10L;
+            ArtistApplicationRejectRequest request =
+                    new ArtistApplicationRejectRequest("정보 부족");
+
+            ArtistApplication application = ArtistApplication.create(
+                    2L,
+                    "아이유",
+                    "가수",
+                    "https://example.com/profile.jpg"
+            );
+            ReflectionTestUtils.setField(application, "id", applicationId);
+            application.reject(adminId, "기존 거절 사유");
+
+            when(artistApplicationRepository.findById(applicationId))
+                    .thenReturn(java.util.Optional.of(application));
+
+            // when & then
+            assertThatThrownBy(() -> artistService.rejectArtistApplication(adminId, applicationId, request))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_PROCESSED.getMessage());
 

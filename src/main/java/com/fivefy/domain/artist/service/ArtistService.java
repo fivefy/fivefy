@@ -3,10 +3,8 @@ package com.fivefy.domain.artist.service;
 import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationCreateRequest;
-import com.fivefy.domain.artist.dto.response.ArtistApplicationApproveResponse;
-import com.fivefy.domain.artist.dto.response.ArtistApplicationDetailResponse;
-import com.fivefy.domain.artist.dto.response.ArtistApplicationListResponse;
-import com.fivefy.domain.artist.dto.response.ArtistApplicationResponse;
+import com.fivefy.domain.artist.dto.request.ArtistApplicationRejectRequest;
+import com.fivefy.domain.artist.dto.response.*;
 import com.fivefy.domain.artist.entity.Artist;
 import com.fivefy.domain.artist.entity.ArtistApplication;
 import com.fivefy.domain.artist.enums.ArtistApplicationErrorCode;
@@ -125,6 +123,25 @@ public class ArtistService {
 
         // 승인 결과를 응답 DTO로 변환해 반환한다.
         return ArtistApplicationApproveResponse.from(application, savedArtist.getId());
+    }
+
+    /**
+     * 아티스트 등록 요청 거절
+     */
+    @Transactional
+    public ArtistApplicationRejectResponse rejectArtistApplication(
+            Long adminId,
+            Long applicationId,
+            ArtistApplicationRejectRequest request
+    ) {
+        // 거절할 아티스트 등록 요청을 조회한다.
+        ArtistApplication application = findArtistApplication(applicationId);
+
+        // 아티스트 등록 요청을 거절 상태로 변경한다.
+        application.reject(adminId, request.rejectionReason());
+
+        // 거절 결과를 응답 DTO로 변환해 반환한다.
+        return ArtistApplicationRejectResponse.from(application);
     }
 
     /**
