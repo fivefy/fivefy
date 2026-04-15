@@ -7,6 +7,6 @@ import jakarta.validation.constraints.NotNull;
  * @param subscriptionId
  */
 public record SubscriptionRefundRequest(
-        @NotNull(message = "구독 식별자는 필수입니다.")
+        @NotNull(message = "구독 식별자는 필수입니다")
         Long subscriptionId
 ) {}

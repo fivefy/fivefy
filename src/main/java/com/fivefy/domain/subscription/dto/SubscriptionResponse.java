@@ -7,23 +7,23 @@ import com.fivefy.domain.subscription.enums.SubscriptionStatus;
 import java.time.LocalDateTime;
 
 public record SubscriptionResponse(
-        Long subscriptionId,
+        Long id,
+        Long pointOrderId,
         SubscriptionPlanType planType,
         SubscriptionStatus status,
         LocalDateTime startDate,
         LocalDateTime expiryDate,
-        LocalDateTime nextBillingDate,
-        boolean active
+        LocalDateTime nextBillingDate
 ) {
     public static SubscriptionResponse from(Subscription subscription) {
         return new SubscriptionResponse(
                 subscription.getId(),
+                subscription.getPointOrderId(),
                 subscription.getPlanType(),
                 subscription.getStatus(),
                 subscription.getStartDate(),
                 subscription.getExpiryDate(),
-                subscription.getNextBillingDate(),
-                subscription.isActive()
+                subscription.getNextBillingDate()
         );
     }
 }

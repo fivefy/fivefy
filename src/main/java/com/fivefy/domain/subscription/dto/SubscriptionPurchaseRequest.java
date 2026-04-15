@@ -9,5 +9,5 @@ import jakarta.validation.constraints.NotNull;
  */
 public record SubscriptionPurchaseRequest(
         @NotNull(message = "구독 플랜 타입은 필수입니다")
-        SubscriptionPlanType planType   // MONTH, YEAR, FREE
+        SubscriptionPlanType planType   // MONTH, YEAR, FREE, RECURRING
 ) {}

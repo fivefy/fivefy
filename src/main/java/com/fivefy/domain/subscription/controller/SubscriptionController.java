@@ -27,7 +27,8 @@ public class SubscriptionController {
     @PostMapping("/purchases")
     public ResponseEntity<SubscriptionResponse> purchase(
             @AuthenticationPrincipal Long userId,
-            @RequestBody SubscriptionPurchaseRequest request) {
+            @RequestBody SubscriptionPurchaseRequest request
+    ) {
         return ResponseEntity.ok(subscriptionService.purchase(userId, request));
     }
 
@@ -37,7 +38,8 @@ public class SubscriptionController {
      */
     @GetMapping
     public ResponseEntity<List<SubscriptionResponse>> getMySubscriptions(
-            @AuthenticationPrincipal Long userId) {
+            @AuthenticationPrincipal Long userId
+    ) {
         return ResponseEntity.ok(subscriptionService.getMySubscriptions(userId));
     }
 
@@ -48,7 +50,8 @@ public class SubscriptionController {
     @PostMapping("/refunds")
     public ResponseEntity<SubscriptionResponse> refund(
             @AuthenticationPrincipal Long userId,
-            @RequestBody SubscriptionRefundRequest request) {
+            @RequestBody SubscriptionRefundRequest request
+    ) {
         return ResponseEntity.ok(subscriptionService.refund(userId, request));
     }
 
@@ -57,7 +60,9 @@ public class SubscriptionController {
      * DELETE /api/me/subscriptions
      */
     @DeleteMapping
-    public ResponseEntity<Void> cancel(@AuthenticationPrincipal Long userId) {
+    public ResponseEntity<Void> cancel(
+            @AuthenticationPrincipal Long userId
+    ) {
         subscriptionService.cancel(userId);
         return ResponseEntity.noContent().build();
     }
