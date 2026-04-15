@@ -1,11 +1,18 @@
 package com.fivefy.domain.artist.service;
 
 import com.fivefy.common.dto.response.PageResponse;
+import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationCreateRequest;
+import com.fivefy.domain.artist.dto.response.ArtistApplicationDetailResponse;
 import com.fivefy.domain.artist.dto.response.ArtistApplicationListResponse;
 import com.fivefy.domain.artist.dto.response.ArtistApplicationResponse;
 import com.fivefy.domain.artist.entity.ArtistApplication;
+import com.fivefy.domain.artist.enums.ArtistApplicationErrorCode;
 import com.fivefy.domain.artist.repository.ArtistApplicationRepository;
+import com.fivefy.domain.user.entity.User;
+import com.fivefy.domain.user.enums.UserErrorCode;
+import com.fivefy.domain.user.enums.UserRole;
+import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +26,7 @@ import java.util.List;
 public class ArtistService {
 
     private final ArtistApplicationRepository artistApplicationRepository;
+    private final UserRepository userRepository;
 
     /**
      * 아티스트 등록 요청 생성
@@ -71,5 +79,32 @@ public class ArtistService {
 
         // 공통 페이징 응답 객체로 변환한다.
         return PageResponse.from(response);
+    }
+
+    /**
+     * 아티스트 등록 요청 상세 조회
+     */
+    @Transactional(readOnly = true)
+    public ArtistApplicationDetailResponse getArtistApplication(Long userId, Long applicationId) {
+        // 아티스트 등록 요청을 조회한다.
+        ArtistApplication application =  artistApplicationRepository.findById(applicationId)
+                .orElseThrow(() -> new BusinessException(
+                        ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_NOT_FOUND)
+        );
+        // 현재 로그인 사용자의 역할을 확인하기 위해 유저를 조회한다.
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(UserErrorCode.ERR_USER_NOT_FOUND));
+
+        // 요청자 본인 또는 관리자만 상세 조회할 수 있다.
+        boolean isRequester = application.getRequesterUserId().equals(userId);
+        boolean isAdmin = user.getRole() == UserRole.ADMIN;
+
+        if (!isRequester && !isAdmin) {
+            throw new BusinessException(
+                    ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_DETAIL_FORBIDDEN);
+        }
+
+        // 조회한 엔티티를 상세 응답 DTO로 변환해 반환한다.
+        return ArtistApplicationDetailResponse.from(application);
     }
 }

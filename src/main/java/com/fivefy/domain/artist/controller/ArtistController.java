@@ -3,6 +3,7 @@ package com.fivefy.domain.artist.controller;
 import com.fivefy.common.dto.response.BaseResponse;
 import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationCreateRequest;
+import com.fivefy.domain.artist.dto.response.ArtistApplicationDetailResponse;
 import com.fivefy.domain.artist.dto.response.ArtistApplicationListResponse;
 import com.fivefy.domain.artist.dto.response.ArtistApplicationResponse;
 import com.fivefy.domain.artist.service.ArtistService;
@@ -71,5 +72,20 @@ public class ArtistController {
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 BaseResponse.success(HttpStatus.OK, "아티스트 등록 요청 목록 조회 성공", response));
+    }
+
+    /**
+     * 아티스트 등록 요청 목록 상세 조회 API
+     */
+    @GetMapping("/artist-applications/{applicationId}")
+    public ResponseEntity<BaseResponse<ArtistApplicationDetailResponse>> getArtistApplication(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long applicationId
+    ) {
+        ArtistApplicationDetailResponse response =
+                artistService.getArtistApplication(userId, applicationId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                BaseResponse.success(HttpStatus.OK, "아티스트 등록 요청 상세 조회 성공", response));
     }
 }

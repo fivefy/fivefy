@@ -1,12 +1,18 @@
 package com.fivefy.domain.artist.service;
 
 import com.fivefy.common.dto.response.PageResponse;
+import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationCreateRequest;
+import com.fivefy.domain.artist.dto.response.ArtistApplicationDetailResponse;
 import com.fivefy.domain.artist.dto.response.ArtistApplicationListResponse;
 import com.fivefy.domain.artist.dto.response.ArtistApplicationResponse;
 import com.fivefy.domain.artist.entity.ArtistApplication;
+import com.fivefy.domain.artist.enums.ArtistApplicationErrorCode;
 import com.fivefy.domain.artist.repository.ArtistApplicationCustomRepository;
 import com.fivefy.domain.artist.repository.ArtistApplicationRepository;
+import com.fivefy.domain.user.entity.User;
+import com.fivefy.domain.user.enums.UserRole;
+import com.fivefy.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -22,6 +28,7 @@ import java.util.List;
 
 import static com.fivefy.common.enums.ApplicationStatus.PENDING;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -31,12 +38,16 @@ import static org.mockito.Mockito.*;
  * 아티스트 등록 요청 생성 기능을 검증한다.
  * 내 아티스트 등록 요청 목록 조회 기능을 검증한다.
  * 관리자용 아티스트 등록 요청 목록 조회 기능을 검증한다.
+ * 아티스트 등록 요청 상세 조회 기능을 검증한다.
  */
 @ExtendWith(MockitoExtension.class)
 class ArtistServiceTest {
 
     @Mock
     private ArtistApplicationRepository artistApplicationRepository;
+
+    @Mock
+    private UserRepository userRepository;
 
     @InjectMocks
     private ArtistService artistService;
@@ -259,4 +270,151 @@ class ArtistServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("아티스트 등록 요청 상세 조회")
+    class GetArtistApplication {
+
+        @Test
+        @DisplayName("요청자 본인은 아티스트 등록 요청 상세를 조회할 수 있다")
+        void getArtistApplication_requester_success() {
+            // given
+            Long userId = 1L;
+            Long applicationId = 1L;
+
+            ArtistApplication application = ArtistApplication.create(
+                    userId,
+                    "아이유",
+                    "가수",
+                    "https://example.com/iu.jpg"
+            );
+
+            // 상세 조회 검증을 위해 엔티티 필드를 직접 주입한다.
+            ReflectionTestUtils.setField(application, "id", applicationId);
+            ReflectionTestUtils.setField(application, "createdAt",
+                    LocalDateTime.of(2026, 4, 14, 10, 0, 0));
+            ReflectionTestUtils.setField(application, "updatedAt",
+                    LocalDateTime.of(2026, 4, 14, 11, 0, 0));
+
+            User user = mock(User.class);
+            when(user.getRole()).thenReturn(UserRole.USER);
+
+            when(artistApplicationRepository.findById(applicationId))
+                    .thenReturn(java.util.Optional.of(application));
+            when(userRepository.findById(userId))
+                    .thenReturn(java.util.Optional.of(user));
+
+            // when
+            ArtistApplicationDetailResponse response =
+                    artistService.getArtistApplication(userId, applicationId);
+
+            // then
+            assertThat(response.applicationId()).isEqualTo(applicationId);
+            assertThat(response.requesterUserId()).isEqualTo(userId);
+            assertThat(response.requestedName()).isEqualTo("아이유");
+            assertThat(response.bio()).isEqualTo("가수");
+            assertThat(response.profileImageUrl()).isEqualTo("https://example.com/iu.jpg");
+            assertThat(response.status()).isEqualTo("PENDING");
+            assertThat(response.reviewedByAdminId()).isNull();
+            assertThat(response.reviewedAt()).isNull();
+            assertThat(response.rejectionReason()).isNull();
+            assertThat(response.createdAt()).isEqualTo(LocalDateTime.of(2026, 4, 14, 10, 0, 0));
+            assertThat(response.updatedAt()).isEqualTo(LocalDateTime.of(2026, 4, 14, 11, 0, 0));
+
+            verify(artistApplicationRepository, times(1)).findById(applicationId);
+            verify(userRepository, times(1)).findById(userId);
+        }
+
+        @Test
+        @DisplayName("관리자는 아티스트 등록 요청 상세를 조회할 수 있다")
+        void getArtistApplication_admin_success() {
+            // given
+            Long userId = 99L;
+            Long applicationId = 1L;
+
+            ArtistApplication application = ArtistApplication.create(
+                    1L,
+                    "아이유",
+                    "가수",
+                    "https://example.com/iu.jpg"
+            );
+
+            // 상세 조회 검증을 위해 엔티티 필드를 직접 주입한다.
+            ReflectionTestUtils.setField(application, "id", applicationId);
+            ReflectionTestUtils.setField(application, "createdAt",
+                    LocalDateTime.of(2026, 4, 14, 10, 0, 0));
+            ReflectionTestUtils.setField(application, "updatedAt",
+                    LocalDateTime.of(2026, 4, 14, 11, 0, 0));
+
+            User adminUser = mock(User.class);
+            when(adminUser.getRole()).thenReturn(UserRole.ADMIN);
+
+            when(artistApplicationRepository.findById(applicationId))
+                    .thenReturn(java.util.Optional.of(application));
+            when(userRepository.findById(userId))
+                    .thenReturn(java.util.Optional.of(adminUser));
+
+            // when
+            ArtistApplicationDetailResponse response =
+                    artistService.getArtistApplication(userId, applicationId);
+
+            // then
+            assertThat(response.applicationId()).isEqualTo(applicationId);
+            assertThat(response.requesterUserId()).isEqualTo(1L);
+            assertThat(response.requestedName()).isEqualTo("아이유");
+            assertThat(response.status()).isEqualTo("PENDING");
+
+            verify(artistApplicationRepository, times(1)).findById(applicationId);
+            verify(userRepository, times(1)).findById(userId);
+        }
+
+        @Test
+        @DisplayName("요청자 본인도 관리자도 아니면 예외가 발생한다")
+        void getArtistApplication_forbidden() {
+            // given
+            Long userId = 2L;
+            Long applicationId = 1L;
+
+            ArtistApplication application = ArtistApplication.create(
+                    1L,
+                    "아이유",
+                    "가수",
+                    "https://example.com/iu.jpg"
+            );
+
+            User user = mock(User.class);
+            when(user.getRole()).thenReturn(UserRole.USER);
+
+            when(artistApplicationRepository.findById(applicationId))
+                    .thenReturn(java.util.Optional.of(application));
+            when(userRepository.findById(userId))
+                    .thenReturn(java.util.Optional.of(user));
+
+            // when & then
+            assertThatThrownBy(() -> artistService.getArtistApplication(userId, applicationId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_DETAIL_FORBIDDEN.getMessage());
+
+            verify(artistApplicationRepository, times(1)).findById(applicationId);
+            verify(userRepository, times(1)).findById(userId);
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 아티스트 등록 요청이면 예외가 발생한다")
+        void getArtistApplication_notFound() {
+            // given
+            Long userId = 1L;
+            Long applicationId = 1L;
+
+            when(artistApplicationRepository.findById(applicationId))
+                    .thenReturn(java.util.Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> artistService.getArtistApplication(userId, applicationId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_NOT_FOUND.getMessage());
+
+            verify(artistApplicationRepository, times(1)).findById(applicationId);
+            verify(userRepository, never()).findById(any());
+        }
+    }
 }
