@@ -18,7 +18,7 @@ import java.util.List;
  * 아티스트 등록 요청 Querydsl Repository 구현체
  */
 @RequiredArgsConstructor
-public class ArtistApplicationCustomRepositoryImpl implements ArtistApplicationCustomRepository {
+public class ArtistApplicationQueryRepositoryImpl implements ArtistApplicationQueryRepository {
 
     private final JPAQueryFactory queryFactory;
 

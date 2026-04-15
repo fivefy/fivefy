@@ -5,6 +5,9 @@ import com.fivefy.domain.artist.entity.ArtistApplication;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-public interface ArtistApplicationCustomRepository {
+/**
+ * ArtistApplication Querydsl 전용 Repository
+ */
+public interface ArtistApplicationQueryRepository {
     Page<ArtistApplication> searchArtistApplications(ApplicationStatus status, Pageable pageable);
 }

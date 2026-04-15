@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
-public interface ArtistApplicationRepository extends JpaRepository<ArtistApplication, Long>, ArtistApplicationCustomRepository {
+public interface ArtistApplicationRepository extends JpaRepository<ArtistApplication, Long>, ArtistApplicationQueryRepository {
 
     List<ArtistApplication> findAllByRequesterUserIdOrderByCreatedAtDesc(Long requesterUserId);
 
