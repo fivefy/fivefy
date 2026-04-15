@@ -30,16 +30,18 @@ public class ArtistService {
 
     /**
      * 아티스트 등록 요청 생성
-     *
-     * 1. 요청 엔티티 생성
-     * 2. DB 저장
-     * 3. 응답 DTO 반환
      */
     @Transactional
     public ArtistApplicationResponse createArtistApplication(
             Long userId, ArtistApplicationCreateRequest request) {
 
-        // 1. 아티스트 등록 요청 엔티티 생성
+        // 생성 요청 유저가 존재하는지 확인한다.
+        findUser(userId);
+
+        // 동일한 이름의 진행 중이거나 승인된 등록 요청 검증
+        validateDuplicateActiveApplication(userId, request.requestedName());
+
+        // 아티스트 등록 요청 엔티티 생성
         ArtistApplication application = ArtistApplication.create(
                 userId,
                 request.requestedName(),
@@ -47,10 +49,10 @@ public class ArtistService {
                 request.profileImageUrl()
         );
 
-        // 2. DB 저장
+        // DB 저장
         ArtistApplication savedApplication = artistApplicationRepository.save(application);
 
-        // 3. 응답 DTO 반환
+        // 응답 DTO 반환
         return ArtistApplicationResponse.from(savedApplication);
     }
 
@@ -59,6 +61,10 @@ public class ArtistService {
      */
     @Transactional(readOnly = true)
     public List<ArtistApplicationResponse> getMyArtistApplications(Long userId) {
+
+        // 조회 요청 유저가 존재하는지 확인한다.
+        findUser(userId);
+
         return artistApplicationRepository.findAllByRequesterUserIdOrderByCreatedAtDesc(userId)
                 .stream()
                 .map(ArtistApplicationResponse::from)
@@ -70,7 +76,7 @@ public class ArtistService {
      */
     @Transactional(readOnly = true)
     public PageResponse<ArtistApplicationListResponse> getArtistApplications(Pageable pageable) {
-        // Querydsl 기반으로 아티스트 등록 요청을 최신순으로 조회한다.
+        // Querydsl 기반으로 아티스트 등록 요청을 정렬조건에 따라 조회한다.
         Page<ArtistApplication> page = artistApplicationRepository.searchArtistApplications(pageable);
 
         // 엔티티 목록을 관리자용 응답 DTO 페이지로 변환한다.
@@ -87,24 +93,72 @@ public class ArtistService {
     @Transactional(readOnly = true)
     public ArtistApplicationDetailResponse getArtistApplication(Long userId, Long applicationId) {
         // 아티스트 등록 요청을 조회한다.
-        ArtistApplication application =  artistApplicationRepository.findById(applicationId)
-                .orElseThrow(() -> new BusinessException(
-                        ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_NOT_FOUND)
-        );
+        ArtistApplication application = findArtistApplication(applicationId);
+
         // 현재 로그인 사용자의 역할을 확인하기 위해 유저를 조회한다.
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(UserErrorCode.ERR_USER_NOT_FOUND));
+        User user = findUser(userId);
 
         // 요청자 본인 또는 관리자만 상세 조회할 수 있다.
+        validateArtistApplicationDetailAccess(userId, user, application);
+
+        // 조회한 엔티티를 상세 응답 DTO로 변환해 반환한다.
+        return ArtistApplicationDetailResponse.from(application);
+    }
+
+    /**
+     * 동일 이름의 진행 중인 아티스트 등록 요청 중복 검증
+     */
+    private void validateDuplicateActiveApplication(Long userId, String requestedName) {
+        // 동일 유저의 동일 이름 진행 중이거나 승인된 요청이 있는지 확인한다.
+        boolean existsActiveApplication =
+                artistApplicationRepository.existsActiveApplication(userId, requestedName);
+
+        // 다시 신청할 수 없는 상태의 요청이 있으면 예외를 발생시킨다.
+        if (existsActiveApplication) {
+            throw new BusinessException(
+                    ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_EXISTS
+            );
+        }
+    }
+
+    /**
+     * 아티스트 등록 요청 단건 조회
+     */
+    private ArtistApplication findArtistApplication(Long applicationId) {
+        // 아티스트 등록 요청을 조회한다.
+        return artistApplicationRepository.findById(applicationId)
+                .orElseThrow(() -> new BusinessException(
+                        ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_NOT_FOUND)
+                );
+    }
+
+    /**
+     * 유저 단건 조회
+     */
+    private User findUser(Long userId) {
+        // 현재 로그인 유저를 조회한다.
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(UserErrorCode.ERR_USER_NOT_FOUND));
+    }
+
+    /**
+     * 아티스트 등록 요청 상세 조회 권한 검증
+     */
+    private void validateArtistApplicationDetailAccess(
+            Long userId,
+            User user,
+            ArtistApplication application
+    ) {
+        // 요청자 본인 여부를 확인한다.
         boolean isRequester = application.getRequesterUserId().equals(userId);
+
+        // 관리자 여부를 확인한다.
         boolean isAdmin = user.getRole() == UserRole.ADMIN;
 
+        // 요청자 본인도 관리자도 아니면 예외를 발생시킨다.
         if (!isRequester && !isAdmin) {
             throw new BusinessException(
                     ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_DETAIL_FORBIDDEN);
         }
-
-        // 조회한 엔티티를 상세 응답 DTO로 변환해 반환한다.
-        return ArtistApplicationDetailResponse.from(application);
     }
 }

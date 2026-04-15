@@ -8,7 +8,6 @@ import com.fivefy.domain.artist.dto.response.ArtistApplicationListResponse;
 import com.fivefy.domain.artist.dto.response.ArtistApplicationResponse;
 import com.fivefy.domain.artist.entity.ArtistApplication;
 import com.fivefy.domain.artist.enums.ArtistApplicationErrorCode;
-import com.fivefy.domain.artist.repository.ArtistApplicationCustomRepository;
 import com.fivefy.domain.artist.repository.ArtistApplicationRepository;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserRole;
@@ -67,6 +66,10 @@ class ArtistServiceTest {
                     "https://example.com/profile.jpg"
             );
 
+            User user = mock(User.class);
+            when(userRepository.findById(userId))
+                    .thenReturn(java.util.Optional.of(user));
+
             ArtistApplication savedApplication = ArtistApplication.create(
                     userId,
                     request.requestedName(),
@@ -78,6 +81,9 @@ class ArtistServiceTest {
             ReflectionTestUtils.setField(savedApplication, "id", 1L);
             ReflectionTestUtils.setField(savedApplication, "createdAt",
                     LocalDateTime.of(2026, 4, 14, 22, 30, 0));
+
+            when(artistApplicationRepository.existsActiveApplication(userId, request.requestedName()))
+                    .thenReturn(false);
 
             when(artistApplicationRepository.save(any(ArtistApplication.class)))
                     .thenReturn(savedApplication);
@@ -94,6 +100,38 @@ class ArtistServiceTest {
 
             verify(artistApplicationRepository, times(1))
                     .save(any(ArtistApplication.class));
+            verify(artistApplicationRepository, times(1))
+                    .existsActiveApplication(userId, request.requestedName());
+            verify(userRepository, times(1)).findById(userId);
+        }
+
+        @Test
+        @DisplayName("같은 이름의 진행 중이거나 승인된 요청이 있으면 생성에 실패한다")
+        void createArtistApplication_fail_whenActiveApplicationExists() {
+            // given
+            Long userId = 1L;
+            ArtistApplicationCreateRequest request = new ArtistApplicationCreateRequest(
+                    "아이유",
+                    "가수",
+                    "https://example.com/profile.jpg"
+            );
+
+            User user = mock(User.class);
+            when(userRepository.findById(userId))
+                    .thenReturn(java.util.Optional.of(user));
+
+            when(artistApplicationRepository.existsActiveApplication(userId, request.requestedName()))
+                    .thenReturn(true);
+
+            // when & then
+            assertThatThrownBy(() -> artistService.createArtistApplication(userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_EXISTS.getMessage());
+
+            verify(artistApplicationRepository, times(1))
+                    .existsActiveApplication(userId, request.requestedName());
+            verify(userRepository, times(1)).findById(userId);
+            verify(artistApplicationRepository, never()).save(any(ArtistApplication.class));
         }
     }
 
@@ -106,6 +144,10 @@ class ArtistServiceTest {
         void getMyArtistApplications_success() {
             // given
             Long userId = 1L;
+
+            User user = mock(User.class);
+            when(userRepository.findById(userId))
+                    .thenReturn(java.util.Optional.of(user));
 
             ArtistApplication firstApplication = ArtistApplication.create(
                     userId,
@@ -145,6 +187,7 @@ class ArtistServiceTest {
 
             verify(artistApplicationRepository, times(1))
                     .findAllByRequesterUserIdOrderByCreatedAtDesc(userId);
+            verify(userRepository, times(1)).findById(userId);
         }
 
         @Test
@@ -152,6 +195,10 @@ class ArtistServiceTest {
         void getMyArtistApplications_empty() {
             // given
             Long userId = 1L;
+
+            User user = mock(User.class);
+            when(userRepository.findById(userId))
+                    .thenReturn(java.util.Optional.of(user));
 
             when(artistApplicationRepository.findAllByRequesterUserIdOrderByCreatedAtDesc(userId))
                     .thenReturn(List.of());
@@ -164,6 +211,7 @@ class ArtistServiceTest {
 
             verify(artistApplicationRepository, times(1))
                     .findAllByRequesterUserIdOrderByCreatedAtDesc(userId);
+            verify(userRepository, times(1)).findById(userId);
         }
     }
 

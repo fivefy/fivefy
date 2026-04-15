@@ -101,9 +101,21 @@ public class ArtistApplication extends BaseEntity {
     }
 
     private void validatePending() {
-        if (this.status != ApplicationStatus.PENDING) {
+        if (!isPending()) {
             throw new BusinessException(
                     ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_PROCESSED);
         }
+    }
+
+    public boolean isPending() {
+        return this.status == ApplicationStatus.PENDING;
+    }
+
+    public boolean isApproved() {
+        return this.status == ApplicationStatus.APPROVED;
+    }
+
+    public boolean isRejected() {
+        return this.status == ApplicationStatus.REJECTED;
     }
 }
