@@ -182,14 +182,10 @@ public class ArtistService {
      */
     @Transactional(readOnly = true)
     public ArtistDetailResponse getArtist(Long artistId) {
-        Artist artist = artistRepository.findById(artistId)
-                .orElseThrow(() -> new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND));
+        // 조회할 아티스트를 조회하고 삭제 여부를 검증한다.
+        Artist artist = findActiveArtist(artistId);
 
-        // soft delete 검증
-        if (artist.isDeleted()) {
-            throw new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND);
-        }
-
+        // 조회한 엔티티를 상세 응답 DTO로 변환해 반환한다.
         return ArtistDetailResponse.from(artist);
     }
 
@@ -202,28 +198,20 @@ public class ArtistService {
             Long artistId,
             ArtistProfileUpdateRequest request
     ) {
-        // 아티스트 조회
-        Artist artist = artistRepository.findById(artistId)
-                .orElseThrow(() -> new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND));
+        // 수정할 아티스트를 조회하고 삭제 여부를 검증한다.
+        Artist artist = findActiveArtist(artistId);
 
-        // soft delete 검증
-        if (artist.isDeleted()) {
-            throw new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND);
-        }
+        // 아티스트 소유자만 프로필을 수정할 수 있다.
+        validateArtistOwner(userId, artist);
 
-        // 소유자 검증
-        if (!artist.isOwnedBy(userId)) {
-            throw new BusinessException(ArtistErrorCode.ERR_FORBIDDEN_ARTIST_ACCESS);
-        }
-
-        // PATCH 적용
+        // 요청값 기준으로 아티스트 프로필을 수정한다.
         artist.updateProfile(
                 request.name(),
                 request.bio(),
                 request.profileImageUrl()
         );
 
-        // 응답 반환
+        // 수정된 엔티티를 상세 응답 DTO로 변환해 반환한다.
         return ArtistDetailResponse.from(artist);
     }
 
@@ -306,6 +294,40 @@ public class ArtistService {
             throw new BusinessException(
                     ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_PROCESSED
             );
+        }
+    }
+
+    /**
+     * 아티스트 단건 조회
+     */
+    private Artist findArtist(Long artistId) {
+        // 아티스트를 조회한다.
+        return artistRepository.findById(artistId)
+                .orElseThrow(() -> new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND));
+    }
+
+    /**
+     * 삭제되지 않은 아티스트 단건 조회
+     */
+    private Artist findActiveArtist(Long artistId) {
+        // 아티스트를 조회한다.
+        Artist artist = findArtist(artistId);
+
+        // 삭제된 아티스트면 예외를 발생시킨다.
+        if (artist.isDeleted()) {
+            throw new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND);
+        }
+
+        return artist;
+    }
+
+    /**
+     * 아티스트 소유자 검증
+     */
+    private void validateArtistOwner(Long userId, Artist artist) {
+        // 아티스트 소유자가 아니면 예외를 발생시킨다.
+        if (!artist.isOwnedBy(userId)) {
+            throw new BusinessException(ArtistErrorCode.ERR_FORBIDDEN_ARTIST_ACCESS);
         }
     }
 }
