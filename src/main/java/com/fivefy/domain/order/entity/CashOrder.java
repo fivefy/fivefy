@@ -2,6 +2,7 @@ package com.fivefy.domain.order.entity;
 
 import com.fivefy.common.entity.BaseEntity;
 import com.fivefy.domain.order.enums.CashOrderStatus;
+import com.fivefy.domain.order.enums.CashProductType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -23,8 +24,21 @@ public class CashOrder extends BaseEntity {
     @Column(nullable = false)
     private Long userId;
 
+    /**
+     * 구독 패키지 상품 번호(상점이 없으니 자체적으로 진행)
+     * 1번 : 1,000원 = 1,000포인트
+     * 2번 : 2,000원 = 2,500포인트
+     * 3번 : 0원 = 150 포인트(계정당 1회 이용 가능)
+     */
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Long amount;
+    private CashProductType productType;
+
+    @Column(nullable = false)
+    private Long cashAmount;
+
+    @Column(nullable = false)
+    private Long pointAmount;
 
     @Column(length = 50, nullable = false, unique = true)
     private String orderNumber;
@@ -33,16 +47,19 @@ public class CashOrder extends BaseEntity {
     @Column(nullable = false)
     private CashOrderStatus status;
 
-    public static CashOrder create(Long userId, Long amount, String orderNumber) {
+    public static CashOrder create(Long userId, CashProductType productType, String orderNumber ) {
         validateNonNull(userId, "유저 ID");
-        validatePositive(amount, "충전 금액");
+        validateNonNull(productType, "상품 타입");
         validateNonNull(orderNumber, "주문번호");
 
         CashOrder cashOrder = new CashOrder();
-        cashOrder.userId = userId;
-        cashOrder.amount = amount;
-        cashOrder.orderNumber = orderNumber;
-        cashOrder.status = CashOrderStatus.PENDING;
+            cashOrder.userId = userId;
+            cashOrder.productType = productType;                    // 상품 타입
+            cashOrder.cashAmount = productType.getCashAmount();     // 상품 타입 가격(원)
+            cashOrder.pointAmount = productType.getPointAmount();   // 상품(포인트)
+            cashOrder.orderNumber = orderNumber;
+            cashOrder.status = CashOrderStatus.PENDING;
+
         return cashOrder;
     }
 
