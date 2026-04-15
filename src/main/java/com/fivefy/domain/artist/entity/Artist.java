@@ -82,7 +82,6 @@ public class Artist extends BaseEntity {
 
     public void updateProfile(String name, String bio, String profileImageUrl) {
         validateNotDeleted();
-        validateActive();
 
         if (name != null) {
             this.name = name;
@@ -95,15 +94,6 @@ public class Artist extends BaseEntity {
         }
     }
 
-    public void suspend() {
-        validateNotDeleted();
-
-        if (this.status == ArtistStatus.SUSPENDED) {
-            throw new BusinessException(ArtistErrorCode.ERR_ARTIST_ALREADY_SUSPENDED);
-        }
-        this.status = ArtistStatus.SUSPENDED;
-    }
-
     public void activate() {
         validateNotDeleted();
 
@@ -111,6 +101,15 @@ public class Artist extends BaseEntity {
             throw new BusinessException(ArtistErrorCode.ERR_ARTIST_ALREADY_ACTIVATED);
         }
         this.status = ArtistStatus.ACTIVE;
+    }
+
+    public void deactivate() {
+        validateNotDeleted();
+
+        if (this.status == ArtistStatus.INACTIVE) {
+            throw new BusinessException(ArtistErrorCode.ERR_ARTIST_ALREADY_INACTIVE);
+        }
+        this.status = ArtistStatus.INACTIVE;
     }
 
     public void softDelete() {
@@ -133,11 +132,5 @@ public class Artist extends BaseEntity {
 
     public boolean isDeleted() {
         return this.deletedAt != null;
-    }
-
-    private void validateActive() {
-        if (this.status != ArtistStatus.ACTIVE) {
-            throw new BusinessException(ArtistErrorCode.ERR_SUSPENDED_ARTIST_CANNOT_BE_UPDATED);
-        }
     }
 }

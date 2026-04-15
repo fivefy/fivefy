@@ -169,4 +169,19 @@ public class ArtistController {
                 BaseResponse.success(HttpStatus.OK, "아티스트 프로필 수정 성공", response)
         );
     }
+
+    /**
+     * 아티스트 삭제 API
+     */
+    @DeleteMapping("/artists/{artistId}")
+    public ResponseEntity<BaseResponse<Void>> deleteArtist(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long artistId
+    ) {
+        artistService.deleteArtist(userId, artistId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                BaseResponse.success(HttpStatus.OK, "아티스트 삭제 성공", null)
+        );
+    }
 }

@@ -183,7 +183,7 @@ public class ArtistService {
     @Transactional(readOnly = true)
     public ArtistDetailResponse getArtist(Long artistId) {
         // 조회할 아티스트를 조회하고 삭제 여부를 검증한다.
-        Artist artist = findActiveArtist(artistId);
+        Artist artist = findNotDeletedArtist(artistId);
 
         // 조회한 엔티티를 상세 응답 DTO로 변환해 반환한다.
         return ArtistDetailResponse.from(artist);
@@ -199,7 +199,7 @@ public class ArtistService {
             ArtistProfileUpdateRequest request
     ) {
         // 수정할 아티스트를 조회하고 삭제 여부를 검증한다.
-        Artist artist = findActiveArtist(artistId);
+        Artist artist = findNotDeletedArtist(artistId);
 
         // 아티스트 소유자만 프로필을 수정할 수 있다.
         validateArtistOwner(userId, artist);
@@ -213,6 +213,24 @@ public class ArtistService {
 
         // 수정된 엔티티를 상세 응답 DTO로 변환해 반환한다.
         return ArtistDetailResponse.from(artist);
+    }
+
+    /**
+     * 아티스트 삭제
+     */
+    @Transactional
+    public void deleteArtist(Long userId, Long artistId) {
+        // 삭제할 아티스트를 조회한다.
+        Artist artist = findArtist(artistId);
+
+        // 이미 삭제된 아티스트는 예외를 발생시킨다.
+        validateNotDeleted(artist);
+
+        // 아티스트 소유자만 삭제할 수 있다.
+        validateArtistOwner(userId, artist);
+
+        // 아티스트를 soft delete 처리한다.
+        artist.softDelete();
     }
 
     /**
@@ -309,7 +327,7 @@ public class ArtistService {
     /**
      * 삭제되지 않은 아티스트 단건 조회
      */
-    private Artist findActiveArtist(Long artistId) {
+    private Artist findNotDeletedArtist(Long artistId) {
         // 아티스트를 조회한다.
         Artist artist = findArtist(artistId);
 
@@ -328,6 +346,16 @@ public class ArtistService {
         // 아티스트 소유자가 아니면 예외를 발생시킨다.
         if (!artist.isOwnedBy(userId)) {
             throw new BusinessException(ArtistErrorCode.ERR_FORBIDDEN_ARTIST_ACCESS);
+        }
+    }
+
+    /**
+     * 이미 삭제된 아티스트 검증
+     */
+    private void validateNotDeleted(Artist artist) {
+        // 이미 삭제된 아티스트면 예외를 발생시킨다.
+        if (artist.isDeleted()) {
+            throw new BusinessException(ArtistErrorCode.ERR_ARTIST_ALREADY_DELETED);
         }
     }
 }
