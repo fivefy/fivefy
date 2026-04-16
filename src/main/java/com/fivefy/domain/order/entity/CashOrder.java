@@ -9,7 +9,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import static com.fivefy.common.util.ValidationUtils.validateNonNull;
-import static com.fivefy.common.util.ValidationUtils.validatePositive;
 
 @Entity
 @Getter
@@ -35,10 +34,10 @@ public class CashOrder extends BaseEntity {
     private CashProductType productType;
 
     @Column(nullable = false)
-    private Long cashAmount;
+    private Long cashAmount;    // 결제하는 실제 돈
 
     @Column(nullable = false)
-    private Long pointAmount;
+    private Long pointAmount;   // 교환하는 포인트
 
     @Column(length = 50, nullable = false, unique = true)
     private String orderNumber;
@@ -47,10 +46,13 @@ public class CashOrder extends BaseEntity {
     @Column(nullable = false)
     private CashOrderStatus status;
 
-    public static CashOrder create(Long userId, CashProductType productType, String orderNumber ) {
-        validateNonNull(userId, "유저 ID");
-        validateNonNull(productType, "상품 타입");
-        validateNonNull(orderNumber, "주문번호");
+    @Column(unique = true)
+    private String webhookId;
+
+    public static CashOrder create(Long userId, CashProductType productType, String orderNumber) {
+        validateNonNull(userId, "userId");
+        validateNonNull(productType, "productType");
+        validateNonNull(orderNumber, "orderNumber");
 
         CashOrder cashOrder = new CashOrder();
             cashOrder.userId = userId;
@@ -58,16 +60,21 @@ public class CashOrder extends BaseEntity {
             cashOrder.cashAmount = productType.getCashAmount();     // 상품 타입 가격(원)
             cashOrder.pointAmount = productType.getPointAmount();   // 상품(포인트)
             cashOrder.orderNumber = orderNumber;
-            cashOrder.status = CashOrderStatus.PENDING;
+            cashOrder.status = CashOrderStatus.PENDING;             // 상태 : 결제 대기
 
         return cashOrder;
     }
 
-    public void success() {
+    /**
+     * 상태 변경 매서드 : PENDING -> SUCCESS
+     * @param webhookId : 웹훅 ID 저장(=멱등키, 중복 방지용)
+     */
+    public void success(String webhookId) {
         if (this.status != CashOrderStatus.PENDING) {
             throw new IllegalStateException("PENDING 상태에서만 성공 처리할 수 있습니다.");
         }
         this.status = CashOrderStatus.SUCCESS;
+        this.webhookId = webhookId;
     }
 
     public void refund() {

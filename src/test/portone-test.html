@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fivefy — PG 테스트</title>
+<script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Pretendard:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --border-bright: #2e2e4e;
+    --accent: #6ee7b7;
+    --accent-dim: #1a3d30;
+    --warn: #f87171;
+    --warn-dim: #3d1a1a;
+    --text: #e2e8f0;
+    --text-dim: #64748b;
+    --text-muted: #334155;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'Pretendard', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 280px 1fr 320px;
+    grid-template-rows: 48px 1fr;
+  }
+
+  /* ── 상단 바 ── */
+  header {
+    grid-column: 1 / -1;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 16px;
+  }
+  header .logo {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: .08em;
+  }
+  header .sep { color: var(--text-muted); }
+  header .badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    padding: 2px 8px;
+    border-radius: 2px;
+    letter-spacing: .1em;
+  }
+  header .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #334155;
+    margin-left: auto;
+    transition: background .3s;
+  }
+  header .status-dot.ok { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  header .status-dot.err { background: var(--warn); box-shadow: 0 0 6px var(--warn); }
+  header .status-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  /* ── 왼쪽 패널 (설정) ── */
+  .panel-config {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* ── 가운데 패널 (액션) ── */
+  .panel-main {
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* ── 오른쪽 패널 (로그) ── */
+  .panel-log {
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+  .panel-log .log-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .panel-log .log-header span {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: .08em;
+  }
+  .panel-log .log-clear {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 2px;
+    transition: color .2s;
+  }
+  .panel-log .log-clear:hover { color: var(--warn); }
+  .log-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .log-entry {
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.6;
+    border-radius: 4px;
+    padding: 8px 10px;
+    border-left: 2px solid var(--border-bright);
+    background: var(--bg);
+    animation: fadeIn .2s ease;
+  }
+  .log-entry.success { border-color: var(--accent); }
+  .log-entry.error { border-color: var(--warn); }
+  .log-entry.info { border-color: #60a5fa; }
+  .log-entry .log-time { color: var(--text-muted); font-size: 10px; display: block; margin-bottom: 3px; }
+  .log-entry .log-msg { color: var(--text); white-space: pre-wrap; word-break: break-all; }
+  .log-entry.success .log-msg { color: var(--accent); }
+  .log-entry.error .log-msg { color: var(--warn); }
+  .log-entry.info .log-msg { color: #93c5fd; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  /* ── 섹션 ── */
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .12em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  /* ── 입력 ── */
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+  }
+  .field input, .field select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 10px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 12px;
+    outline: none;
+    transition: border-color .2s;
+    width: 100%;
+  }
+  .field input:focus, .field select:focus { border-color: var(--accent); }
+  .field input::placeholder { color: var(--text-muted); }
+
+  /* ── 버튼 ── */
+  .btn {
+    padding: 9px 14px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all .15s;
+    letter-spacing: .04em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: center;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #0a0a0f;
+    border-color: var(--accent);
+  }
+  .btn-primary:hover { opacity: .85; }
+  .btn-primary:active { transform: scale(.98); }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text);
+    border-color: var(--border-bright);
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger {
+    background: transparent;
+    color: var(--warn);
+    border-color: var(--warn-dim);
+  }
+  .btn-danger:hover { background: var(--warn-dim); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-sm { padding: 6px 10px; font-size: 11px; }
+
+  /* ── 카드 ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .card-title {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: .04em;
+  }
+  .card-body { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+
+  /* ── 그리드 버튼 ── */
+  .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .btn-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+  /* ── 태그 ── */
+  .tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 2px;
+    letter-spacing: .06em;
+  }
+  .tag-pg { background: var(--accent-dim); color: var(--accent); }
+  .tag-api { background: #1e293b; color: #60a5fa; }
+  .tag-wallet { background: #2d1b69; color: #a78bfa; }
+
+  /* ── 결과 상자 ── */
+  .result-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    min-height: 48px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.6;
+  }
+
+  /* ── 포인트 선택 ── */
+  .product-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .product-card {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all .15s;
+    background: var(--bg);
+  }
+  .product-card:hover { border-color: var(--accent); }
+  .product-card.selected { border-color: var(--accent); background: var(--accent-dim); }
+  .product-card .price {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .product-card .points {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .product-card .bonus {
+    font-size: 10px;
+    color: #fbbf24;
+    margin-top: 4px;
+  }
+
+  .divider { border: none; border-top: 1px solid var(--border); }
+
+  /* ── 토큰 상태 표시 ── */
+  .token-status {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .token-status.valid { color: var(--accent); }
+
+  /* 스크롤바 */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- 헤더 -->
+<header>
+  <span class="logo">FIVEFY</span>
+  <span class="sep">/</span>
+  <span class="logo" style="color:var(--text-dim)">PG TEST</span>
+  <span class="badge">PORTONE V2</span>
+  <span class="status-label" id="statusLabel">서버 미확인</span>
+  <span class="status-dot" id="statusDot"></span>
+</header>
+
+<!-- 왼쪽 패널: 설정 -->
+<aside class="panel-config">
+  <div>
+    <div class="section-label">서버 설정</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="field">
+        <label>서버 URL</label>
+        <input id="serverUrl" value="http://localhost:8080">
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="pingServer()">서버 연결 확인</button>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div>
+    <div class="section-label">회원가입</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="field">
+        <label>이름</label>
+        <input id="signupName" placeholder="홍길동">
+      </div>
+      <div class="field">
+        <label>이메일</label>
+        <input id="signupEmail" placeholder="test@fivefy.com">
+      </div>
+      <div class="field">
+        <label>비밀번호 (8~20자, 영문+숫자+특수문자)</label>
+        <input id="signupPassword" type="password" placeholder="Test1234!">
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="signup()">회원가입</button>
+      <div class="result-box" id="signupResult" style="font-size:11px;min-height:32px"></div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div>
+    <div class="section-label">로그인</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="field">
+        <label>이메일</label>
+        <input id="loginEmail" placeholder="test@fivefy.com">
+      </div>
+      <div class="field">
+        <label>비밀번호</label>
+        <input id="loginPassword" type="password" placeholder="••••••••">
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="login()">로그인</button>
+      <div class="token-status" id="tokenStatus">토큰 없음</div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div>
+    <div class="section-label">포트원 설정</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="field">
+        <label>Store ID</label>
+        <input id="storeId" placeholder="store-xxxxxxxx">
+      </div>
+      <div class="field">
+        <label>Channel Key</label>
+        <input id="channelKey" placeholder="channel-key-xxxxxxxx">
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div>
+    <div class="section-label">빠른 입력</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div class="field">
+        <label>Order Number (환불용)</label>
+        <input id="quickOrderNumber" placeholder="ORD-xxxxxxxx">
+      </div>
+      <div class="field">
+        <label>Subscription ID (구독 환불용)</label>
+        <input id="quickSubId" placeholder="숫자 ID">
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- 가운데 패널: 액션 -->
+<main class="panel-main">
+
+  <!-- 포인트 충전 -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">포인트 충전</span>
+      <span class="tag tag-pg">PG 결제</span>
+    </div>
+    <div class="card-body">
+      <div class="product-grid" id="productGrid">
+        <!-- JS로 채움 -->
+      </div>
+      <button class="btn btn-primary" id="payBtn" onclick="requestPayment()">결제 요청</button>
+      <div class="result-box" id="payResult">상품을 선택하고 결제 요청을 눌러주세요.</div>
+    </div>
+  </div>
+
+  <!-- 포인트 환불 -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">포인트 환불</span>
+      <span class="tag tag-api">API</span>
+    </div>
+    <div class="card-body">
+      <div class="field">
+        <label>Order Number</label>
+        <input id="refundOrderNumber" placeholder="ORD-xxxxxxxx (왼쪽 빠른 입력 또는 직접 입력)">
+      </div>
+      <div class="field">
+        <label>환불 사유</label>
+        <input id="refundReason" value="테스트 환불">
+      </div>
+      <button class="btn btn-danger" onclick="requestRefund()">환불 요청</button>
+      <div class="result-box" id="refundResult">환불할 주문번호와 사유를 입력하세요.</div>
+    </div>
+  </div>
+
+  <!-- 지갑 -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">지갑</span>
+      <span class="tag tag-wallet">WALLET</span>
+    </div>
+    <div class="card-body">
+      <div class="btn-grid">
+        <button class="btn btn-secondary" onclick="getWallet()">내 지갑 조회</button>
+        <button class="btn btn-secondary" onclick="getPointHistory()">포인트 내역</button>
+      </div>
+      <div class="result-box" id="walletResult">버튼을 눌러 조회하세요.</div>
+    </div>
+  </div>
+
+  <!-- 구독 -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">구독</span>
+      <span class="tag tag-api">API</span>
+    </div>
+    <div class="card-body">
+      <div class="section-label">구독 구매</div>
+      <div class="btn-grid-3">
+        <button class="btn btn-secondary" onclick="purchaseSubscription('FREE')">무료 체험</button>
+        <button class="btn btn-secondary" onclick="purchaseSubscription('MONTH')">월간 (9,900P)</button>
+        <button class="btn btn-secondary" onclick="purchaseSubscription('YEAR')">연간 (99,000P)</button>
+      </div>
+      <div class="section-label" style="margin-top:4px">구독 관리</div>
+      <div class="btn-grid">
+        <button class="btn btn-secondary" onclick="getSubscriptions()">내 구독 조회</button>
+        <button class="btn btn-danger" onclick="cancelSubscription()">구독 취소</button>
+      </div>
+      <div class="field">
+        <label>구독 환불 — Subscription ID</label>
+        <input id="refundSubId" placeholder="숫자 ID">
+      </div>
+      <button class="btn btn-danger" onclick="refundSubscription()">구독 환불</button>
+      <div class="result-box" id="subResult">버튼을 눌러 조회하세요.</div>
+    </div>
+  </div>
+
+  <!-- 결제 내역 -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">결제 내역</span>
+      <span class="tag tag-api">API</span>
+    </div>
+    <div class="card-body">
+      <button class="btn btn-secondary" onclick="getPayments()">내 결제 내역 조회</button>
+      <div class="result-box" id="paymentHistoryResult">버튼을 눌러 조회하세요.</div>
+    </div>
+  </div>
+
+</main>
+
+<!-- 오른쪽 패널: 로그 -->
+<aside class="panel-log">
+  <div class="log-header">
+    <span>CONSOLE LOG</span>
+    <button class="log-clear" onclick="clearLog()">CLEAR</button>
+  </div>
+  <div class="log-body" id="logBody"></div>
+</aside>
+
+<script>
+  // ── 상품 정의 (백엔드 CashProductType enum과 맞춰야 함) ──
+  const PRODUCTS = [
+    { type: 'PRODUCT_1', label: '1,000원', cash: 1000, points: '1,000P', bonus: null },
+    { type: 'PRODUCT_2', label: '2,000원', cash: 2000, points: '2,500P', bonus: '+500P 보너스' },
+  ];
+
+  let selectedProduct = null;
+  let jwtToken = null;
+
+  // ── 초기화 ──
+  (function init() {
+    renderProducts();
+    // 저장된 설정 복원
+    const saved = localStorage.getItem('fivefy_config');
+    if (saved) {
+      const c = JSON.parse(saved);
+      if (c.serverUrl) document.getElementById('serverUrl').value = c.serverUrl;
+      if (c.storeId) document.getElementById('storeId').value = c.storeId;
+      if (c.channelKey) document.getElementById('channelKey').value = c.channelKey;
+    }
+  })();
+
+  function renderProducts() {
+    const grid = document.getElementById('productGrid');
+    grid.innerHTML = PRODUCTS.map((p, i) => `
+      <div class="product-card" id="prod_${i}" onclick="selectProduct(${i})">
+        <div class="price">${p.label}</div>
+        <div class="points">${p.points} 지급</div>
+        ${p.bonus ? `<div class="bonus">${p.bonus}</div>` : ''}
+      </div>
+    `).join('');
+  }
+
+  function selectProduct(i) {
+    selectedProduct = PRODUCTS[i];
+    document.querySelectorAll('.product-card').forEach((el, idx) => {
+      el.classList.toggle('selected', idx === i);
+    });
+    log('info', `상품 선택: ${selectedProduct.label} → ${selectedProduct.points}`);
+  }
+
+  // ── 설정 저장 ──
+  function saveConfig() {
+    localStorage.setItem('fivefy_config', JSON.stringify({
+      serverUrl: document.getElementById('serverUrl').value,
+      storeId: document.getElementById('storeId').value,
+      channelKey: document.getElementById('channelKey').value,
+    }));
+  }
+
+  document.getElementById('serverUrl').addEventListener('change', saveConfig);
+  document.getElementById('storeId').addEventListener('change', saveConfig);
+  document.getElementById('channelKey').addEventListener('change', saveConfig);
+
+  // ── 로그 ──
+  function log(type, msg) {
+    const body = document.getElementById('logBody');
+    const now = new Date().toLocaleTimeString('ko-KR', { hour12: false });
+    const el = document.createElement('div');
+    el.className = `log-entry ${type}`;
+    el.innerHTML = `<span class="log-time">${now}</span><span class="log-msg">${typeof msg === 'object' ? JSON.stringify(msg, null, 2) : msg}</span>`;
+    body.appendChild(el);
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function clearLog() {
+    document.getElementById('logBody').innerHTML = '';
+  }
+
+  function setResult(id, data) {
+    const el = document.getElementById(id);
+    el.textContent = typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+    el.style.color = 'var(--text)';
+  }
+
+  function setError(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.style.color = 'var(--warn)';
+  }
+
+  // ── 서버 주소 ──
+  function serverUrl() { return document.getElementById('serverUrl').value.replace(/\/$/, ''); }
+
+  // ── 서버 연결 확인 ──
+  async function pingServer() {
+    log('info', `서버 연결 확인: ${serverUrl()}`);
+    try {
+      const res = await fetch(serverUrl() + '/actuator/health');
+      if (res.ok) {
+        document.getElementById('statusDot').className = 'status-dot ok';
+        document.getElementById('statusLabel').textContent = '서버 연결됨';
+        log('success', '서버 연결 성공');
+      } else {
+        throw new Error('HTTP ' + res.status);
+      }
+    } catch (e) {
+      document.getElementById('statusDot').className = 'status-dot err';
+      document.getElementById('statusLabel').textContent = '서버 오류';
+      log('error', '서버 연결 실패: ' + e.message);
+    }
+  }
+
+  // ── 회원가입 ──
+  async function signup() {
+    const name = document.getElementById('signupName').value;
+    const email = document.getElementById('signupEmail').value;
+    const password = document.getElementById('signupPassword').value;
+    if (!name || !email || !password) { log('error', '이름, 이메일, 비밀번호를 모두 입력하세요'); return; }
+
+    log('info', `회원가입 시도: ${email}`);
+    try {
+      const res = await fetch(serverUrl() + '/api/users/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'HTTP ' + res.status);
+
+      const el = document.getElementById('signupResult');
+      el.textContent = `✓ 회원가입 완료: ${data.data?.name || name} (${data.data?.email || email})`;
+      el.style.color = 'var(--accent)';
+      log('success', `회원가입 완료: ${email}`);
+
+      // 로그인 입력창에 자동 채우기
+      document.getElementById('loginEmail').value = email;
+      document.getElementById('loginPassword').value = password;
+    } catch (e) {
+      const el = document.getElementById('signupResult');
+      el.textContent = '오류: ' + e.message;
+      el.style.color = 'var(--warn)';
+      log('error', '회원가입 실패: ' + e.message);
+    }
+  }
+
+  // ── 로그인 ──
+  async function login() {
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    if (!email || !password) { log('error', '이메일과 비밀번호를 입력하세요'); return; }
+
+    log('info', `로그인 시도: ${email}`);
+    try {
+      const res = await fetch(serverUrl() + '/api/users/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'HTTP ' + res.status);
+
+      // 응답 구조: { success, status, message, data: { accessToken } }
+      jwtToken = data.data?.accessToken;
+      if (!jwtToken) throw new Error('토큰을 찾을 수 없습니다: ' + JSON.stringify(data));
+
+      document.getElementById('tokenStatus').textContent = '✓ 로그인됨: ' + email;
+      document.getElementById('tokenStatus').className = 'token-status valid';
+      document.getElementById('statusDot').className = 'status-dot ok';
+      document.getElementById('statusLabel').textContent = '로그인됨';
+      log('success', `로그인 성공 — 토큰: ${jwtToken.substring(0, 20)}...`);
+    } catch (e) {
+      log('error', '로그인 실패: ' + e.message);
+    }
+  }
+
+  // ── API 공통 호출 ──
+  async function apiFetch(path, method = 'GET', body = null) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (jwtToken) headers['Authorization'] = 'Bearer ' + jwtToken;
+
+    const opts = { method, headers };
+    if (body) opts.body = JSON.stringify(body);
+
+    const res = await fetch(serverUrl() + path, opts);
+
+    let data;
+    try { data = await res.json(); } catch { data = { status: res.status }; }
+
+    if (!res.ok) {
+      const msg = data?.message || data?.error || 'HTTP ' + res.status;
+      throw new Error(msg);
+    }
+    return data;
+  }
+
+  // ── 결제 요청 (포트원 SDK) ──
+  async function requestPayment() {
+    if (!jwtToken) { log('error', '먼저 로그인하세요'); return; }
+    if (!selectedProduct) { log('error', '상품을 선택하세요'); return; }
+
+    const storeId = document.getElementById('storeId').value;
+    const channelKey = document.getElementById('channelKey').value;
+    if (!storeId || !channelKey) { log('error', 'Store ID와 Channel Key를 입력하세요'); return; }
+
+    const payBtn = document.getElementById('payBtn');
+    payBtn.disabled = true;
+    payBtn.textContent = '결제창 열리는 중...';
+
+    log('info', `결제 시작: ${selectedProduct.label} (${selectedProduct.type})`);
+
+    try {
+      // 1. 백엔드에서 orderNumber 받기
+      log('info', 'purchase() 호출 → orderNumber 요청');
+      const purchaseRes = await apiFetch('/api/v1/cash-orders/purchase', 'POST', {
+        productType: selectedProduct.type
+      });
+      const orderNumber = purchaseRes.orderNumber || purchaseRes.data?.orderNumber;
+      log('success', `orderNumber 발급: ${orderNumber}`);
+
+      // 2. 포트원 SDK로 결제창 호출
+      log('info', '포트원 결제창 호출 중...');
+      const paymentId = orderNumber; // orderNumber를 paymentId로 사용
+
+      const response = await PortOne.requestPayment({
+        storeId: storeId,
+        channelKey: channelKey,
+        paymentId: paymentId,
+        orderName: `포인트 충전 ${selectedProduct.label}`,
+        totalAmount: selectedProduct.cash,
+        currency: 'KRW',
+        payMethod: 'CARD',
+        customer: {
+          fullName: '테스트유저',
+          phoneNumber: '01000001234',
+          email: 'test@fivefy.io',
+        },
+      });
+
+      if (response.code) {
+        log('error', `결제 실패: ${response.message}`);
+        setError('payResult', `결제 실패: ${response.message}`);
+        return;
+      }
+
+      log('success', `포트원 결제 완료 — paymentId: ${paymentId}`);
+      log('info', '웹훅 수신 대기 중... (포트원이 자동으로 서버에 웹훅 전송)');
+
+      setResult('payResult', {
+        message: '결제 완료! 포트원이 서버로 웹훅을 전송합니다.',
+        orderNumber: orderNumber,
+        paymentId: paymentId,
+        amount: selectedProduct.cash,
+        points: selectedProduct.points,
+        note: '웹훅 처리 완료 후 지갑에 포인트가 충전됩니다.'
+      });
+
+      // 빠른 입력에 orderNumber 자동 세팅
+      document.getElementById('quickOrderNumber').value = orderNumber;
+      document.getElementById('refundOrderNumber').value = orderNumber;
+
+    } catch (e) {
+      log('error', '결제 오류: ' + e.message);
+      setError('payResult', '오류: ' + e.message);
+    } finally {
+      payBtn.disabled = false;
+      payBtn.textContent = '결제 요청';
+    }
+  }
+
+  // ── 환불 ──
+  async function requestRefund() {
+    if (!jwtToken) { log('error', '먼저 로그인하세요'); return; }
+
+    const orderNumber = document.getElementById('refundOrderNumber').value
+      || document.getElementById('quickOrderNumber').value;
+    const reason = document.getElementById('refundReason').value;
+
+    if (!orderNumber) { log('error', 'Order Number를 입력하세요'); return; }
+
+    log('info', `환불 요청: ${orderNumber} / 사유: ${reason}`);
+    try {
+      const data = await apiFetch('/api/v1/cash-orders/refund', 'POST', { orderNumber, reason });
+      log('success', '환불 완료');
+      setResult('refundResult', data);
+    } catch (e) {
+      log('error', '환불 실패: ' + e.message);
+      setError('refundResult', '오류: ' + e.message);
+    }
+  }
+
+  // ── 지갑 조회 ──
+  async function getWallet() {
+    if (!jwtToken) { log('error', '먼저 로그인하세요'); return; }
+    log('info', '지갑 조회');
+    try {
+      const data = await apiFetch('/api/me/wallets', 'GET');
+      log('success', '지갑 조회 완료');
+      setResult('walletResult', data);
+    } catch (e) {
+      log('error', '지갑 조회 실패: ' + e.message);
+      setError('walletResult', '오류: ' + e.message);
+    }
+  }
+
+  // ── 포인트 내역 ──
+  async function getPointHistory() {
+    if (!jwtToken) { log('error', '먼저 로그인하세요'); return; }
+    log('info', '포인트 내역 조회');
+    try {
+      const data = await apiFetch('/api/me/wallets/histories', 'GET');
+      log('success', '포인트 내역 조회 완료');
+      setResult('walletResult', data);
+    } catch (e) {
+      log('error', '포인트 내역 조회 실패: ' + e.message);
+      setError('walletResult', '오류: ' + e.message);
+    }
+  }
+
+  // ── 구독 구매 ──
+  async function purchaseSubscription(planType) {
+    if (!jwtToken) { log('error', '먼저 로그인하세요'); return; }
+    log('info', `구독 구매: ${planType}`);
+    try {
+      const data = await apiFetch('/api/me/subscriptions/purchases', 'POST', { planType });
+      log('success', `구독 구매 완료: ${planType}`);
+      setResult('subResult', data);
+    } catch (e) {
+      log('error', '구독 구매 실패: ' + e.message);
+      setError('subResult', '오류: ' + e.message);
+    }
+  }
+
+  // ── 구독 조회 ──
+  async function getSubscriptions() {
+    if (!jwtToken) { log('error', '먼저 로그인하세요'); return; }
+    log('info', '구독 조회');
+    try {
+      const data = await apiFetch('/api/me/subscriptions', 'GET');
+      log('success', '구독 조회 완료');
+      setResult('subResult', data);
+    } catch (e) {
+      log('error', '구독 조회 실패: ' + e.message);
+      setError('subResult', '오류: ' + e.message);
+    }
+  }
+
+  // ── 구독 취소 ──
+  async function cancelSubscription() {
+    if (!jwtToken) { log('error', '먼저 로그인하세요'); return; }
+    log('info', '구독 취소');
+    try {
+      const res = await fetch(serverUrl() + '/api/me/subscriptions', {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + jwtToken }
+      });
+      if (res.status === 204) {
+        log('success', '구독 취소 완료');
+        setResult('subResult', { message: '구독 취소 완료' });
+      } else {
+        const data = await res.json();
+        log('error', '구독 취소 실패: ' + JSON.stringify(data));
+        setError('subResult', JSON.stringify(data, null, 2));
+      }
+    } catch (e) {
+      log('error', '구독 취소 오류: ' + e.message);
+    }
+  }
+
+  // ── 구독 환불 ──
+  async function refundSubscription() {
+    if (!jwtToken) { log('error', '먼저 로그인하세요'); return; }
+    const subId = document.getElementById('refundSubId').value
+      || document.getElementById('quickSubId').value;
+    if (!subId) { log('error', 'Subscription ID를 입력하세요'); return; }
+
+    log('info', `구독 환불: ID ${subId}`);
+    try {
+      const data = await apiFetch('/api/me/subscriptions/refunds', 'POST', {
+        subscriptionId: Number(subId)
+      });
+      log('success', '구독 환불 완료');
+      setResult('subResult', data);
+    } catch (e) {
+      log('error', '구독 환불 실패: ' + e.message);
+      setError('subResult', '오류: ' + e.message);
+    }
+  }
+
+  // ── 결제 내역 ──
+  async function getPayments() {
+    if (!jwtToken) { log('error', '먼저 로그인하세요'); return; }
+    log('info', '결제 내역 조회');
+    try {
+      const data = await apiFetch('/api/v1/payments', 'GET');
+      log('success', '결제 내역 조회 완료');
+      setResult('paymentHistoryResult', data);
+    } catch (e) {
+      log('error', '결제 내역 조회 실패: ' + e.message);
+      setError('paymentHistoryResult', '오류: ' + e.message);
+    }
+  }
+
+  // 시작 로그
+  log('info', 'Fivefy PG 테스트 페이지 로드 완료');
+  log('info', '순서: 1) 서버 URL 확인 → 2) 로그인 → 3) Store ID / Channel Key 입력 → 4) 결제 테스트');
+</script>
+</body>
+</html>

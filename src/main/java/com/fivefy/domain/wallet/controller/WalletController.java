@@ -30,7 +30,7 @@ public class WalletController {
     }
 
     /**
-     *
+     * 내 지갑 이력 조회
      * @param userId
      * @return
      */

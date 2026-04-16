@@ -39,7 +39,7 @@
         private String pgTransactionId; // << 이거 받아오기 : 포트원(PortOne)PG_ID
 
         @Column(length = 100, nullable = false, unique = true)
-        private String idempotencyKey;
+        private String webhookId;       // 멱등키 : CashOrderService에서 UUID.randomUUID().toString()으로 보냄
 
         @Column(length = 500)
         private String refundReason;
@@ -54,18 +54,18 @@
          *        status            : 상태(결제 요청, 보류, 승인, 결제 완료, 실패, 취소, 환불)
          *        refundReason      : 환불사유 (글자 500 제한), 결제면 null
          * @param orderNumber       : 주문해서 구매한 포인트 패키지(실제돈->포인트) 주문 번호
-         * @param pgTransactionId   : PG트랜젝션 ID - UUID 최대 글자 36자
-         * @param idempotencyKey    : 멱등키 - UUID 최대 글자 36자,
+         * @param pgTransactionId   : PG트랜젝션 ID - UUID 최대 글자 36자   : 포트원의 결제 ID (단건 조회, 취소에 사용)
+         * @param webhookId         : 멱등키 - UUID 최대 글자 36자,         : 중복 처리 방지용 키
          *        paidAt            : 결제 시각 : 환불이면 null
          *        refundedAt        : 환불 시각 : 결제면 null
          * @return
          */
-        public static Payment create(Long userId, Long amount, String orderNumber, String pgTransactionId, String idempotencyKey) {
+        public static Payment create(Long userId, Long amount, String orderNumber, String pgTransactionId, String webhookId) {
             validateNonNull(userId, "orderId");
             validateNonNull(amount, "amount");
             validateNonNull(orderNumber, "orderNumber");
             validateNonNull(pgTransactionId, "pgTransactionId");
-            validateNonNull(idempotencyKey, "idempotencyKey");
+            validateNonNull(webhookId, "webhookId");
 
             Payment payment = new Payment();
                 payment.userId = userId;
@@ -74,7 +74,7 @@
                 payment.status = PaymentStatus.REQUESTED;
                 payment.refundReason = null;
                 payment.pgTransactionId = pgTransactionId;
-                payment.idempotencyKey =  idempotencyKey;
+                payment.webhookId =  webhookId;   // 멱등키 idempotencyKey
                 payment.paidAt = null;
                 payment.refundedAt = null;
 

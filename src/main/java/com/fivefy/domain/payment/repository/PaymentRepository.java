@@ -8,9 +8,6 @@ import java.util.Optional;
 
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
-    // 멱등키 확인(포트원)
-    boolean existsByIdempotencyKey(String idempotencyKey);
-
     // webhook, 중복 방지
     boolean existsByPgTransactionId(String pgTransactionId);
 

@@ -1,5 +1,6 @@
 package com.fivefy.domain.order.controller;
 
+import com.fivefy.domain.order.dto.CashOrderPurchaseResponse;
 import com.fivefy.domain.order.dto.CashOrderRefundRequest;
 import com.fivefy.domain.order.dto.CashOrderResponse;
 import com.fivefy.domain.order.dto.CashOrderVerifyRequest;
@@ -26,7 +27,7 @@ public class CashOrderController {
      * @return
      */
     @PostMapping("/purchase")
-    public ResponseEntity<CashOrderResponse> purchase(
+    public ResponseEntity<CashOrderPurchaseResponse> purchase(
             @AuthenticationPrincipal Long userId,
             @RequestBody CashOrderVerifyRequest request
     ) {
