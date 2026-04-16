@@ -2,6 +2,7 @@ package com.fivefy.domain.user.service;
 
 import com.fivefy.common.config.security.JwtUtil;
 import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.user.dto.request.UserDeleteRequest;
 import com.fivefy.domain.user.dto.request.UserLoginRequest;
 import com.fivefy.domain.user.dto.request.UserProfileUpdateRequest;
 import com.fivefy.domain.user.dto.request.UserSignupRequest;
@@ -15,7 +16,6 @@ import com.fivefy.domain.wallet.entity.Wallet;
 import com.fivefy.domain.wallet.repository.WalletRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
@@ -229,5 +229,22 @@ public class UserService {
         }
 
         return UserProfileUpdateResponse.from(user.getName(), user.getUpdatedAt());
+    }
+
+    @Transactional
+    public void deleteUser(Long userId, UserDeleteRequest request) {
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new BusinessException(ERR_USER_NOT_FOUND)
+        );
+
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            throw new BusinessException(ERR_USER_MISMATCH_PASSWORD);
+        }
+
+        // TODO 연관 데이터 처리
+        user.delete();
+
+        redisTemplate.delete(RT_PREFIX + userId);
+        redisTemplate.delete(PREV_RT_PREFIX + userId);
     }
 }
