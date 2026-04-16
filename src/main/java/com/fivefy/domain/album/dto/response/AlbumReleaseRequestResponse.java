@@ -6,9 +6,9 @@ import com.fivefy.domain.album.entity.AlbumReleaseRequest;
 import java.time.LocalDateTime;
 
 /**
- * 앨범 등록 요청 생성 응답 DTO
+ * 앨범 등록 요청 생성 응답 및 내 앨범 등록 요청 목록 응답 DTO
  */
-public record AlbumReleaseRequestCreateResponse(
+public record AlbumReleaseRequestResponse(
 
         Long requestId,
         Long artistId,
@@ -17,8 +17,8 @@ public record AlbumReleaseRequestCreateResponse(
         LocalDateTime createdAt
 
 ) {
-    public static AlbumReleaseRequestCreateResponse from(AlbumReleaseRequest albumReleaseRequest) {
-        return new AlbumReleaseRequestCreateResponse(
+    public static AlbumReleaseRequestResponse from(AlbumReleaseRequest albumReleaseRequest) {
+        return new AlbumReleaseRequestResponse(
                 albumReleaseRequest.getId(),
                 albumReleaseRequest.getArtistId(),
                 albumReleaseRequest.getTitle(),

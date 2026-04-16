@@ -1,8 +1,11 @@
 package com.fivefy.domain.album.repository;
 
 import com.fivefy.common.enums.ApplicationStatus;
+import com.fivefy.domain.album.entity.AlbumReleaseRequest;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
 
 import static com.fivefy.domain.album.entity.QAlbumReleaseRequest.albumReleaseRequest;
 
@@ -25,5 +28,14 @@ public class AlbumReleaseRequestQueryRepositoryImpl implements AlbumReleaseReque
                 .fetchFirst();
 
         return result != null;
+    }
+
+    @Override
+    public List<AlbumReleaseRequest> searchMyAlbumReleaseRequests(Long requesterUserId) {
+        return queryFactory
+                .selectFrom(albumReleaseRequest)
+                .where(albumReleaseRequest.requesterUserId.eq(requesterUserId))
+                .orderBy(albumReleaseRequest.createdAt.desc())
+                .fetch();
     }
 }

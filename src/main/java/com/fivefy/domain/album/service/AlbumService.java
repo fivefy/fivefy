@@ -2,7 +2,7 @@ package com.fivefy.domain.album.service;
 
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.album.dto.request.AlbumReleaseRequestCreateRequest;
-import com.fivefy.domain.album.dto.response.AlbumReleaseRequestCreateResponse;
+import com.fivefy.domain.album.dto.response.AlbumReleaseRequestResponse;
 import com.fivefy.domain.album.entity.AlbumReleaseRequest;
 import com.fivefy.domain.album.enums.AlbumReleaseErrorCode;
 import com.fivefy.domain.album.repository.AlbumReleaseRequestRepository;
@@ -16,6 +16,8 @@ import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 /**
  * 앨범 도메인 서비스
@@ -40,7 +42,7 @@ public class AlbumService {
      * 6. 동일 조건의 진행 중 요청 중복 검증
      */
     @Transactional
-    public AlbumReleaseRequestCreateResponse createAlbumReleaseRequest(
+    public AlbumReleaseRequestResponse createAlbumReleaseRequest(
             Long userId,
             AlbumReleaseRequestCreateRequest request
     ) {
@@ -73,7 +75,20 @@ public class AlbumService {
 
         AlbumReleaseRequest saved = albumReleaseRequestRepository.save(albumReleaseRequest);
 
-        return AlbumReleaseRequestCreateResponse.from(saved);
+        return AlbumReleaseRequestResponse.from(saved);
+    }
+
+    /**
+     * 내 앨범 등록 요청 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public List<AlbumReleaseRequestResponse> getMyAlbumReleaseRequests(Long userId) {
+        findUser(userId);
+
+        return albumReleaseRequestRepository.searchMyAlbumReleaseRequests(userId)
+                .stream()
+                .map(AlbumReleaseRequestResponse::from)
+                .toList();
     }
 
     // 유저 존재 여부를 검증
