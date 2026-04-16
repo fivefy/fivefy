@@ -1,17 +1,13 @@
 package com.fivefy.domain.search.repository;
 
 import com.fivefy.domain.album.entity.Album;
-import com.fivefy.domain.album.entity.QAlbum;
-import com.fivefy.domain.album.enums.AlbumStatus;
 import com.fivefy.domain.artist.entity.Artist;
-import com.fivefy.domain.artist.entity.QArtist;
-import com.fivefy.domain.artist.enums.ArtistStatus;
-import com.fivefy.domain.track.entity.QTrack;
 import com.fivefy.domain.track.entity.Track;
-import com.fivefy.domain.track.enums.TrackStatus;
-import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -20,80 +16,71 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SearchQueryRepositoryImpl implements SearchQueryRepository {
 
-    private final JPAQueryFactory queryFactory;
-
-    private final QArtist artist = QArtist.artist;
-    private final QTrack track = QTrack.track;
-    private final QAlbum album = QAlbum.album;
+    private final EntityManager em;
 
     @Override
-    public List<Artist> searchArtists(String keyword) {
-        return queryFactory
-                .selectFrom(artist)
-                .where(
-                        artistKeyword(keyword),
-                        artist.deletedAt.isNull(),
-                        artist.status.eq(ArtistStatus.ACTIVE)
-                )
-                .fetch();
+    @SuppressWarnings("unchecked")
+    public List<Artist> searchArtists(String keyword, int limit) {
+        return em.createNativeQuery(
+                        "SELECT * FROM artists WHERE MATCH(name) AGAINST(:keyword IN BOOLEAN MODE)" +
+                                " AND deleted_at IS NULL AND status = 'ACTIVE' LIMIT :limit",
+                        Artist.class)
+                .setParameter("keyword", keyword)
+                .setParameter("limit", limit)
+                .getResultList();
     }
 
     @Override
-    public List<Track> searchTracks(String keyword) {
-        List<Long> artistIds = getArtistIdsByKeyword(keyword);
+    @SuppressWarnings("unchecked")
+    public Page<Track> searchTracks(String keyword, List<Long> artistIds, Pageable pageable) {
+        List<Long> ids = artistIds.isEmpty() ? List.of(-1L) : artistIds;
 
-        return queryFactory
-                .selectFrom(track)
-                .where(
-                        trackKeyword(keyword)
-                                .or(artistIds.isEmpty() ? null : track.artistId.in(artistIds)),
-                        track.deletedAt.isNull(),
-                        track.status.eq(TrackStatus.PUBLISHED)
-                )
-                .fetch();
+        List<Track> results = em.createNativeQuery(
+                        "SELECT * FROM tracks WHERE (" +
+                                "MATCH(title) AGAINST(:keyword IN BOOLEAN MODE) OR artist_id IN (:ids))" +
+                                " AND deleted_at IS NULL AND status = 'PUBLISHED' LIMIT :offset, :size",
+                        Track.class)
+                .setParameter("keyword", keyword)
+                .setParameter("ids", ids)
+                .setParameter("offset", pageable.getOffset())
+                .setParameter("size", pageable.getPageSize())
+                .getResultList();
+
+        Long total = (Long) em.createNativeQuery(
+                        "SELECT COUNT(*) FROM tracks WHERE (" +
+                                "MATCH(title) AGAINST(:keyword IN BOOLEAN MODE) OR artist_id IN (:ids)) " +
+                                "AND deleted_at IS NULL AND status = 'PUBLISHED'")
+                .setParameter("keyword", keyword)
+                .setParameter("ids", ids)
+                .getSingleResult();
+
+        return new PageImpl<>(results, pageable, total);
     }
 
     @Override
-    public List<Album> searchAlbums(String keyword) {
-        List<Long> artistIds = getArtistIdsByKeyword(keyword);
+    @SuppressWarnings("unchecked")
+    public Page<Album> searchAlbums(String keyword, List<Long> artistIds, Pageable pageable) {
+        List<Long> ids = artistIds.isEmpty() ? List.of(-1L) : artistIds;
 
-        return queryFactory
-                .selectFrom(album)
-                .where(
-                        albumKeyword(keyword)
-                                .or(artistIds.isEmpty() ? null : album.artistId.in(artistIds)),
-                        album.deletedAt.isNull(),
-                        album.status.eq(AlbumStatus.PUBLISHED)
-                )
-                .fetch();
-    }
+        List<Album> results = em.createNativeQuery(
+                        "SELECT * FROM albums WHERE (" +
+                                "MATCH(title) AGAINST(:keyword IN BOOLEAN MODE) OR artist_id IN (:ids))" +
+                                " AND deleted_at IS NULL AND status = 'PUBLISHED' LIMIT :offset, :size",
+                        Album.class)
+                .setParameter("keyword", keyword)
+                .setParameter("ids", ids)
+                .setParameter("offset", pageable.getOffset())
+                .setParameter("size", pageable.getPageSize())
+                .getResultList();
 
-    // 아티스트 ID 조회 헬퍼
-    private List<Long> getArtistIdsByKeyword(String keyword) {
-        return queryFactory
-                .select(artist.id)
-                .from(artist)
-                .where(
-                        artistKeyword(keyword),
-                        artist.deletedAt.isNull(),
-                        artist.status.eq(ArtistStatus.ACTIVE)
-                )
-                .fetch();
-    }
+        Long total = (Long) em.createNativeQuery(
+                        "SELECT COUNT(*) FROM albums WHERE (" +
+                                "MATCH(title) AGAINST(:keyword IN BOOLEAN MODE) OR artist_id IN (:ids)) " +
+                                "AND deleted_at IS NULL AND status = 'PUBLISHED'")
+                .setParameter("keyword", keyword)
+                .setParameter("ids", ids)
+                .getSingleResult();
 
-    // 동적 조건 헬퍼 메서드
-    private BooleanExpression artistKeyword(String keyword) {
-        if (keyword == null || keyword.isBlank()) return null;
-        return artist.name.containsIgnoreCase(keyword);
-    }
-
-    private BooleanExpression trackKeyword(String keyword) {
-        if (keyword == null || keyword.isBlank()) return null;
-        return track.title.containsIgnoreCase(keyword);
-    }
-
-    private BooleanExpression albumKeyword(String keyword) {
-        if (keyword == null || keyword.isBlank()) return null;
-        return album.title.containsIgnoreCase(keyword);
+        return new PageImpl<>(results, pageable, total);
     }
 }

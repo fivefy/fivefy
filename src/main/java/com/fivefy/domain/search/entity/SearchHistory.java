@@ -12,7 +12,15 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
 @Getter
 @Entity
-@Table(name = "search_histories")
+@Table(
+        name = "search_histories",
+        indexes = {
+                @Index(name = "idx_search_histories_user_searched", columnList = "user_id, searched_at")
+        },
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"user_id", "keyword"})
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SearchHistory extends BaseEntity {
 
