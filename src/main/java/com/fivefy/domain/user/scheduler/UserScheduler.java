@@ -21,7 +21,7 @@ public class UserScheduler {
 
     // 매일 새벽 4시 — 탈퇴 후 30일 경과 유저 개인정보 익명화
     @Scheduled(cron = "0 0 4 * * *")
-    @SchedulerLock(name = "anonymizeDeletedUsers", lockAtMostFor = "30m", lockAtLeastFor = "1m")
+    @SchedulerLock(name = "anonymizeDeletedUsers", lockAtMostFor = "1h", lockAtLeastFor = "1m")
     @Transactional
     public void anonymizeDeletedUsers() {
         LocalDateTime threshold = LocalDateTime.now().minusDays(ANONYMIZE_DAYS);

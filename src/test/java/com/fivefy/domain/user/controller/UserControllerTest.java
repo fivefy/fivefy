@@ -28,6 +28,7 @@ import java.util.Map;
 import static com.fivefy.domain.user.enums.UserErrorCode.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
 import static org.springframework.restdocs.cookies.CookieDocumentation.*;
 import static org.springframework.restdocs.headers.HeaderDocumentation.*;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
@@ -565,6 +566,60 @@ class UserControllerTest extends RestDocsSupport {
                                     fieldWithPath("message").type(STRING).description("에러 메시지")
                             )
                     ));
+        }
+    }
+
+    @Nested
+    @DisplayName("회원 탈퇴")
+    class DeleteUser {
+
+        @Test
+        @DisplayName("탈퇴 성공 — 200, RT 쿠키 만료")
+        void deleteUserSuccess() throws Exception {
+            // given
+            Map<String, String> request = Map.of("password", "Test1234!");
+
+            // when & then
+            mockMvc.perform(delete("/api/users/me")
+                            .with(csrf().asHeader())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").value("회원 탈퇴 성공"))
+                    .andExpect(cookie().maxAge("refreshToken", 0));
+        }
+
+        @Test
+        @DisplayName("비밀번호 없이 요청 시 400 반환")
+        void deleteUserWithoutPassword() throws Exception {
+            // given
+            Map<String, String> request = Map.of();
+
+            // when & then
+            mockMvc.perform(delete("/api/users/me")
+                            .with(csrf().asHeader())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("비밀번호 불일치 시 401 반환")
+        void deleteUserWithWrongPassword() throws Exception {
+            // given
+            doThrow(new BusinessException(ERR_USER_MISMATCH_PASSWORD))
+                    .when(userService).deleteUser(any(), any());
+
+            Map<String, String> request = Map.of("password", "wrongPassword1!");
+
+            // when & then
+            mockMvc.perform(delete("/api/users/me")
+                            .with(csrf().asHeader())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message")
+                            .value(ERR_USER_MISMATCH_PASSWORD.getMessage()));
         }
     }
 }
