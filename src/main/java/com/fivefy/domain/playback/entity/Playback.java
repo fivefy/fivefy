@@ -15,7 +15,12 @@ import java.util.Objects;
 
 @Getter
 @Entity
-@Table(name = "playbacks")
+@Table(
+        name = "playbacks",
+        indexes = {
+                @Index(name = "idx_playback_ended_at", columnList = "ended_at")
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Playback {
 
