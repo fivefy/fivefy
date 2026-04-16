@@ -40,9 +40,8 @@ public class PopularChartService {
     }
 
     private LocalDateTime findLatestSnapshotDate() {
-        return popularChartRepository.findAll().stream()
+        return popularChartRepository.findFirstByOrderBySnapshotDateDesc()
                 .map(PopularChart::getSnapshotDate)
-                .max(LocalDateTime::compareTo)
                 .orElseThrow(() -> new BusinessException(PopularChartErrorCode.CHART_NOT_FOUND));
     }
 }
