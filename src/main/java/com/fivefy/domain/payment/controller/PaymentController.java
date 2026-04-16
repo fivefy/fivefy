@@ -1,8 +1,6 @@
 package com.fivefy.domain.payment.controller;
 
-import com.fivefy.domain.payment.dto.PaymentRefundRequest;
 import com.fivefy.domain.payment.dto.PaymentResponse;
-import com.fivefy.domain.payment.dto.PaymentVerifyRequest;
 import com.fivefy.domain.payment.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
