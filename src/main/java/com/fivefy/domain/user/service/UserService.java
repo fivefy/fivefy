@@ -5,6 +5,7 @@ import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.user.dto.request.UserLoginRequest;
 import com.fivefy.domain.user.dto.request.UserSignupRequest;
 import com.fivefy.domain.user.dto.response.UserLoginResponse;
+import com.fivefy.domain.user.dto.response.UserProfileResponse;
 import com.fivefy.domain.user.dto.response.UserSignupResponse;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.repository.UserRepository;
@@ -193,5 +194,14 @@ public class UserService {
     public void logoutUser(Long userId) {
         redisTemplate.delete(RT_PREFIX + userId);
         redisTemplate.delete(PREV_RT_PREFIX + userId);
+    }
+
+    @Transactional(readOnly = true)
+    public UserProfileResponse getUserProfile(Long userId) {
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new BusinessException(ERR_USER_NOT_FOUND)
+        );
+
+        return UserProfileResponse.from(user);
     }
 }

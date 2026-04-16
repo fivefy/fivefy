@@ -4,9 +4,9 @@ import com.fivefy.common.dto.response.BaseResponse;
 import com.fivefy.domain.user.dto.request.UserLoginRequest;
 import com.fivefy.domain.user.dto.request.UserSignupRequest;
 import com.fivefy.domain.user.dto.response.UserLoginResponse;
+import com.fivefy.domain.user.dto.response.UserProfileResponse;
 import com.fivefy.domain.user.dto.response.UserSignupResponse;
 import com.fivefy.domain.user.service.UserService;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -71,6 +71,13 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.OK)
                 .header(HttpHeaders.SET_COOKIE, expiredCookie.toString())
                 .body(BaseResponse.success(HttpStatus.OK, "로그아웃 성공", null));
+    }
+
+    @GetMapping("/users/me")
+    public ResponseEntity<BaseResponse<UserProfileResponse>> getUserProfile(@AuthenticationPrincipal Long userId) {
+        return ResponseEntity.status(HttpStatus.OK).body(
+                BaseResponse.success(HttpStatus.OK, "내 프로필 조회 성공", userService.getUserProfile(userId))
+        );
     }
 
     private ResponseCookie buildRefreshTokenCookie(String refreshToken) {
