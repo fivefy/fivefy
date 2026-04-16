@@ -46,11 +46,8 @@ public class AlbumReleaseRequest extends BaseEntity {
     @Column(name = "cover_image_url", length = 255)
     private String coverImageUrl;
 
-    @Column(name = "release_at", nullable = false)
-    private LocalDateTime releaseAt;
-
-    @Column(name = "scheduled_publish_at")
-    private LocalDateTime scheduledPublishAt;
+    @Column(name = "publish_delay_days", nullable = false)
+    private Integer publishDelayDays;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -75,13 +72,12 @@ public class AlbumReleaseRequest extends BaseEntity {
             String title,
             String description,
             String coverImageUrl,
-            LocalDateTime releaseAt,
-            LocalDateTime scheduledPublishAt
+            Integer publishDelayDays
     ) {
         validateNonNull(requesterUserId, "requesterUserId");
         validateNonNull(artistId, "artistId");
         validateNonNull(title, "title");
-        validateNonNull(releaseAt, "releaseAt");
+        validateNonNull(publishDelayDays, "publishDelayDays");
 
         AlbumReleaseRequest request = new AlbumReleaseRequest();
 
@@ -90,8 +86,7 @@ public class AlbumReleaseRequest extends BaseEntity {
         request.title = title;
         request.description = description;
         request.coverImageUrl = coverImageUrl;
-        request.releaseAt = releaseAt;
-        request.scheduledPublishAt = scheduledPublishAt;
+        request.publishDelayDays = publishDelayDays;
         request.status = ApplicationStatus.PENDING;
 
         return request;
