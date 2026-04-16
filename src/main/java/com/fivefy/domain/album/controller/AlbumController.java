@@ -1,12 +1,16 @@
 package com.fivefy.domain.album.controller;
 
 import com.fivefy.common.dto.response.BaseResponse;
+import com.fivefy.common.dto.response.PageResponse;
+import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.domain.album.dto.request.AlbumReleaseRequestCreateRequest;
 import com.fivefy.domain.album.dto.response.AlbumReleaseRequestDetailResponse;
+import com.fivefy.domain.album.dto.response.AlbumReleaseRequestListResponse;
 import com.fivefy.domain.album.dto.response.AlbumReleaseRequestResponse;
 import com.fivefy.domain.album.service.AlbumService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -68,6 +72,22 @@ public class AlbumController {
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 BaseResponse.success(HttpStatus.OK, "앨범 등록 요청 상세 조회 성공", response)
+        );
+    }
+
+    /**
+     * 앨범 등록 요청 목록 조회 API
+     */
+    @GetMapping("/admin/album-release-requests")
+    public ResponseEntity<BaseResponse<PageResponse<AlbumReleaseRequestListResponse>>> getAlbumReleaseRequests(
+            @RequestParam(required = false) ApplicationStatus status,
+            Pageable pageable
+    ) {
+        PageResponse<AlbumReleaseRequestListResponse> response =
+                albumService.getAlbumReleaseRequests(status, pageable);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                BaseResponse.success(HttpStatus.OK, "앨범 등록 요청 목록 조회 성공", response)
         );
     }
 }

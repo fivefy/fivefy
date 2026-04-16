@@ -1,8 +1,11 @@
 package com.fivefy.domain.album.service;
 
+import com.fivefy.common.dto.response.PageResponse;
+import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.album.dto.request.AlbumReleaseRequestCreateRequest;
 import com.fivefy.domain.album.dto.response.AlbumReleaseRequestDetailResponse;
+import com.fivefy.domain.album.dto.response.AlbumReleaseRequestListResponse;
 import com.fivefy.domain.album.dto.response.AlbumReleaseRequestResponse;
 import com.fivefy.domain.album.entity.AlbumReleaseRequest;
 import com.fivefy.domain.album.enums.AlbumReleaseErrorCode;
@@ -16,6 +19,8 @@ import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.enums.UserRole;
 import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -104,6 +109,23 @@ public class AlbumService {
         validateAlbumReleaseRequestDetailAccess(userId, user, request);
 
         return AlbumReleaseRequestDetailResponse.from(request);
+    }
+
+    /**
+     * 앨범 등록 요청 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<AlbumReleaseRequestListResponse> getAlbumReleaseRequests(
+            ApplicationStatus status,
+            Pageable pageable
+    ) {
+        Page<AlbumReleaseRequest> page =
+                albumReleaseRequestRepository.searchAlbumReleaseRequests(status, pageable);
+
+        Page<AlbumReleaseRequestListResponse> response =
+                page.map(AlbumReleaseRequestListResponse::from);
+
+        return PageResponse.from(response);
     }
 
     // 유저 존재 여부를 검증

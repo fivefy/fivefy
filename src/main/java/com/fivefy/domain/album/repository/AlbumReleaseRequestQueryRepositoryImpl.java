@@ -2,10 +2,15 @@ package com.fivefy.domain.album.repository;
 
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.domain.album.entity.AlbumReleaseRequest;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Objects;
 
 import static com.fivefy.domain.album.entity.QAlbumReleaseRequest.albumReleaseRequest;
 
@@ -37,5 +42,32 @@ public class AlbumReleaseRequestQueryRepositoryImpl implements AlbumReleaseReque
                 .where(albumReleaseRequest.requesterUserId.eq(requesterUserId))
                 .orderBy(albumReleaseRequest.createdAt.desc())
                 .fetch();
+    }
+
+    @Override
+    public Page<AlbumReleaseRequest> searchAlbumReleaseRequests(
+            ApplicationStatus status,
+            Pageable pageable
+    ) {
+        List<AlbumReleaseRequest> content = queryFactory
+                .selectFrom(albumReleaseRequest)
+                .where(statusEq(status))
+                .orderBy(albumReleaseRequest.createdAt.asc())
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+
+        Long total = queryFactory
+                .select(albumReleaseRequest.count())
+                .from(albumReleaseRequest)
+                .where(statusEq(status))
+                .fetchOne();
+
+        return new PageImpl<>(content, pageable, Objects.requireNonNullElse(total, 0L));
+    }
+
+    // 상태 필터 조건
+    private BooleanExpression statusEq(ApplicationStatus status) {
+        return status != null ? albumReleaseRequest.status.eq(status) : null;
     }
 }

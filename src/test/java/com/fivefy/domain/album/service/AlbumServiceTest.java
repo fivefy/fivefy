@@ -1,9 +1,11 @@
 package com.fivefy.domain.album.service;
 
+import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.album.dto.request.AlbumReleaseRequestCreateRequest;
 import com.fivefy.domain.album.dto.response.AlbumReleaseRequestDetailResponse;
+import com.fivefy.domain.album.dto.response.AlbumReleaseRequestListResponse;
 import com.fivefy.domain.album.dto.response.AlbumReleaseRequestResponse;
 import com.fivefy.domain.album.entity.AlbumReleaseRequest;
 import com.fivefy.domain.album.enums.AlbumReleaseErrorCode;
@@ -23,6 +25,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -42,6 +47,7 @@ import static org.mockito.Mockito.when;
  * 내 앨범 등록 요청 목록 조회 기능을 검증한다.
  * 내 앨범 등록 요청 목록 빈 결과 조회 기능을 검증한다.
  * 앨범 등록 요청 상세 조회 기능을 검증한다.
+ * 관리자 앨범 등록 요청 목록 조회 기능을 검증한다.
  */
 @ExtendWith(MockitoExtension.class)
 class AlbumServiceTest {
@@ -518,6 +524,98 @@ class AlbumServiceTest {
             assertThatThrownBy(() -> albumService.getAlbumReleaseRequest(userId, requestId))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(AlbumReleaseErrorCode.ERR_ALBUM_RELEASE_REQUEST_NOT_FOUND.getMessage());
+        }
+    }
+
+    @Nested
+    @DisplayName("관리자 앨범 등록 요청 목록 조회")
+    class GetAlbumReleaseRequests {
+
+        @Test
+        @DisplayName("상태 조건 없이 오래된순 목록 조회 성공")
+        void getAlbumReleaseRequests_success_withoutStatus() {
+            Pageable pageable = PageRequest.of(0, 20);
+
+            AlbumReleaseRequest request1 = AlbumReleaseRequest.create(
+                    1L,
+                    10L,
+                    "첫 번째 요청",
+                    "설명1",
+                    "https://example.com/cover1.jpg",
+                    0
+            );
+            ReflectionTestUtils.setField(request1, "id", 1L);
+            ReflectionTestUtils.setField(request1, "createdAt", LocalDateTime.of(2026, 4, 14, 15, 0, 0));
+
+            AlbumReleaseRequest request2 = AlbumReleaseRequest.create(
+                    2L,
+                    20L,
+                    "두 번째 요청",
+                    "설명2",
+                    "https://example.com/cover2.jpg",
+                    3
+            );
+            ReflectionTestUtils.setField(request2, "id", 2L);
+            ReflectionTestUtils.setField(request2, "createdAt", LocalDateTime.of(2026, 4, 15, 15, 0, 0));
+
+            when(albumReleaseRequestRepository.searchAlbumReleaseRequests(null, pageable))
+                    .thenReturn(new PageImpl<>(List.of(request1, request2), pageable, 2));
+
+            PageResponse<AlbumReleaseRequestListResponse> response =
+                    albumService.getAlbumReleaseRequests(null, pageable);
+
+            assertThat(response.content()).hasSize(2);
+            assertThat(response.content().get(0).requestId()).isEqualTo(1L);
+            assertThat(response.content().get(0).requesterUserId()).isEqualTo(1L);
+            assertThat(response.content().get(0).title()).isEqualTo("첫 번째 요청");
+            assertThat(response.content().get(1).requestId()).isEqualTo(2L);
+            assertThat(response.page()).isEqualTo(0);
+            assertThat(response.size()).isEqualTo(20);
+            assertThat(response.totalElements()).isEqualTo(2);
+            assertThat(response.totalPages()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("상태 조건으로 목록 조회 성공")
+        void getAlbumReleaseRequests_success_withStatus() {
+            Pageable pageable = PageRequest.of(0, 20);
+
+            AlbumReleaseRequest request = AlbumReleaseRequest.create(
+                    1L,
+                    10L,
+                    "승인 대기 요청",
+                    "설명",
+                    "https://example.com/cover.jpg",
+                    0
+            );
+            ReflectionTestUtils.setField(request, "id", 1L);
+            ReflectionTestUtils.setField(request, "createdAt", LocalDateTime.of(2026, 4, 14, 15, 0, 0));
+
+            when(albumReleaseRequestRepository.searchAlbumReleaseRequests(ApplicationStatus.PENDING, pageable))
+                    .thenReturn(new PageImpl<>(List.of(request), pageable, 1));
+
+            PageResponse<AlbumReleaseRequestListResponse> response =
+                    albumService.getAlbumReleaseRequests(ApplicationStatus.PENDING, pageable);
+
+            assertThat(response.content()).hasSize(1);
+            assertThat(response.content().get(0).status()).isEqualTo(ApplicationStatus.PENDING);
+            assertThat(response.totalElements()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("조회 결과가 없으면 빈 페이지 조회 성공")
+        void getAlbumReleaseRequests_success_whenEmpty() {
+            Pageable pageable = PageRequest.of(0, 20);
+
+            when(albumReleaseRequestRepository.searchAlbumReleaseRequests(ApplicationStatus.REJECTED, pageable))
+                    .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+
+            PageResponse<AlbumReleaseRequestListResponse> response =
+                    albumService.getAlbumReleaseRequests(ApplicationStatus.REJECTED, pageable);
+
+            assertThat(response.content()).isEmpty();
+            assertThat(response.totalElements()).isZero();
+            assertThat(response.totalPages()).isZero();
         }
     }
 }
