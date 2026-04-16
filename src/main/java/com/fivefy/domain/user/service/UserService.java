@@ -3,9 +3,11 @@ package com.fivefy.domain.user.service;
 import com.fivefy.common.config.security.JwtUtil;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.user.dto.request.UserLoginRequest;
+import com.fivefy.domain.user.dto.request.UserProfileUpdateRequest;
 import com.fivefy.domain.user.dto.request.UserSignupRequest;
 import com.fivefy.domain.user.dto.response.UserLoginResponse;
 import com.fivefy.domain.user.dto.response.UserProfileResponse;
+import com.fivefy.domain.user.dto.response.UserProfileUpdateResponse;
 import com.fivefy.domain.user.dto.response.UserSignupResponse;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.repository.UserRepository;
@@ -13,6 +15,7 @@ import com.fivefy.domain.wallet.entity.Wallet;
 import com.fivefy.domain.wallet.repository.WalletRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
@@ -25,6 +28,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.springframework.util.StringUtils;
 
 import java.time.Duration;
 import java.util.List;
@@ -203,5 +207,27 @@ public class UserService {
         );
 
         return UserProfileResponse.from(user);
+    }
+
+    @Transactional
+    public UserProfileUpdateResponse updateUserProfile(Long userId, UserProfileUpdateRequest request) {
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new BusinessException(ERR_USER_NOT_FOUND)
+        );
+
+        if (request.passwordChange() != null) {
+            if (!passwordEncoder.matches(request.passwordChange().currentPassword(), user.getPassword())) {
+                throw new BusinessException(ERR_USER_MISMATCH_PASSWORD);
+            }
+
+            String encodedNewPassword = passwordEncoder.encode(request.passwordChange().newPassword());
+            user.updatePassword(encodedNewPassword);
+        }
+
+        if (StringUtils.hasText(request.name())) {
+            user.updateName(request.name());
+        }
+
+        return UserProfileUpdateResponse.from(user.getName(), user.getUpdatedAt());
     }
 }

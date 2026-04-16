@@ -2,9 +2,11 @@ package com.fivefy.domain.user.controller;
 
 import com.fivefy.common.dto.response.BaseResponse;
 import com.fivefy.domain.user.dto.request.UserLoginRequest;
+import com.fivefy.domain.user.dto.request.UserProfileUpdateRequest;
 import com.fivefy.domain.user.dto.request.UserSignupRequest;
 import com.fivefy.domain.user.dto.response.UserLoginResponse;
 import com.fivefy.domain.user.dto.response.UserProfileResponse;
+import com.fivefy.domain.user.dto.response.UserProfileUpdateResponse;
 import com.fivefy.domain.user.dto.response.UserSignupResponse;
 import com.fivefy.domain.user.service.UserService;
 import jakarta.validation.Valid;
@@ -77,6 +79,16 @@ public class UserController {
     public ResponseEntity<BaseResponse<UserProfileResponse>> getUserProfile(@AuthenticationPrincipal Long userId) {
         return ResponseEntity.status(HttpStatus.OK).body(
                 BaseResponse.success(HttpStatus.OK, "내 프로필 조회 성공", userService.getUserProfile(userId))
+        );
+    }
+
+    @PatchMapping("/users/me")
+    public ResponseEntity<BaseResponse<UserProfileUpdateResponse>> updateUserProfile(
+            @AuthenticationPrincipal Long userId,
+            @Valid @RequestBody UserProfileUpdateRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.OK).body(
+                BaseResponse.success(HttpStatus.OK, "내 프로필 수정 성공", userService.updateUserProfile(userId, request))
         );
     }
 
