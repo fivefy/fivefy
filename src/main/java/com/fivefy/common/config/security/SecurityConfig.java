@@ -31,7 +31,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/users/signup",
                                 "/api/users/login",
-                                "/api/users/reissue"
+                                "/api/users/reissue",
+                                "/api/popular-charts/**"
                         ).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
