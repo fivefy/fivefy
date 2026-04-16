@@ -8,6 +8,7 @@ import com.fivefy.domain.user.dto.request.UserSignupRequest;
 import com.fivefy.domain.user.dto.response.UserLoginResponse;
 import com.fivefy.domain.user.dto.response.UserSignupResponse;
 import com.fivefy.domain.user.service.UserService;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -19,14 +20,12 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDateTime;
 
-import static com.fivefy.domain.user.enums.UserErrorCode.ERR_USER_DUPLICATED_EMAIL;
-import static com.fivefy.domain.user.enums.UserErrorCode.ERR_USER_LOGIN_FAIL;
+import static com.fivefy.domain.user.enums.UserErrorCode.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.springframework.restdocs.cookies.CookieDocumentation.cookieWithName;
-import static org.springframework.restdocs.cookies.CookieDocumentation.responseCookies;
-import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
-import static org.springframework.restdocs.headers.HeaderDocumentation.responseHeaders;
+import static org.mockito.Mockito.verify;
+import static org.springframework.restdocs.cookies.CookieDocumentation.*;
+import static org.springframework.restdocs.headers.HeaderDocumentation.*;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.JsonFieldType.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
@@ -202,7 +201,7 @@ class UserControllerTest extends RestDocsSupport {
                             ),
                             responseHeaders(
                                     headerWithName(HttpHeaders.CACHE_CONTROL).description("캐시 방지 헤더 (HTTP/1.1)"),
-                                    headerWithName(HttpHeaders.PRAGMA).description("캐시 방지 헤더 (HTTP/1.0 하위 호환용)")
+                                    headerWithName(HttpHeaders.PRAGMA).description("캐시 방지 헤더 (HTTP/1.0 호환)")
                             )
                     ));
         }
@@ -296,6 +295,117 @@ class UserControllerTest extends RestDocsSupport {
                                     fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
                                     fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
                                     fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
+        }
+    }
+
+    @Nested
+    @DisplayName("토큰 재발급")
+    class Reissue {
+
+        @Test
+        @DisplayName("재발급 성공 — 200, 새 AT 바디 반환, 새 RT 쿠키 설정")
+        void reissueSuccess() throws Exception {
+            // given
+            UserLoginResponse result = UserLoginResponse.of("new.access.token", "new.refresh.token");
+            given(userService.reissueToken(any())).willReturn(result);
+
+            // when & then
+            mockMvc.perform(post("/api/users/reissue")
+                            .with(csrf().asHeader())
+                            .cookie(new Cookie("refreshToken", "valid.refresh.token")))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.accessToken").value("new.access.token"))
+                    .andExpect(jsonPath("$.data.refreshToken").doesNotExist())
+                    .andExpect(cookie().value("refreshToken", "new.refresh.token"))
+                    .andExpect(cookie().httpOnly("refreshToken", true))
+                    .andExpect(cookie().secure("refreshToken", true))
+                    .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"))
+                    .andExpect(header().string(HttpHeaders.PRAGMA, "no-cache"))
+                    .andDo(document("user-reissue",
+                            requestCookies(
+                                    cookieWithName("refreshToken").description("기존 리프레시 토큰 (HttpOnly, Secure)")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    fieldWithPath("data.accessToken").type(STRING).description("새로운 액세스 토큰")
+                            ),
+                            responseCookies(
+                                    cookieWithName("refreshToken").description("새로운 리프레시 토큰 (HttpOnly, Secure)")
+                            ),
+                            responseHeaders(
+                                    headerWithName(HttpHeaders.CACHE_CONTROL).description("캐시 방지 헤더 (HTTP/1.1)"),
+                                    headerWithName(HttpHeaders.PRAGMA).description("캐시 방지 헤더 (HTTP/1.0 호환)")
+                            )
+                    ));
+        }
+
+        @Test
+        @DisplayName("RT 쿠키 없이 재발급 요청 시 401 반환")
+        void reissueWithoutCookie() throws Exception {
+            mockMvc.perform(post("/api/users/reissue")
+                            .with(csrf().asHeader()))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message").value("인증 정보가 유효하지 않습니다"))
+                    .andDo(document("user-reissue-missing-rt",
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
+        }
+
+        @Test
+        @DisplayName("유효하지 않은 RT로 재발급 시 401 반환")
+        void reissueWithInvalidToken() throws Exception {
+            // given
+            given(userService.reissueToken(any()))
+                    .willThrow(new BusinessException(ERR_USER_INVALID_RT));
+
+            // when & then
+            mockMvc.perform(post("/api/users/reissue")
+                            .with(csrf().asHeader())
+                            .cookie(new Cookie("refreshToken", "invalid.refresh.token")))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message").value(ERR_USER_INVALID_RT.getMessage()))
+                    .andDo(document("user-reissue-invalid-rt",
+                            requestCookies(
+                                    cookieWithName("refreshToken").description("유효하지 않은 리프레시 토큰")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
+        }
+    }
+
+    @Nested
+    @DisplayName("로그아웃 API")
+    class Logout {
+
+        @Test
+        @DisplayName("로그아웃 성공 — 200, RT 쿠키 만료 처리")
+        void logoutSuccess() throws Exception {
+            mockMvc.perform(post("/api/users/logout")
+                            .with(csrf().asHeader())
+                            .requestAttr("userId", 1L))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").value("로그아웃 성공"))
+                    .andExpect(cookie().maxAge("refreshToken", 0))
+                    .andDo(document("user-logout",
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("응답 메시지")
+                            ),
+                            responseCookies(
+                                    cookieWithName("refreshToken").description("만료된 리프레시 토큰 (maxAge=0)")
                             )
                     ));
         }

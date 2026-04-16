@@ -53,12 +53,12 @@ class JwtUtilTest {
     }
 
     @Test
-    @DisplayName("RefreshToken은 subject와 role 클레임 없이 생성")
-    void createRefreshTokenWithoutSubjectAndRole() {
-        String token = jwtUtil.createRefreshToken();
+    @DisplayName("RefreshToken을 생성하고 검증")
+    void createAndValidateRT() {
+        String token = jwtUtil.createRefreshToken(1L);
         Claims claims = jwtUtil.validateToken(token);
 
-        assertThat(claims.getSubject()).isNull();
+        assertThat(Long.parseLong(claims.getSubject())).isEqualTo(1L);
         assertThat(claims.get("role")).isNull();
     }
 

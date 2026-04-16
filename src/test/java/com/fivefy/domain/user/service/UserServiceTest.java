@@ -7,28 +7,37 @@ import com.fivefy.domain.user.dto.request.UserSignupRequest;
 import com.fivefy.domain.user.dto.response.UserLoginResponse;
 import com.fivefy.domain.user.dto.response.UserSignupResponse;
 import com.fivefy.domain.user.entity.User;
+import com.fivefy.domain.user.enums.UserRole;
 import com.fivefy.domain.user.repository.UserRepository;
 import com.fivefy.domain.wallet.entity.Wallet;
 import com.fivefy.domain.wallet.repository.WalletRepository;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.redis.core.RedisCallback;
+import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
-import static com.fivefy.domain.user.enums.UserErrorCode.ERR_USER_DUPLICATED_EMAIL;
-import static com.fivefy.domain.user.enums.UserErrorCode.ERR_USER_LOGIN_FAIL;
+import static com.fivefy.domain.user.enums.UserErrorCode.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -153,7 +162,7 @@ class UserServiceTest {
             given(userRepository.findByEmail(request.email())).willReturn(Optional.of(user));
             given(passwordEncoder.matches(request.password(), user.getPassword())).willReturn(true);
             given(jwtUtil.createAccessToken(any(), any())).willReturn("accessToken");
-            given(jwtUtil.createRefreshToken()).willReturn("refreshToken");
+            given(jwtUtil.createRefreshToken(any())).willReturn("refreshToken");
             given(redisTemplate.opsForValue()).willReturn(valueOperations);
 
             // when
@@ -171,7 +180,7 @@ class UserServiceTest {
             given(userRepository.findByEmail(request.email())).willReturn(Optional.of(user));
             given(passwordEncoder.matches(request.password(), user.getPassword())).willReturn(true);
             given(jwtUtil.createAccessToken(any(), any())).willReturn("accessToken");
-            given(jwtUtil.createRefreshToken()).willReturn("refreshToken");
+            given(jwtUtil.createRefreshToken(any())).willReturn("refreshToken");
             given(redisTemplate.opsForValue()).willReturn(valueOperations);
 
             // when
@@ -228,6 +237,228 @@ class UserServiceTest {
 
             // then — 이메일이 없어도 passwordEncoder.matches()가 반드시 1회 호출됨
             verify(passwordEncoder, times(1)).matches(any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("토큰 재발급")
+    class Reissue {
+
+        private User user;
+        private Claims claims;
+
+        private static final String VALID_RT    = "valid.refresh.token";
+        private static final String PREV_RT     = "prev.refresh.token";
+        private static final String NEW_AT      = "new.access.token";
+        private static final String NEW_RT      = "new.refresh.token";
+        private static final String RT_KEY      = "RT:1";
+        private static final String PREV_RT_KEY = "PREV_RT:1";
+        private static final long   REMAINING_TTL = 600L;
+
+        @BeforeEach
+        void setUp() {
+            user = User.create("test@test.com", "encodedPassword", "테스트");
+            ReflectionTestUtils.setField(user, "id", 1L);
+            ReflectionTestUtils.setField(user, "role", UserRole.USER);
+
+            claims = mock(Claims.class);
+        }
+
+        @Test
+        @DisplayName("재발급 성공 - 새 AT/RT 발급 및 Redis 갱신")
+        void reissueSuccess() {
+            // given
+            given(claims.getSubject()).willReturn("1");
+            given(redisTemplate.opsForValue()).willReturn(valueOperations);
+            given(jwtUtil.validateToken(VALID_RT)).willReturn(claims);
+            given(valueOperations.get(RT_KEY)).willReturn(VALID_RT);
+            given(valueOperations.get(PREV_RT_KEY)).willReturn(null);
+            given(redisTemplate.getExpire(RT_KEY, TimeUnit.SECONDS)).willReturn(REMAINING_TTL);
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
+            given(jwtUtil.createAccessToken(any(), any())).willReturn(NEW_AT);
+            given(jwtUtil.createRefreshToken(1L)).willReturn(NEW_RT);
+            given(redisTemplate.execute(ArgumentMatchers.<SessionCallback<List<Object>>>any())).willReturn(null);
+
+            // when
+            UserLoginResponse response = userService.reissueToken(VALID_RT);
+
+            // then
+            assertThat(response.accessToken()).isEqualTo(NEW_AT);
+            assertThat(response.refreshToken()).isEqualTo(NEW_RT);
+            verify(redisTemplate).execute(ArgumentMatchers.<SessionCallback<List<Object>>>any());
+        }
+
+        @Test
+        @DisplayName("만료된 RT — ERR_USER_EXPIRED_RT 예외")
+        void reissueWithExpiredToken() {
+            // given
+            given(jwtUtil.validateToken(any()))
+                    .willThrow(mock(ExpiredJwtException.class));
+
+            // when & then
+            assertThatThrownBy(() -> userService.reissueToken(VALID_RT))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ERR_USER_EXPIRED_RT.getMessage());
+        }
+
+        @Test
+        @DisplayName("서명 오류 등 유효하지 않은 RT — ERR_USER_INVALID_RT 예외")
+        void reissueWithInvalidToken() {
+            // given
+            given(jwtUtil.validateToken(any()))
+                    .willThrow(new RuntimeException("invalid"));
+
+            // when & then
+            assertThatThrownBy(() -> userService.reissueToken(VALID_RT))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ERR_USER_INVALID_RT.getMessage());
+        }
+
+        @Test
+        @DisplayName("로그아웃 상태(Redis RT 없음) — ERR_USER_NOT_LOGGED_IN 예외")
+        void reissueWhenLoggedOut() {
+            // given
+            given(claims.getSubject()).willReturn("1");
+            given(redisTemplate.opsForValue()).willReturn(valueOperations);
+            given(jwtUtil.validateToken(VALID_RT)).willReturn(claims);
+            given(valueOperations.get(RT_KEY)).willReturn(null);
+
+            // when & then
+            assertThatThrownBy(() -> userService.reissueToken(VALID_RT))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ERR_USER_NOT_LOGGED_IN.getMessage());
+        }
+
+        @Test
+        @DisplayName("RT 탈취 감지 — storedRt/prevRt 불일치 시 RT + PREV_RT 삭제 후 예외")
+        void reissueDetectsTokenTheft() {
+            // given — 이미 Rotation된 RT로 재시도하는 탈취 시나리오
+            given(claims.getSubject()).willReturn("1");
+            given(redisTemplate.opsForValue()).willReturn(valueOperations);
+            given(jwtUtil.validateToken(VALID_RT)).willReturn(claims);
+            given(valueOperations.get(RT_KEY)).willReturn("already.rotated.token");
+            given(valueOperations.get(PREV_RT_KEY)).willReturn("also.different.token");
+
+            // when & then
+            assertThatThrownBy(() -> userService.reissueToken(VALID_RT))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ERR_USER_INVALID_RT.getMessage());
+
+            verify(redisTemplate).delete(RT_KEY);
+            verify(redisTemplate).delete(PREV_RT_KEY);
+        }
+
+        @Test
+        @DisplayName("유예 RT로 재발급 — 새 AT + 현재 storedRt 반환 (동시 요청 대응)")
+        void reissueWithPrevRt() {
+            // given — 동시 요청으로 인해 이전 RT(PREV_RT)로 재시도하는 시나리오
+            given(claims.getSubject()).willReturn("1");
+            given(redisTemplate.opsForValue()).willReturn(valueOperations);
+            given(jwtUtil.validateToken(PREV_RT)).willReturn(claims);
+            given(valueOperations.get(RT_KEY)).willReturn(VALID_RT);
+            given(valueOperations.get(PREV_RT_KEY)).willReturn(PREV_RT);
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
+            given(jwtUtil.createAccessToken(any(), any())).willReturn(NEW_AT);
+
+            // when
+            UserLoginResponse response = userService.reissueToken(PREV_RT);
+
+            // then — AT는 새로 발급, RT는 현재 storedRt 반환
+            assertThat(response.accessToken()).isEqualTo(NEW_AT);
+            assertThat(response.refreshToken()).isEqualTo(VALID_RT);
+
+            // 유예 RT 처리 시 새 RT 발급하지 않음
+            verify(jwtUtil, never()).createRefreshToken(anyLong());
+        }
+
+        @Test
+        @DisplayName("Redis TTL 0 이하 — ERR_USER_EXPIRED_RT 예외")
+        void reissueWhenTtlExpired() {
+            // given
+            given(claims.getSubject()).willReturn("1");
+            given(redisTemplate.opsForValue()).willReturn(valueOperations);
+            given(jwtUtil.validateToken(VALID_RT)).willReturn(claims);
+            given(valueOperations.get(RT_KEY)).willReturn(VALID_RT);
+            given(valueOperations.get(PREV_RT_KEY)).willReturn(null);
+            given(redisTemplate.getExpire(RT_KEY, TimeUnit.SECONDS)).willReturn(0L);
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
+
+            // when & then
+            assertThatThrownBy(() -> userService.reissueToken(VALID_RT))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ERR_USER_EXPIRED_RT.getMessage());
+        }
+
+        @Test
+        @DisplayName("유저 탈퇴/삭제 상태 — ERR_USER_NOT_FOUND 예외")
+        void reissueWithDeletedUser() {
+            // given
+            given(claims.getSubject()).willReturn("1");
+            given(redisTemplate.opsForValue()).willReturn(valueOperations);
+            given(jwtUtil.validateToken(VALID_RT)).willReturn(claims);
+            given(valueOperations.get(RT_KEY)).willReturn(VALID_RT);
+            given(valueOperations.get(PREV_RT_KEY)).willReturn(null);
+            given(userRepository.findById(1L)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> userService.reissueToken(VALID_RT))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ERR_USER_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("재발급 성공 시 새 RT가 기존 RT와 다르다 (Rotation 검증)")
+        void reissueRotatesRefreshToken() {
+            // given
+            given(claims.getSubject()).willReturn("1");
+            given(redisTemplate.opsForValue()).willReturn(valueOperations);
+            given(jwtUtil.validateToken(VALID_RT)).willReturn(claims);
+            given(valueOperations.get(RT_KEY)).willReturn(VALID_RT);
+            given(valueOperations.get(PREV_RT_KEY)).willReturn(null);
+            given(redisTemplate.getExpire(RT_KEY, TimeUnit.SECONDS)).willReturn(REMAINING_TTL);
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
+            given(jwtUtil.createAccessToken(any(), any())).willReturn(NEW_AT);
+            given(jwtUtil.createRefreshToken(1L)).willReturn(NEW_RT);
+            given(redisTemplate.execute(ArgumentMatchers.<SessionCallback<List<Object>>>any())).willReturn(null);
+
+            // when
+            UserLoginResponse response = userService.reissueToken(VALID_RT);
+
+            // then
+            assertThat(response.refreshToken()).isNotEqualTo(VALID_RT);
+            assertThat(response.refreshToken()).isEqualTo(NEW_RT);
+        }
+    }
+
+    @Nested
+    @DisplayName("로그아웃")
+    class Logout {
+
+        private static final String RT_KEY      = "RT:1";
+        private static final String PREV_RT_KEY = "PREV_RT:1";
+
+        @Test
+        @DisplayName("로그아웃 성공 — RT + PREV_RT 모두 삭제")
+        void logoutSuccess() {
+            // when
+            userService.logoutUser(1L);
+
+            // then
+            verify(redisTemplate).delete(RT_KEY);
+            verify(redisTemplate).delete(PREV_RT_KEY);
+        }
+
+        @Test
+        @DisplayName("이미 로그아웃된 상태에서 재시도 — 예외 없이 처리")
+        void logoutAlreadyLoggedOut() {
+            // given
+            given(redisTemplate.delete(RT_KEY)).willReturn(false);
+            given(redisTemplate.delete(PREV_RT_KEY)).willReturn(false);
+
+            // when & then
+            userService.logoutUser(1L);
+            verify(redisTemplate).delete(RT_KEY);
+            verify(redisTemplate).delete(PREV_RT_KEY);
         }
     }
 }

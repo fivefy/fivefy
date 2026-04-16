@@ -39,9 +39,10 @@ public class JwtUtil {
     }
 
     // refresh token 생성
-    public String createRefreshToken() {
+    public String createRefreshToken(Long userId) {
         Date now = new Date();
         return Jwts.builder()
+                .subject(String.valueOf(userId))
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + jwtProperties.refreshExpiration()))
                 .signWith(getSigningKey())

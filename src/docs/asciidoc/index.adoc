@@ -110,6 +110,39 @@ include::{snippets}/user-login-fail/response-fields.adoc[]
 
 ---
 
+=== 토큰 재발급
+
+include::{snippets}/user-reissue/http-request.adoc[]
+include::{snippets}/user-reissue/request-cookies.adoc[]
+include::{snippets}/user-reissue/http-response.adoc[]
+include::{snippets}/user-reissue/response-headers.adoc[]
+include::{snippets}/user-reissue/response-cookies.adoc[]
+include::{snippets}/user-reissue/response-fields.adoc[]
+
+==== 에러 케이스 - RT 쿠키 누락
+
+include::{snippets}/user-reissue-missing-rt/http-request.adoc[]
+include::{snippets}/user-reissue-missing-rt/http-response.adoc[]
+include::{snippets}/user-reissue-missing-rt/response-fields.adoc[]
+
+==== 에러 케이스 - 유효하지 않은 RT
+
+include::{snippets}/user-reissue-invalid-rt/http-request.adoc[]
+include::{snippets}/user-reissue-invalid-rt/request-cookies.adoc[]
+include::{snippets}/user-reissue-invalid-rt/http-response.adoc[]
+include::{snippets}/user-reissue-invalid-rt/response-fields.adoc[]
+
+---
+
+=== 로그아웃
+
+include::{snippets}/user-logout/http-request.adoc[]
+include::{snippets}/user-logout/http-response.adoc[]
+include::{snippets}/user-logout/response-cookies.adoc[]
+include::{snippets}/user-logout/response-fields.adoc[]
+
+---
+
 == 도메인 API
 
 === 기능
