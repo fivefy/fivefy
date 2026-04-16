@@ -4,6 +4,7 @@ import com.fivefy.common.entity.BaseEntity;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.artist.enums.ArtistApplicationErrorCode;
+import com.fivefy.domain.artist.enums.ArtistType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -36,6 +37,10 @@ public class ArtistApplication extends BaseEntity {
     @Column(name = "requested_name", nullable = false, length = 100)
     private String requestedName;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "artist_type", nullable = false, length = 20)
+    private ArtistType artistType;
+
     @Column(name = "bio", columnDefinition = "TEXT")
     private String bio;
 
@@ -62,16 +67,19 @@ public class ArtistApplication extends BaseEntity {
     public static ArtistApplication create(
             Long requesterUserId,
             String requestedName,
+            ArtistType artistType,
             String bio,
             String profileImageUrl
     ) {
         validateNonNull(requesterUserId, "requesterUserId");
         validateNonNull(requestedName, "requestedName");
+        validateNonNull(artistType, "artistType");
 
         ArtistApplication application = new ArtistApplication();
 
         application.requesterUserId = requesterUserId;
         application.requestedName = requestedName;
+        application.artistType = artistType;
         application.bio = bio;
         application.profileImageUrl = profileImageUrl;
         application.status = ApplicationStatus.PENDING;
@@ -101,9 +109,21 @@ public class ArtistApplication extends BaseEntity {
     }
 
     private void validatePending() {
-        if (this.status != ApplicationStatus.PENDING) {
+        if (!isPending()) {
             throw new BusinessException(
                     ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_PROCESSED);
         }
+    }
+
+    public boolean isPending() {
+        return this.status == ApplicationStatus.PENDING;
+    }
+
+    public boolean isApproved() {
+        return this.status == ApplicationStatus.APPROVED;
+    }
+
+    public boolean isRejected() {
+        return this.status == ApplicationStatus.REJECTED;
     }
 }

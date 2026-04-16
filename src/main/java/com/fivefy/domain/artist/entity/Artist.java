@@ -4,6 +4,7 @@ import com.fivefy.common.entity.BaseEntity;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.artist.enums.ArtistErrorCode;
 import com.fivefy.domain.artist.enums.ArtistStatus;
+import com.fivefy.domain.artist.enums.ArtistType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -19,7 +20,10 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 @Table(
         name = "artists",
         indexes = {
-                @Index(name = "idx_artist_owner_user_id", columnList = "owner_user_id")
+                @Index(
+                        name = "idx_artist_owner_deleted_created",
+                        columnList = "owner_user_id, deleted_at, created_at"
+                )
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -34,6 +38,10 @@ public class Artist extends BaseEntity {
 
     @Column(name = "name", nullable = false, length = 100)
     private String name;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "artist_type", nullable = false, length = 20)
+    private ArtistType artistType;
 
     @Column(name = "bio", columnDefinition = "TEXT")
     private String bio;
@@ -55,16 +63,19 @@ public class Artist extends BaseEntity {
     public static Artist create(
             Long ownerUserId,
             String name,
+            ArtistType artistType,
             String bio,
             String profileImageUrl
     ) {
         validateNonNull(ownerUserId, "ownerUserId");
         validateNonNull(name, "name");
+        validateNonNull(artistType, "artistType");
 
         Artist artist = new Artist();
 
         artist.ownerUserId = ownerUserId;
         artist.name = name;
+        artist.artistType = artistType;
         artist.bio = bio;
         artist.profileImageUrl = profileImageUrl;
         artist.status = ArtistStatus.ACTIVE;
@@ -72,24 +83,18 @@ public class Artist extends BaseEntity {
         return artist;
     }
 
-    public void updateProfile(String bio, String profileImageUrl) {
+    public void updateProfile(String name, String bio, String profileImageUrl) {
         validateNotDeleted();
 
+        if (name != null) {
+            this.name = name;
+        }
         if (bio != null) {
             this.bio = bio;
         }
         if (profileImageUrl != null) {
             this.profileImageUrl = profileImageUrl;
         }
-    }
-
-    public void suspend() {
-        validateNotDeleted();
-
-        if (this.status == ArtistStatus.SUSPENDED) {
-            throw new BusinessException(ArtistErrorCode.ERR_ARTIST_ALREADY_SUSPENDED);
-        }
-        this.status = ArtistStatus.SUSPENDED;
     }
 
     public void activate() {
@@ -99,6 +104,15 @@ public class Artist extends BaseEntity {
             throw new BusinessException(ArtistErrorCode.ERR_ARTIST_ALREADY_ACTIVATED);
         }
         this.status = ArtistStatus.ACTIVE;
+    }
+
+    public void deactivate() {
+        validateNotDeleted();
+
+        if (this.status == ArtistStatus.INACTIVE) {
+            throw new BusinessException(ArtistErrorCode.ERR_ARTIST_ALREADY_INACTIVE);
+        }
+        this.status = ArtistStatus.INACTIVE;
     }
 
     public void softDelete() {
@@ -117,5 +131,9 @@ public class Artist extends BaseEntity {
         if (this.deletedAt != null) {
             throw new BusinessException(ArtistErrorCode.ERR_DELETED_ARTIST_CANNOT_BE_UPDATED);
         }
+    }
+
+    public boolean isDeleted() {
+        return this.deletedAt != null;
     }
 }
