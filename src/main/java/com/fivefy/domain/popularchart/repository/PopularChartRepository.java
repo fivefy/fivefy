@@ -9,4 +9,7 @@ import java.util.List;
 public interface PopularChartRepository extends JpaRepository<PopularChart, Long> {
 
     List<PopularChart> findTop100BySnapshotDateOrderByChartRankAsc(LocalDateTime snapshotDate);
+    boolean existsBySnapshotDate(LocalDateTime snapshotDate);
+    void deleteAllBySnapshotDate(LocalDateTime snapshotDate);
+    long countBySnapshotDate(LocalDateTime snapshotDate);
 }
