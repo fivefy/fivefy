@@ -9,6 +9,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 
+/**
+ * 주간 인기 차트 snapshot 생성을 수동으로 실행하기 위한 테스트용 API
+ * (운영 환경에서는 스케줄러로 자동 생성되며, local/dev 환경에서만 사용)
+ */
 @Profile({"local", "dev"})
 @RestController
 @RequiredArgsConstructor

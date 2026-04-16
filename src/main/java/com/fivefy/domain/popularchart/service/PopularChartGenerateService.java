@@ -24,30 +24,30 @@ public class PopularChartGenerateService {
 
     @Transactional
     public void generateWeeklyChart(LocalDate date) {
-        // 어떤 날짜가 들어와도 해당 주의 월요일로 보정
+        // 기준 날짜를 해당 주 월요일(snapshotDate)로 보정
         LocalDate snapshotDate = PopularChartDateUtils.getSnapshotMonday(date);
 
-        // 차트 기준 시각 (해당 주 월요일 00:00)
+        // 집계 구간: 이전 주 월요일 00:00 ~ 해당 주 월요일 00:00
         LocalDateTime snapshotDateTime = snapshotDate.atStartOfDay();
-        // 집계 시작 시각 (이전 주 월요일 00:00)
         LocalDateTime startDateTime = snapshotDateTime.minusWeeks(1);
 
+        // 디버깅 및 집계 로직 검증을 위해 로그 출력 (추후 logger로 전환 예정)
         System.out.println("snapshotDateTime = " + snapshotDateTime);
         System.out.println("startDateTime = " + startDateTime);
 
-        // 지난 1주 동안의 재생 기록 집계
+        // 지난 1주일간의 track별 재생 수 집계
         List<TrackPlayCountDto> results =
                 playbackRepository.countWeeklyPlayByTrack(startDateTime, snapshotDateTime);
 
         System.out.println("results size = " + results.size());
 
-        // 집계 결과가 없으면 저장하지 않고 종료
+        // 집계 결과가 없으면 종료
         if (results.isEmpty()) {
             System.out.println("집계 결과 없음");
             return;
         }
 
-        // 같은 snapshotDate 차트가 이미 있으면 삭제 후 재생성
+        // 동일한 snapshotDate 데이터가 이미 있으면 삭제 후 재생성
         if (popularChartRepository.existsBySnapshotDate(snapshotDateTime)) {
             System.out.println("기존 차트 삭제");
             popularChartRepository.deleteAllBySnapshotDate(snapshotDateTime);

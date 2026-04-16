@@ -17,6 +17,7 @@ public interface PlaybackRepository extends JpaRepository<Playback, Long> {
     Optional<Playback> findTopByUserIdAndSessionIdAndStatusOrderByIdDesc(Long userId, String sessionId, PlaybackStatus status);
     Optional<Playback> findByIdAndUserId(Long playbackId, Long userId);
     List<Playback> findAllByUserIdOrderByIdDesc(Long userId);
+    // 주어진 기간(startDate ~ endDate) 동안 track별 재생 수를 집계하여 반환
     @Query("""
     select new com.fivefy.domain.playback.dto.projection.TrackPlayCountDto(
         p.trackId,

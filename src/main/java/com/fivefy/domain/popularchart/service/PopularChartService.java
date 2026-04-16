@@ -22,6 +22,7 @@ public class PopularChartService {
 
     public List<PopularChartResponse> getTop100(LocalDate snapshotDate) {
         LocalDateTime targetDate;
+        // snapshotDate가 없으면 가장 최신 주간 차트를 조회
         if (snapshotDate == null) {
             targetDate = findLatestSnapshotDate();
         } else {
@@ -39,6 +40,7 @@ public class PopularChartService {
                 .toList();
     }
 
+    // 최신 snapshotDate 기준으로 차트 조회
     private LocalDateTime findLatestSnapshotDate() {
         return popularChartRepository.findFirstByOrderBySnapshotDateDesc()
                 .map(PopularChart::getSnapshotDate)

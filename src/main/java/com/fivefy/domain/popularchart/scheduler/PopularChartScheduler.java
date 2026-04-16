@@ -7,6 +7,9 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 
+/**
+ * 매주 월요일 00:00에 주간 인기 차트 snapshot 생성
+ */
 @Component
 @RequiredArgsConstructor
 public class PopularChartScheduler {
