@@ -4,12 +4,15 @@ import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.album.dto.request.AlbumReleaseRequestCreateRequest;
+import com.fivefy.domain.album.dto.response.AlbumReleaseRequestApproveResponse;
 import com.fivefy.domain.album.dto.response.AlbumReleaseRequestDetailResponse;
 import com.fivefy.domain.album.dto.response.AlbumReleaseRequestListResponse;
 import com.fivefy.domain.album.dto.response.AlbumReleaseRequestResponse;
+import com.fivefy.domain.album.entity.Album;
 import com.fivefy.domain.album.entity.AlbumReleaseRequest;
 import com.fivefy.domain.album.enums.AlbumReleaseErrorCode;
 import com.fivefy.domain.album.repository.AlbumReleaseRequestRepository;
+import com.fivefy.domain.album.repository.AlbumRepository;
 import com.fivefy.domain.artist.entity.Artist;
 import com.fivefy.domain.artist.enums.ArtistErrorCode;
 import com.fivefy.domain.artist.enums.ArtistStatus;
@@ -24,6 +27,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -34,6 +38,7 @@ import java.util.List;
 public class AlbumService {
 
     private final AlbumReleaseRequestRepository albumReleaseRequestRepository;
+    private final AlbumRepository albumRepository;
     private final ArtistRepository artistRepository;
     private final UserRepository userRepository;
 
@@ -126,6 +131,22 @@ public class AlbumService {
                 page.map(AlbumReleaseRequestListResponse::from);
 
         return PageResponse.from(response);
+    }
+
+    /**
+     * 앨범 등록 요청 승인
+     */
+    @Transactional
+    public AlbumReleaseRequestApproveResponse approveAlbumReleaseRequest(Long adminId, Long requestId) {
+        AlbumReleaseRequest request = findAlbumReleaseRequest(requestId);
+
+        // 등록 요청 승인 처리
+        request.approve(adminId);
+
+        // 승인 요청 기준 실제 앨범 생성
+        Album savedAlbum = albumRepository.save(createAlbum(request));
+
+        return AlbumReleaseRequestApproveResponse.from(request, savedAlbum.getId());
     }
 
     // 유저 존재 여부를 검증
@@ -223,5 +244,36 @@ public class AlbumService {
                     AlbumReleaseErrorCode.ERR_ALBUM_RELEASE_DETAIL_FORBIDDEN
             );
         }
+    }
+
+    // 승인 요청 기준 실제 앨범 생성
+    private Album createAlbum(AlbumReleaseRequest request) {
+        LocalDateTime scheduledPublishAt = calculateScheduledPublishAt(request.getPublishDelayDays());
+
+        Album album = Album.create(
+                request.getArtistId(),
+                request.getTitle(),
+                request.getDescription(),
+                request.getCoverImageUrl(),
+                scheduledPublishAt
+        );
+
+        // 즉시 공개 요청 처리
+        if (request.getPublishDelayDays() == 0) {
+            album.publish();
+        }
+
+        return album;
+    }
+
+    // 공개 예약일 계산
+    private LocalDateTime calculateScheduledPublishAt(Integer publishDelayDays) {
+        // 즉시 공개
+        if (publishDelayDays == 0) {
+            return null;
+        }
+
+        // 승인 시점 기준 N일 후 공개
+        return LocalDateTime.now().plusDays(publishDelayDays);
     }
 }

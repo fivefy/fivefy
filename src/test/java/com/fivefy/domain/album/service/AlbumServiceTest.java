@@ -4,12 +4,15 @@ import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.album.dto.request.AlbumReleaseRequestCreateRequest;
+import com.fivefy.domain.album.dto.response.AlbumReleaseRequestApproveResponse;
 import com.fivefy.domain.album.dto.response.AlbumReleaseRequestDetailResponse;
 import com.fivefy.domain.album.dto.response.AlbumReleaseRequestListResponse;
 import com.fivefy.domain.album.dto.response.AlbumReleaseRequestResponse;
+import com.fivefy.domain.album.entity.Album;
 import com.fivefy.domain.album.entity.AlbumReleaseRequest;
 import com.fivefy.domain.album.enums.AlbumReleaseErrorCode;
 import com.fivefy.domain.album.repository.AlbumReleaseRequestRepository;
+import com.fivefy.domain.album.repository.AlbumRepository;
 import com.fivefy.domain.artist.entity.Artist;
 import com.fivefy.domain.artist.enums.ArtistErrorCode;
 import com.fivefy.domain.artist.enums.ArtistType;
@@ -48,6 +51,7 @@ import static org.mockito.Mockito.when;
  * 내 앨범 등록 요청 목록 빈 결과 조회 기능을 검증한다.
  * 앨범 등록 요청 상세 조회 기능을 검증한다.
  * 관리자 앨범 등록 요청 목록 조회 기능을 검증한다.
+ * 앨범 등록 요청 승인 기능을 검증한다.
  */
 @ExtendWith(MockitoExtension.class)
 class AlbumServiceTest {
@@ -60,6 +64,9 @@ class AlbumServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private AlbumRepository albumRepository;
 
     @InjectMocks
     private AlbumService albumService;
@@ -616,6 +623,124 @@ class AlbumServiceTest {
             assertThat(response.content()).isEmpty();
             assertThat(response.totalElements()).isZero();
             assertThat(response.totalPages()).isZero();
+        }
+    }
+
+    @Nested
+    @DisplayName("앨범 등록 요청 승인")
+    class ApproveAlbumReleaseRequest {
+
+        @Test
+        @DisplayName("즉시 공개 요청이면 승인과 함께 앨범 생성 및 공개 성공")
+        void approveAlbumReleaseRequest_success_whenImmediatePublish() {
+            Long adminId = 1L;
+            Long requestId = 10L;
+
+            AlbumReleaseRequest request = AlbumReleaseRequest.create(
+                    2L,
+                    100L,
+                    "Palette",
+                    "정규 앨범",
+                    "https://example.com/album.jpg",
+                    0
+            );
+            ReflectionTestUtils.setField(request, "id", requestId);
+
+            Album savedAlbum = Album.create(
+                    request.getArtistId(),
+                    request.getTitle(),
+                    request.getDescription(),
+                    request.getCoverImageUrl(),
+                    null
+            );
+            ReflectionTestUtils.setField(savedAlbum, "id", 1000L);
+
+            when(albumReleaseRequestRepository.findById(requestId)).thenReturn(Optional.of(request));
+            when(albumRepository.save(any(Album.class))).thenReturn(savedAlbum);
+
+            AlbumReleaseRequestApproveResponse response =
+                    albumService.approveAlbumReleaseRequest(adminId, requestId);
+
+            assertThat(response.requestId()).isEqualTo(requestId);
+            assertThat(response.albumId()).isEqualTo(1000L);
+            assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED.name());
+            assertThat(response.reviewedByAdminId()).isEqualTo(adminId);
+            assertThat(response.reviewedAt()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("예약 공개 요청이면 승인과 함께 앨범 생성 성공")
+        void approveAlbumReleaseRequest_success_whenScheduledPublish() {
+            Long adminId = 1L;
+            Long requestId = 10L;
+
+            AlbumReleaseRequest request = AlbumReleaseRequest.create(
+                    2L,
+                    100L,
+                    "Palette",
+                    "정규 앨범",
+                    "https://example.com/album.jpg",
+                    3
+            );
+            ReflectionTestUtils.setField(request, "id", requestId);
+
+            Album savedAlbum = Album.create(
+                    request.getArtistId(),
+                    request.getTitle(),
+                    request.getDescription(),
+                    request.getCoverImageUrl(),
+                    LocalDateTime.now().plusDays(3)
+            );
+            ReflectionTestUtils.setField(savedAlbum, "id", 1000L);
+
+            when(albumReleaseRequestRepository.findById(requestId)).thenReturn(Optional.of(request));
+            when(albumRepository.save(any(Album.class))).thenReturn(savedAlbum);
+
+            AlbumReleaseRequestApproveResponse response =
+                    albumService.approveAlbumReleaseRequest(adminId, requestId);
+
+            assertThat(response.requestId()).isEqualTo(requestId);
+            assertThat(response.albumId()).isEqualTo(1000L);
+            assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED.name());
+            assertThat(response.reviewedByAdminId()).isEqualTo(adminId);
+            assertThat(response.reviewedAt()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 요청이면 승인 실패")
+        void approveAlbumReleaseRequest_fail_whenNotFound() {
+            Long adminId = 1L;
+            Long requestId = 10L;
+
+            when(albumReleaseRequestRepository.findById(requestId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> albumService.approveAlbumReleaseRequest(adminId, requestId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(AlbumReleaseErrorCode.ERR_ALBUM_RELEASE_REQUEST_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("이미 처리된 요청이면 승인 실패")
+        void approveAlbumReleaseRequest_fail_whenAlreadyProcessed() {
+            Long adminId = 1L;
+            Long requestId = 10L;
+
+            AlbumReleaseRequest request = AlbumReleaseRequest.create(
+                    2L,
+                    100L,
+                    "Palette",
+                    "정규 앨범",
+                    "https://example.com/album.jpg",
+                    0
+            );
+            ReflectionTestUtils.setField(request, "id", requestId);
+            request.approve(adminId);
+
+            when(albumReleaseRequestRepository.findById(requestId)).thenReturn(Optional.of(request));
+
+            assertThatThrownBy(() -> albumService.approveAlbumReleaseRequest(adminId, requestId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(AlbumReleaseErrorCode.ERR_ALBUM_RELEASE_ALREADY_PROCESSED.getMessage());
         }
     }
 }

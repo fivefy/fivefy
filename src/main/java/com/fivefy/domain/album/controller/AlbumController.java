@@ -4,6 +4,7 @@ import com.fivefy.common.dto.response.BaseResponse;
 import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.domain.album.dto.request.AlbumReleaseRequestCreateRequest;
+import com.fivefy.domain.album.dto.response.AlbumReleaseRequestApproveResponse;
 import com.fivefy.domain.album.dto.response.AlbumReleaseRequestDetailResponse;
 import com.fivefy.domain.album.dto.response.AlbumReleaseRequestListResponse;
 import com.fivefy.domain.album.dto.response.AlbumReleaseRequestResponse;
@@ -88,6 +89,22 @@ public class AlbumController {
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 BaseResponse.success(HttpStatus.OK, "앨범 등록 요청 목록 조회 성공", response)
+        );
+    }
+
+    /**
+     * 앨범 등록 요청 승인 API
+     */
+    @PostMapping("/admin/album-release-requests/{requestId}/approve")
+    public ResponseEntity<BaseResponse<AlbumReleaseRequestApproveResponse>> approveAlbumReleaseRequest(
+            @AuthenticationPrincipal Long adminId,
+            @PathVariable Long requestId
+    ) {
+        AlbumReleaseRequestApproveResponse response =
+                albumService.approveAlbumReleaseRequest(adminId, requestId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                BaseResponse.success(HttpStatus.OK, "앨범 등록 요청 승인 성공", response)
         );
     }
 }
