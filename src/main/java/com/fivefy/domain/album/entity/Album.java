@@ -42,9 +42,6 @@ public class Album extends BaseEntity {
     @Column(name = "cover_image_url", length = 255)
     private String coverImageUrl;
 
-    @Column(name = "release_at", nullable = false)
-    private LocalDateTime releaseAt;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private AlbumStatus status;
@@ -73,12 +70,10 @@ public class Album extends BaseEntity {
             String title,
             String description,
             String coverImageUrl,
-            LocalDateTime releaseAt,
             LocalDateTime scheduledPublishAt
     ) {
         validateNonNull(artistId, "artistId");
         validateNonNull(title, "title");
-        validateNonNull(releaseAt, "releaseAt");
 
         Album album = new Album();
 
@@ -86,7 +81,6 @@ public class Album extends BaseEntity {
         album.title = title;
         album.description = description;
         album.coverImageUrl = coverImageUrl;
-        album.releaseAt = releaseAt;
         album.scheduledPublishAt = scheduledPublishAt;
         album.status = AlbumStatus.UNPUBLISHED;
         album.trackCount = 0L;
