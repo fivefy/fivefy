@@ -2,12 +2,14 @@ package com.fivefy.domain.popularchart.controller;
 
 import com.fivefy.domain.popularchart.service.PopularChartGenerateService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 
+@Profile({"local", "dev"})
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/test")
