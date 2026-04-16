@@ -348,7 +348,11 @@ CALL insert_wallets();
 DROP PROCEDURE IF EXISTS insert_wallets;
 
 -- ================================================================
--- 10. playbacks (500건)
+-- 10. playbacks (주간 차트 테스트용 더미 데이터)
+-- 기간: 2026-04-06 ~ 2026-05-17
+-- 총 462건 생성 (42일 × 11건)
+-- 유저 1명당 플레이리스트 1개 사용
+-- playlist_id = user_id 방식
 -- ================================================================
 TRUNCATE TABLE playbacks;
 
@@ -356,33 +360,62 @@ DELIMITER $$
 DROP PROCEDURE IF EXISTS insert_playbacks $$
 CREATE PROCEDURE insert_playbacks()
 BEGIN
-    DECLARE i   INT DEFAULT 1;
-    DECLARE uid BIGINT;
-    DECLARE tid BIGINT;
-    DECLARE dur INT;
-    DECLARE track_dur INT;
-    DECLARE stat VARCHAR(20);
-    WHILE i <= 500 DO
-            SET uid  = 15 + FLOOR(RAND() * 96);
-            SET tid  = 1  + FLOOR(RAND() * 40);
-            SELECT duration_sec INTO track_dur
-            FROM tracks
-            WHERE id = tid;
-            SET stat = ELT(1 + FLOOR(RAND() * 5), 'COMPLETE', 'COMPLETE', 'COMPLETE', 'STOP', 'SKIP');
-            SET dur  = IF(
-                    stat = 'COMPLETE',
-                    track_dur,
-                    LEAST(track_dur, FLOOR(RAND() * track_dur) + 1)
-                        );
-            INSERT INTO playbacks (id, track_id, user_id, session_id, device_id, status, played_duration, played_at)
-            VALUES (
-                       i, tid, uid,
-                       CONCAT('sess-', LPAD(FLOOR(RAND()*1000000), 7, '0')),
-                       IF(RAND() > 0.1, CONCAT('dev-', FLOOR(RAND()*10)+1), NULL),
-                       stat, dur,
-                       DATE_SUB(NOW(), INTERVAL FLOOR(RAND() * 90) DAY)
-                   );
-            SET i = i + 1;
+    DECLARE v_id INT DEFAULT 1;
+    DECLARE v_day INT DEFAULT 0;
+    DECLARE v_count INT DEFAULT 0;
+    DECLARE v_base_date DATE DEFAULT '2026-04-06';
+
+    DECLARE v_user_id INT;
+    DECLARE v_playlist_id INT;
+    DECLARE v_track_id INT;
+    DECLARE v_duration INT;
+    DECLARE v_started_at DATETIME;
+
+    WHILE v_day < 42 DO
+            SET v_count = 0;
+
+            WHILE v_count < 11 DO
+                    SET v_user_id = ((v_id - 1) % 100) + 1;
+                    SET v_playlist_id = v_user_id;
+                    SET v_track_id = ((v_id - 1) % 53) + 1;
+                    SET v_duration = 180 + MOD(v_id, 41);
+
+                    SET v_started_at = TIMESTAMP(
+                            DATE_ADD(v_base_date, INTERVAL v_day DAY),
+                            MAKETIME(9 + MOD(v_count, 8), MOD(v_count * 7, 60), 0)
+                                       );
+
+                    INSERT INTO playbacks (
+                        id,
+                        playlist_id,
+                        track_id,
+                        user_id,
+                        session_id,
+                        device_id,
+                        status,
+                        played_duration,
+                        started_at,
+                        last_played_at,
+                        ended_at
+                    ) VALUES (
+                                 v_id,
+                                 v_playlist_id,
+                                 v_track_id,
+                                 v_user_id,
+                                 CONCAT('sess-', LPAD(v_id, 4, '0')),
+                                 IF(MOD(v_id, 2) = 0, 'mobile', 'web'),
+                                 'COMPLETED',
+                                 v_duration,
+                                 v_started_at,
+                                 DATE_ADD(v_started_at, INTERVAL v_duration SECOND),
+                                 DATE_ADD(v_started_at, INTERVAL v_duration SECOND)
+                             );
+
+                    SET v_id = v_id + 1;
+                    SET v_count = v_count + 1;
+                END WHILE;
+
+            SET v_day = v_day + 1;
         END WHILE;
 END $$
 DELIMITER ;
