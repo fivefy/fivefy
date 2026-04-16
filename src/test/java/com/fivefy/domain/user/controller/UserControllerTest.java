@@ -586,7 +586,20 @@ class UserControllerTest extends RestDocsSupport {
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.message").value("회원 탈퇴 성공"))
-                    .andExpect(cookie().maxAge("refreshToken", 0));
+                    .andExpect(cookie().maxAge("refreshToken", 0))
+                    .andDo(document("user-delete",
+                            requestFields(
+                                    fieldWithPath("password").type(STRING).description("비밀번호 확인")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("응답 메시지")
+                            ),
+                            responseCookies(
+                                    cookieWithName("refreshToken").description("만료된 리프레시 토큰 (maxAge=0)")
+                            )
+                    ));
         }
 
         @Test
@@ -600,7 +613,17 @@ class UserControllerTest extends RestDocsSupport {
                             .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andDo(document("user-delete-invalid",
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지"),
+                                    fieldWithPath("data").type(ARRAY).description("상세 에러 내역"),
+                                    fieldWithPath("data[].field").type(STRING).description("에러가 발생한 필드명"),
+                                    fieldWithPath("data[].message").type(STRING).description("에러 상세 사유")
+                            )
+                    ));
         }
 
         @Test
@@ -618,8 +641,17 @@ class UserControllerTest extends RestDocsSupport {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isUnauthorized())
-                    .andExpect(jsonPath("$.message")
-                            .value(ERR_USER_MISMATCH_PASSWORD.getMessage()));
+                    .andExpect(jsonPath("$.message").value(ERR_USER_MISMATCH_PASSWORD.getMessage()))
+                    .andDo(document("user-delete-mismatch-password",
+                            requestFields(
+                                    fieldWithPath("password").type(STRING).description("비밀번호 확인 (다름)")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
         }
     }
 }
