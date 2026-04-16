@@ -6,7 +6,10 @@ import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.user.dto.request.UserLoginRequest;
 import com.fivefy.domain.user.dto.request.UserSignupRequest;
 import com.fivefy.domain.user.dto.response.UserLoginResponse;
+import com.fivefy.domain.user.dto.response.UserProfileResponse;
 import com.fivefy.domain.user.dto.response.UserSignupResponse;
+import com.fivefy.domain.user.enums.UserRole;
+import com.fivefy.domain.user.enums.UserStatus;
 import com.fivefy.domain.user.service.UserService;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.DisplayName;
@@ -23,7 +26,6 @@ import java.time.LocalDateTime;
 import static com.fivefy.domain.user.enums.UserErrorCode.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
 import static org.springframework.restdocs.cookies.CookieDocumentation.*;
 import static org.springframework.restdocs.headers.HeaderDocumentation.*;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
@@ -31,6 +33,7 @@ import static org.springframework.restdocs.payload.JsonFieldType.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WithMockUser
@@ -408,6 +411,29 @@ class UserControllerTest extends RestDocsSupport {
                                     cookieWithName("refreshToken").description("만료된 리프레시 토큰 (maxAge=0)")
                             )
                     ));
+        }
+    }
+
+    @Nested
+    @DisplayName("내 프로필 조회")
+    class GetUserProfile {
+
+        @Test
+        @DisplayName("프로필 조회 성공 시 200 반환")
+        void getUserProfileSuccess() throws Exception {
+            // given
+            UserProfileResponse response = new UserProfileResponse(
+                    "test@test.com", "테스트",
+                    UserRole.USER, UserStatus.ACTIVE,
+                    LocalDateTime.now()
+            );
+            given(userService.getUserProfile(any())).willReturn(response);
+
+            //when & then
+            mockMvc.perform(get("/api/users/me"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.email").value("test@test.com"))
+                    .andExpect(jsonPath("$.data.name").value("테스트"));
         }
     }
 }

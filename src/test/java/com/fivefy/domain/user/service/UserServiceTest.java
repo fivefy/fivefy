@@ -5,6 +5,7 @@ import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.user.dto.request.UserLoginRequest;
 import com.fivefy.domain.user.dto.request.UserSignupRequest;
 import com.fivefy.domain.user.dto.response.UserLoginResponse;
+import com.fivefy.domain.user.dto.response.UserProfileResponse;
 import com.fivefy.domain.user.dto.response.UserSignupResponse;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserRole;
@@ -13,8 +14,6 @@ import com.fivefy.domain.wallet.entity.Wallet;
 import com.fivefy.domain.wallet.repository.WalletRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
-import org.jspecify.annotations.NonNull;
-import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -25,7 +24,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
@@ -459,6 +457,39 @@ class UserServiceTest {
             userService.logoutUser(1L);
             verify(redisTemplate).delete(RT_KEY);
             verify(redisTemplate).delete(PREV_RT_KEY);
+        }
+    }
+
+    @Nested
+    @DisplayName("내 프로필 조회")
+    class GetUserProfile {
+
+        @Test
+        @DisplayName("프로필 조회 성공")
+        void getUserProfileSuccess() {
+            // given
+            User user = User.create("test@test.com", "encodedPassword", "테스트");
+            ReflectionTestUtils.setField(user, "id", 1L);
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
+
+            // when
+            UserProfileResponse response = userService.getUserProfile(1L);
+
+            // then
+            assertThat(response.email()).isEqualTo("test@test.com");
+            assertThat(response.name()).isEqualTo("테스트");
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 유저 조회 시 예외 발생")
+        void getUserProfileNotFound() {
+            // given
+            given(userRepository.findById(1L)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> userService.getUserProfile(1L))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ERR_USER_NOT_FOUND.getMessage());
         }
     }
 }
