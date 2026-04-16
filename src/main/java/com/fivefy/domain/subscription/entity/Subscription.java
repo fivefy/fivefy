@@ -27,7 +27,8 @@ public class Subscription extends BaseEntity {
     @Column(nullable = false)
     private Long userId;
 
-    @Column(nullable = false)
+    // 테스트 : @Column(nullable = false)
+    @Column // 테스트
     private Long pointOrderId;
 
     @Enumerated(EnumType.STRING)
@@ -61,7 +62,7 @@ public class Subscription extends BaseEntity {
     public static Subscription create(Long userId, Long pointOrderId, SubscriptionPlanType planType, LocalDateTime startDate,
                                       LocalDateTime expiryDate, LocalDateTime nextBillingDate) {
         validateNonNull(userId, "userId");
-        validateNonNull(pointOrderId, "pointOrderId");
+        // 테스트 : validateNonNull(pointOrderId, "pointOrderId");
         validateNonNull(planType, "planType");
         validateNonNull(startDate, "startDate");
         validateNonNull(expiryDate, "expiryDate");

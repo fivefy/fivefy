@@ -128,7 +128,7 @@ public class TestDefaultUserInitializer implements ApplicationRunner {
         }
         subscriptionRepository.save(Subscription.create(
                 user.getId(),
-                null,
+                null,        // pointOrderId — 더미데이터는 null
                 subscriptionPlanType,
                 now,
                 expiryDate,

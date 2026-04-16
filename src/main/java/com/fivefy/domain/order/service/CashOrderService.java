@@ -100,7 +100,7 @@ public class CashOrderService {
         // 2. CashOrder 상태 변경 : REFUND
         order.refund();
 
-        // 3. Payment 상태 변경 (orderNumber로 조회 : 상태변경)
+        // 3. Payment 상태 변경 (orderNumber로 조회 : 상태변경) : 포인트 구매 이력을 조회해서 orderNumber을 통해 환불(PaymentResponse)
         Payment payment = paymentRepository.findByOrderNumber(order.getOrderNumber())
                 .orElseThrow(() -> new IllegalArgumentException("결제 기록 없음"));
         payment.refund(request.reason());
