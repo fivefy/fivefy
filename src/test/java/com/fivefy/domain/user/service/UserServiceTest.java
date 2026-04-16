@@ -3,9 +3,11 @@ package com.fivefy.domain.user.service;
 import com.fivefy.common.config.security.JwtUtil;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.user.dto.request.UserLoginRequest;
+import com.fivefy.domain.user.dto.request.UserProfileUpdateRequest;
 import com.fivefy.domain.user.dto.request.UserSignupRequest;
 import com.fivefy.domain.user.dto.response.UserLoginResponse;
 import com.fivefy.domain.user.dto.response.UserProfileResponse;
+import com.fivefy.domain.user.dto.response.UserProfileUpdateResponse;
 import com.fivefy.domain.user.dto.response.UserSignupResponse;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserRole;
@@ -488,6 +490,104 @@ class UserServiceTest {
 
             // when & then
             assertThatThrownBy(() -> userService.getUserProfile(1L))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ERR_USER_NOT_FOUND.getMessage());
+        }
+    }
+
+    @Nested
+    @DisplayName("프로필 수정")
+    class UpdateUserProfile {
+
+        private User user;
+        private UserProfileUpdateRequest nameOnlyRequest;
+        private UserProfileUpdateRequest passwordOnlyRequest;
+        private UserProfileUpdateRequest bothRequest;
+
+        @BeforeEach
+        void setUp() {
+            user = User.create("test@test.com", "encodedPassword", "테스트");
+
+            nameOnlyRequest = new UserProfileUpdateRequest("새이름", null);
+            passwordOnlyRequest = new UserProfileUpdateRequest(null,
+                    new UserProfileUpdateRequest.PasswordChangeRequest("Test1234!", "NewPass1!"));
+            bothRequest = new UserProfileUpdateRequest("새이름",
+                    new UserProfileUpdateRequest.PasswordChangeRequest("Test1234!", "NewPass1!"));
+        }
+
+        @Test
+        @DisplayName("이름만 수정 성공")
+        void updateNameOnly() {
+            // given
+            ReflectionTestUtils.setField(user, "id", 1L);
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
+
+            // when
+            UserProfileUpdateResponse response = userService.updateUserProfile(1L, nameOnlyRequest);
+
+            // then
+            assertThat(response.name()).isEqualTo("새이름");
+            verify(passwordEncoder, never()).matches(any(), any());
+        }
+
+        @Test
+        @DisplayName("비밀번호만 수정 성공")
+        void updatePasswordOnly() {
+            // given
+            ReflectionTestUtils.setField(user, "id", 1L);
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
+            given(passwordEncoder.matches("Test1234!", user.getPassword())).willReturn(true);
+            given(passwordEncoder.encode("NewPass1!")).willReturn("newEncodedPassword");
+
+            // when
+            UserProfileUpdateResponse response = userService.updateUserProfile(1L, passwordOnlyRequest);
+
+            // then
+            assertThat(user.getPassword()).isEqualTo("newEncodedPassword");
+            verify(passwordEncoder).encode("NewPass1!");
+        }
+
+        @Test
+        @DisplayName("이름 + 비밀번호 동시 수정 성공")
+        void updateBoth() {
+            // given
+            ReflectionTestUtils.setField(user, "id", 1L);
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
+            given(passwordEncoder.matches("Test1234!", user.getPassword())).willReturn(true);
+            given(passwordEncoder.encode("NewPass1!")).willReturn("newEncodedPassword");
+
+            // when
+            UserProfileUpdateResponse response = userService.updateUserProfile(1L, bothRequest);
+
+            // then
+            assertThat(response.name()).isEqualTo("새이름");
+            assertThat(user.getPassword()).isEqualTo("newEncodedPassword");
+        }
+
+        @Test
+        @DisplayName("현재 비밀번호 불일치 시 예외 발생")
+        void updateWithWrongCurrentPassword() {
+            // given
+            ReflectionTestUtils.setField(user, "id", 1L);
+            given(userRepository.findById(1L)).willReturn(Optional.of(user));
+            given(passwordEncoder.matches("Test1234!", user.getPassword())).willReturn(false);
+
+            // when & then
+            assertThatThrownBy(() -> userService.updateUserProfile(1L, passwordOnlyRequest))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ERR_USER_MISMATCH_PASSWORD.getMessage());
+
+            verify(passwordEncoder, never()).encode(any());
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 유저 수정 시 예외 발생")
+        void updateNotFoundUser() {
+            // given
+            given(userRepository.findById(1L)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> userService.updateUserProfile(1L, nameOnlyRequest))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(ERR_USER_NOT_FOUND.getMessage());
         }
