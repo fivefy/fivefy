@@ -41,16 +41,15 @@ public class PlaybackService {
                 .orElse(null);
 
         if (currentPlayback != null) {
-            // 같은 곡이면 기존 상태 흐름 처리
+            // 같은 곡이면 중복 재생 요청
             if (currentPlayback.getPlaylistId().equals(request.playlistId())
                     && currentPlayback.getTrackId().equals(request.trackId())) {
-                Playback handledPlayback = handlePlay(currentPlayback, request);
-                Playback savedPlayback = playbackRepository.save(handledPlayback);
-                return PlaybackResponse.from(savedPlayback);
+                throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
             }
 
             // 다른 곡이면 기존 재생 종료
             currentPlayback.stop();
+            playbackRepository.save(currentPlayback);
         }
 
         // 기존 이력 재사용 또는 새로운 playback 생성
@@ -123,6 +122,7 @@ public class PlaybackService {
 
         // 현재 곡 skip 처리
         currentPlayback.skip();
+        playbackRepository.save(currentPlayback);
 
         // 다음 곡 자동 재생
         Playback nextPlayback = Playback.create(
@@ -144,11 +144,6 @@ public class PlaybackService {
     }
 
     private Playback handlePlay(Playback playback, PlaybackPlayRequest request) {
-        // 이미 재생 중이면 예외
-        if (playback.isPlaying()) {
-            throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
-        }
-
         // 일시정지 상태 후 재개
         if (playback.isPaused()) {
             playback.resume();
