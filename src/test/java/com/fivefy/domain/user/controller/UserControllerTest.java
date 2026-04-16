@@ -94,7 +94,7 @@ class UserControllerTest extends RestDocsSupport {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest())
-                    .andDo(document("user-signup-validate",
+                    .andDo(document("user-signup-invalid",
                             requestFields(
                                     fieldWithPath("name").type(STRING).description("이름 (값 없음)"),
                                     fieldWithPath("email").type(STRING).description("이메일"),
@@ -259,7 +259,7 @@ class UserControllerTest extends RestDocsSupport {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest())
-                    .andDo(document("user-login-validate",
+                    .andDo(document("user-login-invalid",
                             requestFields(
                                     fieldWithPath("email").type(STRING).description("이메일 (값 없음)"),
                                     fieldWithPath("password").type(STRING).description("비밀번호")
@@ -451,7 +451,7 @@ class UserControllerTest extends RestDocsSupport {
     }
 
     @Nested
-    @DisplayName("프로필 수정")
+    @DisplayName("내 프로필 수정")
     class UpdateUserProfile {
 
         @Test
@@ -471,7 +471,19 @@ class UserControllerTest extends RestDocsSupport {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.data.name").value("새이름"));
+                    .andExpect(jsonPath("$.data.name").value("새이름"))
+                    .andDo(document("user-update-profile",
+                            requestFields(
+                                    fieldWithPath("name").type(STRING).description("새로운 이름")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    fieldWithPath("data.name").type(STRING).description("수정된 이름"),
+                                    fieldWithPath("data.updatedAt").type(STRING).description("수정 일시")
+                            )
+                    ));
         }
 
         @Test
@@ -504,7 +516,21 @@ class UserControllerTest extends RestDocsSupport {
                             .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andDo(document("user-update-profile-invalid",
+                            requestFields(
+                                    fieldWithPath("passwordChange.currentPassword").type(STRING).description("현재 비밀번호"),
+                                    fieldWithPath("passwordChange.newPassword").type(STRING).description("새로운 비밀번호 (잘못된 형식)")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지"),
+                                    fieldWithPath("data").type(ARRAY).description("상세 에러 내역"),
+                                    fieldWithPath("data[].field").type(STRING).description("에러가 발생한 필드명"),
+                                    fieldWithPath("data[].message").type(STRING).description("에러 상세 사유")
+                            )
+                    ));
         }
 
         @Test
@@ -527,8 +553,18 @@ class UserControllerTest extends RestDocsSupport {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isUnauthorized())
-                    .andExpect(jsonPath("$.message")
-                            .value(ERR_USER_MISMATCH_PASSWORD.getMessage()));
+                    .andExpect(jsonPath("$.message").value(ERR_USER_MISMATCH_PASSWORD.getMessage()))
+                    .andDo(document("user-update-profile-mismatch-password",
+                            requestFields(
+                                    fieldWithPath("passwordChange.currentPassword").type(STRING).description("현재 비밀번호 (다름)"),
+                                    fieldWithPath("passwordChange.newPassword").type(STRING).description("새로운 비밀번호")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
         }
     }
 }
