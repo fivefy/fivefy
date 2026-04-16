@@ -20,7 +20,10 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 @Table(
         name = "artists",
         indexes = {
-                @Index(name = "idx_artist_owner_user_id", columnList = "owner_user_id")
+                @Index(
+                        name = "idx_artist_owner_deleted_created",
+                        columnList = "owner_user_id, deleted_at, created_at"
+                )
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
