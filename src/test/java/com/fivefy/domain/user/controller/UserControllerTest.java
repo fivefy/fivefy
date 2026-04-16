@@ -389,7 +389,7 @@ class UserControllerTest extends RestDocsSupport {
     }
 
     @Nested
-    @DisplayName("로그아웃 API")
+    @DisplayName("로그아웃")
     class Logout {
 
         @Test
@@ -433,7 +433,19 @@ class UserControllerTest extends RestDocsSupport {
             mockMvc.perform(get("/api/users/me"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.data.email").value("test@test.com"))
-                    .andExpect(jsonPath("$.data.name").value("테스트"));
+                    .andExpect(jsonPath("$.data.name").value("테스트"))
+                    .andDo(document("user-get-profile",
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    fieldWithPath("data.email").type(STRING).description("이메일"),
+                                    fieldWithPath("data.name").type(STRING).description("이름"),
+                                    fieldWithPath("data.role").type(STRING).description("역할"),
+                                    fieldWithPath("data.status").type(STRING).description("상태"),
+                                    fieldWithPath("data.createdAt").type(STRING).description("가입 일시")
+                            )
+                    ));
         }
     }
 }

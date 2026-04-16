@@ -143,6 +143,14 @@ include::{snippets}/user-logout/response-fields.adoc[]
 
 ---
 
+=== 내 프로필 조회
+
+include::{snippets}/user-get-profile/http-request.adoc[]
+include::{snippets}/user-get-profile/http-response.adoc[]
+include::{snippets}/user-get-profile/response-fields.adoc[]
+
+---
+
 == 도메인 API
 
 === 기능
