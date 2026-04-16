@@ -1,9 +1,11 @@
 package com.fivefy.domain.search.service;
 
+import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.search.dto.response.SearchAlbumResponse;
 import com.fivefy.domain.search.dto.response.SearchArtistResponse;
 import com.fivefy.domain.search.dto.response.SearchResponse;
 import com.fivefy.domain.search.dto.response.SearchTrackResponse;
+import com.fivefy.domain.search.enums.SearchErrorCode;
 import com.fivefy.domain.search.repository.SearchQueryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,10 @@ public class SearchService {
 
     public SearchResponse search(String keyword, Long userId) {
         String trimmedKeyword = keyword.trim();
+
+        if (trimmedKeyword.isBlank()) {
+            throw new BusinessException(SearchErrorCode.ERR_SEARCH_KEYWORD_BLANK);
+        }
 
         List<SearchArtistResponse> artists = searchQueryRepository.searchArtists(trimmedKeyword)
                 .stream().map(SearchArtistResponse::from).toList();

@@ -1,6 +1,7 @@
 package com.fivefy.domain.search.service;
 
 import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.search.dto.response.SearchHistoryGetResponse;
 import com.fivefy.domain.search.entity.SearchHistory;
 import com.fivefy.domain.search.repository.SearchHistoryRepository;
 import com.fivefy.domain.user.entity.User;
@@ -10,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +39,16 @@ public class SearchHistoryService {
                                     SearchHistory.create(user.getId(), keyword, resultCount));
                         }
                 );
+    }
+
+    @Transactional(readOnly = true)
+    public List<SearchHistoryGetResponse> getSearchHistories(Long userId) {
+        getUser(userId);
+
+        return searchHistoryRepository.findTop10ByUserIdOrderBySearchedAtDesc(userId)
+                .stream()
+                .map(SearchHistoryGetResponse::from)
+                .toList();
     }
 
     private User getUser(Long userId) {
