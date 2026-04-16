@@ -2,6 +2,7 @@ package com.fivefy.domain.album.service;
 
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.album.dto.request.AlbumReleaseRequestCreateRequest;
+import com.fivefy.domain.album.dto.response.AlbumReleaseRequestDetailResponse;
 import com.fivefy.domain.album.dto.response.AlbumReleaseRequestResponse;
 import com.fivefy.domain.album.entity.AlbumReleaseRequest;
 import com.fivefy.domain.album.enums.AlbumReleaseErrorCode;
@@ -12,6 +13,7 @@ import com.fivefy.domain.artist.enums.ArtistStatus;
 import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
+import com.fivefy.domain.user.enums.UserRole;
 import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -91,6 +93,19 @@ public class AlbumService {
                 .toList();
     }
 
+    /**
+     * 앨범 등록 요청 상세 조회
+     */
+    @Transactional(readOnly = true)
+    public AlbumReleaseRequestDetailResponse getAlbumReleaseRequest(Long userId, Long requestId) {
+        AlbumReleaseRequest request = findAlbumReleaseRequest(requestId);
+        User user = findUser(userId);
+
+        validateAlbumReleaseRequestDetailAccess(userId, user, request);
+
+        return AlbumReleaseRequestDetailResponse.from(request);
+    }
+
     // 유저 존재 여부를 검증
     private User findUser(Long userId) {
         return userRepository.findById(userId)
@@ -160,6 +175,30 @@ public class AlbumService {
         if (exists) {
             throw new BusinessException(
                     AlbumReleaseErrorCode.ERR_ALBUM_RELEASE_ALREADY_EXISTS
+            );
+        }
+    }
+
+    // 앨범 등록 요청 조회
+    private AlbumReleaseRequest findAlbumReleaseRequest(Long requestId) {
+        return albumReleaseRequestRepository.findById(requestId)
+                .orElseThrow(() -> new BusinessException(
+                        AlbumReleaseErrorCode.ERR_ALBUM_RELEASE_REQUEST_NOT_FOUND
+                ));
+    }
+
+    // 앨범 등록 요청 상세 조회 권한 검증
+    private void validateAlbumReleaseRequestDetailAccess(
+            Long userId,
+            User user,
+            AlbumReleaseRequest request
+    ) {
+        boolean isRequester = request.getRequesterUserId().equals(userId);
+        boolean isAdmin = user.getRole() == UserRole.ADMIN;
+
+        if (!isRequester && !isAdmin) {
+            throw new BusinessException(
+                    AlbumReleaseErrorCode.ERR_ALBUM_RELEASE_DETAIL_FORBIDDEN
             );
         }
     }

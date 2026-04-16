@@ -3,6 +3,7 @@ package com.fivefy.domain.album.service;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.album.dto.request.AlbumReleaseRequestCreateRequest;
+import com.fivefy.domain.album.dto.response.AlbumReleaseRequestDetailResponse;
 import com.fivefy.domain.album.dto.response.AlbumReleaseRequestResponse;
 import com.fivefy.domain.album.entity.AlbumReleaseRequest;
 import com.fivefy.domain.album.enums.AlbumReleaseErrorCode;
@@ -13,6 +14,7 @@ import com.fivefy.domain.artist.enums.ArtistType;
 import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
+import com.fivefy.domain.user.enums.UserRole;
 import com.fivefy.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -39,6 +41,7 @@ import static org.mockito.Mockito.when;
  * 앨범 등록 요청 생성 기능을 검증한다.
  * 내 앨범 등록 요청 목록 조회 기능을 검증한다.
  * 내 앨범 등록 요청 목록 빈 결과 조회 기능을 검증한다.
+ * 앨범 등록 요청 상세 조회 기능을 검증한다.
  */
 @ExtendWith(MockitoExtension.class)
 class AlbumServiceTest {
@@ -400,6 +403,121 @@ class AlbumServiceTest {
             assertThatThrownBy(() -> albumService.getMyAlbumReleaseRequests(userId))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(UserErrorCode.ERR_USER_NOT_FOUND.getMessage());
+        }
+    }
+
+    @Nested
+    @DisplayName("앨범 등록 요청 상세 조회")
+    class GetAlbumReleaseRequest {
+
+        @Test
+        @DisplayName("요청자 본인이면 상세 조회 성공")
+        void getAlbumReleaseRequest_success_whenRequester() {
+            Long userId = 1L;
+            Long requestId = 100L;
+            Long artistId = 10L;
+
+            User user = mock(User.class);
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+            AlbumReleaseRequest request = AlbumReleaseRequest.create(
+                    userId,
+                    artistId,
+                    "Palette",
+                    "정규 앨범",
+                    "https://example.com/album.jpg",
+                    0
+            );
+            ReflectionTestUtils.setField(request, "id", requestId);
+            ReflectionTestUtils.setField(request, "createdAt", LocalDateTime.of(2026, 4, 14, 15, 0, 0));
+            ReflectionTestUtils.setField(request, "updatedAt", LocalDateTime.of(2026, 4, 14, 15, 0, 0));
+
+            when(albumReleaseRequestRepository.findById(requestId)).thenReturn(Optional.of(request));
+
+            AlbumReleaseRequestDetailResponse response =
+                    albumService.getAlbumReleaseRequest(userId, requestId);
+
+            assertThat(response.requestId()).isEqualTo(requestId);
+            assertThat(response.requesterUserId()).isEqualTo(userId);
+            assertThat(response.artistId()).isEqualTo(artistId);
+            assertThat(response.title()).isEqualTo("Palette");
+            assertThat(response.publishDelayDays()).isEqualTo(0);
+            assertThat(response.status()).isEqualTo(ApplicationStatus.PENDING);
+        }
+
+        @Test
+        @DisplayName("관리자면 상세 조회 성공")
+        void getAlbumReleaseRequest_success_whenAdmin() {
+            Long userId = 99L;
+            Long requestId = 100L;
+            Long requesterUserId = 1L;
+            Long artistId = 10L;
+
+            User admin = mock(User.class);
+            when(admin.getRole()).thenReturn(UserRole.ADMIN);
+            when(userRepository.findById(userId)).thenReturn(Optional.of(admin));
+
+            AlbumReleaseRequest request = AlbumReleaseRequest.create(
+                    requesterUserId,
+                    artistId,
+                    "Palette",
+                    "정규 앨범",
+                    "https://example.com/album.jpg",
+                    0
+            );
+            ReflectionTestUtils.setField(request, "id", requestId);
+            ReflectionTestUtils.setField(request, "createdAt", LocalDateTime.of(2026, 4, 14, 15, 0, 0));
+            ReflectionTestUtils.setField(request, "updatedAt", LocalDateTime.of(2026, 4, 14, 15, 0, 0));
+
+            when(albumReleaseRequestRepository.findById(requestId)).thenReturn(Optional.of(request));
+
+            AlbumReleaseRequestDetailResponse response =
+                    albumService.getAlbumReleaseRequest(userId, requestId);
+
+            assertThat(response.requestId()).isEqualTo(requestId);
+            assertThat(response.requesterUserId()).isEqualTo(requesterUserId);
+        }
+
+        @Test
+        @DisplayName("본인도 관리자도 아니면 상세 조회 실패")
+        void getAlbumReleaseRequest_fail_whenForbidden() {
+            Long userId = 2L;
+            Long requestId = 100L;
+            Long requesterUserId = 1L;
+            Long artistId = 10L;
+
+            User user = mock(User.class);
+            when(user.getRole()).thenReturn(UserRole.USER);
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+            AlbumReleaseRequest request = AlbumReleaseRequest.create(
+                    requesterUserId,
+                    artistId,
+                    "Palette",
+                    "정규 앨범",
+                    "https://example.com/album.jpg",
+                    0
+            );
+            ReflectionTestUtils.setField(request, "id", requestId);
+
+            when(albumReleaseRequestRepository.findById(requestId)).thenReturn(Optional.of(request));
+
+            assertThatThrownBy(() -> albumService.getAlbumReleaseRequest(userId, requestId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(AlbumReleaseErrorCode.ERR_ALBUM_RELEASE_DETAIL_FORBIDDEN.getMessage());
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 요청이면 상세 조회 실패")
+        void getAlbumReleaseRequest_fail_whenNotFound() {
+            Long userId = 1L;
+            Long requestId = 100L;
+
+            when(albumReleaseRequestRepository.findById(requestId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> albumService.getAlbumReleaseRequest(userId, requestId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(AlbumReleaseErrorCode.ERR_ALBUM_RELEASE_REQUEST_NOT_FOUND.getMessage());
         }
     }
 }

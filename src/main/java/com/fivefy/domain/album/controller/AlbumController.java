@@ -2,6 +2,7 @@ package com.fivefy.domain.album.controller;
 
 import com.fivefy.common.dto.response.BaseResponse;
 import com.fivefy.domain.album.dto.request.AlbumReleaseRequestCreateRequest;
+import com.fivefy.domain.album.dto.response.AlbumReleaseRequestDetailResponse;
 import com.fivefy.domain.album.dto.response.AlbumReleaseRequestResponse;
 import com.fivefy.domain.album.service.AlbumService;
 import jakarta.validation.Valid;
@@ -51,6 +52,22 @@ public class AlbumController {
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 BaseResponse.success(HttpStatus.OK, "내 앨범 등록 요청 목록 조회 성공", response)
+        );
+    }
+
+    /**
+     * 앨범 등록 요청 상세 조회 API
+     */
+    @GetMapping("/album-release-requests/{requestId}")
+    public ResponseEntity<BaseResponse<AlbumReleaseRequestDetailResponse>> getAlbumReleaseRequest(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long requestId
+    ) {
+        AlbumReleaseRequestDetailResponse response =
+                albumService.getAlbumReleaseRequest(userId, requestId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                BaseResponse.success(HttpStatus.OK, "앨범 등록 요청 상세 조회 성공", response)
         );
     }
 }
