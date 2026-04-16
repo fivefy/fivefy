@@ -43,51 +43,44 @@ public class AlbumService {
     private final UserRepository userRepository;
 
     /**
-     * 앨범 등록 요청을 생성한다.
-     *
-     * 검증 흐름:
-     * 1. 요청 유저 존재 여부 확인
-     * 2. 삭제되지 않은 아티스트 조회
-     * 3. 아티스트 소유자 검증
-     * 4. 아티스트 상태 검증
-     * 5. 공개 예약 옵션 검증
-     * 6. 동일 조건의 진행 중 요청 중복 검증
+     * 앨범 등록 요청 생성
      */
     @Transactional
     public AlbumReleaseRequestResponse createAlbumReleaseRequest(
             Long userId,
             AlbumReleaseRequestCreateRequest request
     ) {
-        // 존재하지 않는 유저 요청을 초기에 차단
+        // 요청 유저 존재 확인
         findUser(userId);
 
-        // 삭제된 아티스트는 존재하지 않는 것처럼 처리
+        // 아티스트 조회 및 삭제 여부 검증
         Artist artist = findNotDeletedArtist(request.artistId());
 
-        // 본인이 소유한 아티스트만 앨범 등록 요청 가능
+        // 소유자 검증
         validateArtistOwner(userId, artist);
 
-        // 비활성화된 아티스트는 앨범 등록 요청 불가
+        // 아티스트 상태 검증
         validateArtistActive(artist);
 
-        // 정책상 허용된 공개 옵션인지 검증
+        // 공개 예약 정책 검증
         validatePublishDelayDays(request.publishDelayDays());
 
-        // 동일 조건(PENDING)의 중복 요청 방지
+        // 중복 요청 검증
         validateDuplicatePendingRequest(userId, request.artistId(), request.title());
 
-        AlbumReleaseRequest albumReleaseRequest = AlbumReleaseRequest.create(
-                userId,
-                request.artistId(),
-                request.title(),
-                request.description(),
-                request.coverImageUrl(),
-                request.publishDelayDays()
+        // 등록 요청 생성 및 저장
+        AlbumReleaseRequest savedRequest = albumReleaseRequestRepository.save(
+                AlbumReleaseRequest.create(
+                        userId,
+                        request.artistId(),
+                        request.title(),
+                        request.description(),
+                        request.coverImageUrl(),
+                        request.publishDelayDays()
+                )
         );
 
-        AlbumReleaseRequest saved = albumReleaseRequestRepository.save(albumReleaseRequest);
-
-        return AlbumReleaseRequestResponse.from(saved);
+        return AlbumReleaseRequestResponse.from(savedRequest);
     }
 
     /**
@@ -111,13 +104,14 @@ public class AlbumService {
         AlbumReleaseRequest request = findAlbumReleaseRequest(requestId);
         User user = findUser(userId);
 
+        // 요청자 또는 관리자만 조회 가능
         validateAlbumReleaseRequestDetailAccess(userId, user, request);
 
         return AlbumReleaseRequestDetailResponse.from(request);
     }
 
     /**
-     * 앨범 등록 요청 목록 조회
+     * 앨범 등록 요청 목록 조회 (관리자)
      */
     @Transactional(readOnly = true)
     public PageResponse<AlbumReleaseRequestListResponse> getAlbumReleaseRequests(
@@ -127,10 +121,9 @@ public class AlbumService {
         Page<AlbumReleaseRequest> page =
                 albumReleaseRequestRepository.searchAlbumReleaseRequests(status, pageable);
 
-        Page<AlbumReleaseRequestListResponse> response =
-                page.map(AlbumReleaseRequestListResponse::from);
-
-        return PageResponse.from(response);
+        return PageResponse.from(
+                page.map(AlbumReleaseRequestListResponse::from)
+        );
     }
 
     /**
@@ -140,16 +133,20 @@ public class AlbumService {
     public AlbumReleaseRequestApproveResponse approveAlbumReleaseRequest(Long adminId, Long requestId) {
         AlbumReleaseRequest request = findAlbumReleaseRequest(requestId);
 
-        // 등록 요청 승인 처리
+        // 상태 전이는 엔티티에 위임
         request.approve(adminId);
 
-        // 승인 요청 기준 실제 앨범 생성
+        // 승인 요청 기반 실제 앨범 생성
         Album savedAlbum = albumRepository.save(createAlbum(request));
 
         return AlbumReleaseRequestApproveResponse.from(request, savedAlbum.getId());
     }
 
-    // 유저 존재 여부를 검증
+    // =========================
+    // 조회
+    // =========================
+
+    // 유저 조회
     private User findUser(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(UserErrorCode.ERR_USER_NOT_FOUND));
@@ -163,8 +160,6 @@ public class AlbumService {
 
     /**
      * 삭제되지 않은 아티스트 조회
-     *
-     * 삭제된 아티스트는 외부에서 접근할 수 없도록 NOT_FOUND 처리
      */
     private Artist findNotDeletedArtist(Long artistId) {
         Artist artist = findArtist(artistId);
@@ -176,6 +171,18 @@ public class AlbumService {
         return artist;
     }
 
+    // 앨범 등록 요청 조회
+    private AlbumReleaseRequest findAlbumReleaseRequest(Long requestId) {
+        return albumReleaseRequestRepository.findById(requestId)
+                .orElseThrow(() -> new BusinessException(
+                        AlbumReleaseErrorCode.ERR_ALBUM_RELEASE_REQUEST_NOT_FOUND
+                ));
+    }
+
+    // =========================
+    // 검증
+    // =========================
+
     // 아티스트 소유자 검증
     private void validateArtistOwner(Long userId, Artist artist) {
         if (!artist.isOwnedBy(userId)) {
@@ -183,7 +190,7 @@ public class AlbumService {
         }
     }
 
-    // 앨범 등록 요청 가능한 아티스트 상태 검증
+    // 아티스트 상태 검증
     private void validateArtistActive(Artist artist) {
         if (artist.getStatus() != ArtistStatus.ACTIVE) {
             throw new BusinessException(
@@ -194,10 +201,6 @@ public class AlbumService {
 
     /**
      * 공개 예약 옵션 검증
-     *
-     * 정책:
-     * 0 = 즉시 공개
-     * 1~7 = 승인 시점 기준 N일 후 공개
      */
     private void validatePublishDelayDays(Integer publishDelayDays) {
         if (publishDelayDays == null || publishDelayDays < 0 || publishDelayDays > 7) {
@@ -207,30 +210,16 @@ public class AlbumService {
         }
     }
 
-    // 동일 조건의 진행 중 요청(PENDING) 중복 방지
+    // 중복 요청 검증
     private void validateDuplicatePendingRequest(Long userId, Long artistId, String title) {
-        boolean exists = albumReleaseRequestRepository.existsPendingRequest(
-                userId,
-                artistId,
-                title
-        );
-
-        if (exists) {
+        if (albumReleaseRequestRepository.existsPendingRequest(userId, artistId, title)) {
             throw new BusinessException(
                     AlbumReleaseErrorCode.ERR_ALBUM_RELEASE_ALREADY_EXISTS
             );
         }
     }
 
-    // 앨범 등록 요청 조회
-    private AlbumReleaseRequest findAlbumReleaseRequest(Long requestId) {
-        return albumReleaseRequestRepository.findById(requestId)
-                .orElseThrow(() -> new BusinessException(
-                        AlbumReleaseErrorCode.ERR_ALBUM_RELEASE_REQUEST_NOT_FOUND
-                ));
-    }
-
-    // 앨범 등록 요청 상세 조회 권한 검증
+    // 상세 조회 권한 검증
     private void validateAlbumReleaseRequestDetailAccess(
             Long userId,
             User user,
@@ -246,9 +235,14 @@ public class AlbumService {
         }
     }
 
-    // 승인 요청 기준 실제 앨범 생성
+    // =========================
+    // 생성 / 후처리
+    // =========================
+
+    // 승인 요청 기반 앨범 생성
     private Album createAlbum(AlbumReleaseRequest request) {
-        LocalDateTime scheduledPublishAt = calculateScheduledPublishAt(request.getPublishDelayDays());
+        LocalDateTime scheduledPublishAt =
+                calculateScheduledPublishAt(request.getPublishDelayDays());
 
         Album album = Album.create(
                 request.getArtistId(),
@@ -258,7 +252,7 @@ public class AlbumService {
                 scheduledPublishAt
         );
 
-        // 즉시 공개 요청 처리
+        // 즉시 공개
         if (request.getPublishDelayDays() == 0) {
             album.publish();
         }
@@ -266,14 +260,12 @@ public class AlbumService {
         return album;
     }
 
-    // 공개 예약일 계산
+    // 공개 예약 시각 계산
     private LocalDateTime calculateScheduledPublishAt(Integer publishDelayDays) {
-        // 즉시 공개
         if (publishDelayDays == 0) {
             return null;
         }
 
-        // 승인 시점 기준 N일 후 공개
         return LocalDateTime.now().plusDays(publishDelayDays);
     }
 }
