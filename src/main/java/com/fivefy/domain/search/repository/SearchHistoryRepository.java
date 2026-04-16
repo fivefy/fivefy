@@ -6,10 +6,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface SearchHistoryRepository extends JpaRepository<SearchHistory, Long> {
+    Optional<SearchHistory> findByUserIdAndKeyword(Long userId, String keyword);
 
-    void deleteByUserIdAndKeyword(Long userId, String keyword);
+    Long countByUserId(Long userId);
 
-    long countByUserId(Long userId);
-
-    Optional<SearchHistory> findTopByUserIdOrderByCreatedAtAsc(Long userId);
+    Optional<SearchHistory> findTopByUserIdOrderBySearchedAtAsc(Long userId);
 }

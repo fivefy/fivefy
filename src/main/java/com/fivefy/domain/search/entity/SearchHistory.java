@@ -6,6 +6,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
 @Getter
@@ -26,6 +28,9 @@ public class SearchHistory extends BaseEntity {
 
     private Integer resultCount;
 
+    @Column(nullable = false)
+    private LocalDateTime searchedAt;
+
     public static SearchHistory create(Long userId, String keyword, Integer resultCount) {
         validateNonNull(userId, "userId");
         validateNonNull(keyword, "keyword");
@@ -34,7 +39,13 @@ public class SearchHistory extends BaseEntity {
         searchHistory.userId = userId;
         searchHistory.keyword = keyword;
         searchHistory.resultCount = resultCount;
+        searchHistory.searchedAt = LocalDateTime.now();
 
         return searchHistory;
+    }
+
+    public void updateSearchedAt(Integer resultCount) {
+        this.searchedAt = LocalDateTime.now();
+        this.resultCount = resultCount;
     }
 }
