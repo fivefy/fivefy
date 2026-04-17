@@ -8,12 +8,14 @@ import com.fivefy.domain.search.dto.response.SearchTrackResponse;
 import com.fivefy.domain.search.enums.SearchErrorCode;
 import com.fivefy.domain.search.repository.SearchQueryRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SearchService {
@@ -45,10 +47,13 @@ public class SearchService {
         Page<SearchAlbumResponse> albums = searchQueryRepository
                 .searchAlbums(trimmedKeyword, artistIds, pageable)
                 .map(SearchAlbumResponse::from);
-
         SearchResponse response = SearchResponse.of(artists, tracks, albums);
 
-        searchHistoryService.saveSearchHistory(userId, trimmedKeyword, response.resultCount());
+        try {
+            searchHistoryService.saveSearchHistory(userId, trimmedKeyword, response.resultCount());
+        } catch (Exception e) {
+            log.warn("검색 기록 저장 실패: {}", e.getMessage());
+        }
 
         return response;
     }

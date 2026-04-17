@@ -51,7 +51,7 @@ public class SearchQueryRepositoryImpl implements SearchQueryRepository {
         if (keyword.length() < 2) {
             List<Track> results = em.createNativeQuery(
                             "SELECT * FROM tracks WHERE (title LIKE :keyword OR artist_id IN (:ids))" +
-                                    " AND deleted_at IS NULL AND status = 'PUBLISHED' LIMIT :offset, :size",
+                                    " AND deleted_at IS NULL AND status = 'PUBLISHED' ORDER BY id DESC LIMIT :offset, :size",
                             Track.class)
                     .setParameter("keyword", keyword + "%")
                     .setParameter("ids", ids)
@@ -71,7 +71,7 @@ public class SearchQueryRepositoryImpl implements SearchQueryRepository {
         List<Track> results = em.createNativeQuery(
                         "SELECT * FROM tracks WHERE (" +
                                 "MATCH(title) AGAINST(:keyword IN BOOLEAN MODE) OR artist_id IN (:ids))" +
-                                " AND deleted_at IS NULL AND status = 'PUBLISHED' LIMIT :offset, :size",
+                                " AND deleted_at IS NULL AND status = 'PUBLISHED' ORDER BY id DESC LIMIT :offset, :size",
                         Track.class)
                 .setParameter("keyword", keyword)
                 .setParameter("ids", ids)
@@ -98,7 +98,7 @@ public class SearchQueryRepositoryImpl implements SearchQueryRepository {
         if (keyword.length() < 2) {
             List<Album> results = em.createNativeQuery(
                             "SELECT * FROM albums WHERE (title LIKE :keyword OR artist_id IN (:ids))" +
-                                    " AND deleted_at IS NULL AND status = 'PUBLISHED' LIMIT :offset, :size",
+                                    " AND deleted_at IS NULL AND status = 'PUBLISHED' ORDER BY id DESC LIMIT :offset, :size",
                             Album.class)
                     .setParameter("keyword", keyword + "%")
                     .setParameter("ids", ids)
@@ -118,7 +118,7 @@ public class SearchQueryRepositoryImpl implements SearchQueryRepository {
         List<Album> results = em.createNativeQuery(
                         "SELECT * FROM albums WHERE (" +
                                 "MATCH(title) AGAINST(:keyword IN BOOLEAN MODE) OR artist_id IN (:ids))" +
-                                " AND deleted_at IS NULL AND status = 'PUBLISHED' LIMIT :offset, :size",
+                                " AND deleted_at IS NULL AND status = 'PUBLISHED' ORDER BY id DESC LIMIT :offset, :size",
                         Album.class)
                 .setParameter("keyword", keyword)
                 .setParameter("ids", ids)
