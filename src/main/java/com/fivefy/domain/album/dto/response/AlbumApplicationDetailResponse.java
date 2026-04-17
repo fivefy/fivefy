@@ -1,14 +1,14 @@
 package com.fivefy.domain.album.dto.response;
 
 import com.fivefy.common.enums.ApplicationStatus;
-import com.fivefy.domain.album.entity.AlbumReleaseRequest;
+import com.fivefy.domain.album.entity.AlbumApplication;
 
 import java.time.LocalDateTime;
 
 /**
  * 앨범 등록 요청 상세 응답 DTO
  */
-public record AlbumReleaseRequestDetailResponse(
+public record AlbumApplicationDetailResponse(
         Long requestId,
         Long requesterUserId,
         Long artistId,
@@ -23,8 +23,8 @@ public record AlbumReleaseRequestDetailResponse(
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
-    public static AlbumReleaseRequestDetailResponse from(AlbumReleaseRequest request) {
-        return new AlbumReleaseRequestDetailResponse(
+    public static AlbumApplicationDetailResponse from(AlbumApplication request) {
+        return new AlbumApplicationDetailResponse(
                 request.getId(),
                 request.getRequesterUserId(),
                 request.getArtistId(),

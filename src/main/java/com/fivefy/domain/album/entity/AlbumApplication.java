@@ -3,7 +3,7 @@ package com.fivefy.domain.album.entity;
 import com.fivefy.common.entity.BaseEntity;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
-import com.fivefy.domain.album.enums.AlbumReleaseErrorCode;
+import com.fivefy.domain.album.enums.AlbumApplicationErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -25,7 +25,7 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class AlbumReleaseRequest extends BaseEntity {
+public class AlbumApplication extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -66,7 +66,7 @@ public class AlbumReleaseRequest extends BaseEntity {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public static AlbumReleaseRequest create(
+    public static AlbumApplication create(
             Long requesterUserId,
             Long artistId,
             String title,
@@ -79,7 +79,7 @@ public class AlbumReleaseRequest extends BaseEntity {
         validateNonNull(title, "title");
         validateNonNull(publishDelayDays, "publishDelayDays");
 
-        AlbumReleaseRequest request = new AlbumReleaseRequest();
+        AlbumApplication request = new AlbumApplication();
 
         request.requesterUserId = requesterUserId;
         request.artistId = artistId;
@@ -116,7 +116,7 @@ public class AlbumReleaseRequest extends BaseEntity {
     private void validatePending() {
         if (this.status != ApplicationStatus.PENDING) {
             throw new BusinessException(
-                    AlbumReleaseErrorCode.ERR_ALBUM_RELEASE_ALREADY_PROCESSED);
+                    AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_PROCESSED);
         }
     }
 }

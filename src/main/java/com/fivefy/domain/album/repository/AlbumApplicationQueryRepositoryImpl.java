@@ -1,7 +1,7 @@
 package com.fivefy.domain.album.repository;
 
 import com.fivefy.common.enums.ApplicationStatus;
-import com.fivefy.domain.album.entity.AlbumReleaseRequest;
+import com.fivefy.domain.album.entity.AlbumApplication;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
@@ -12,10 +12,10 @@ import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.Objects;
 
-import static com.fivefy.domain.album.entity.QAlbumReleaseRequest.albumReleaseRequest;
+import static com.fivefy.domain.album.entity.QAlbumApplication.albumApplication;
 
 @RequiredArgsConstructor
-public class AlbumReleaseRequestQueryRepositoryImpl implements AlbumReleaseRequestQueryRepository {
+public class AlbumApplicationQueryRepositoryImpl implements AlbumApplicationQueryRepository {
 
     private final JPAQueryFactory queryFactory;
 
@@ -23,12 +23,12 @@ public class AlbumReleaseRequestQueryRepositoryImpl implements AlbumReleaseReque
     public boolean existsPendingRequest(Long requesterUserId, Long artistId, String title) {
         Integer result = queryFactory
                 .selectOne()
-                .from(albumReleaseRequest)
+                .from(albumApplication)
                 .where(
-                        albumReleaseRequest.requesterUserId.eq(requesterUserId),
-                        albumReleaseRequest.artistId.eq(artistId),
-                        albumReleaseRequest.title.eq(title),
-                        albumReleaseRequest.status.eq(ApplicationStatus.PENDING)
+                        albumApplication.requesterUserId.eq(requesterUserId),
+                        albumApplication.artistId.eq(artistId),
+                        albumApplication.title.eq(title),
+                        albumApplication.status.eq(ApplicationStatus.PENDING)
                 )
                 .fetchFirst();
 
@@ -36,30 +36,30 @@ public class AlbumReleaseRequestQueryRepositoryImpl implements AlbumReleaseReque
     }
 
     @Override
-    public List<AlbumReleaseRequest> searchMyAlbumReleaseRequests(Long requesterUserId) {
+    public List<AlbumApplication> searchMyAlbumApplications(Long requesterUserId) {
         return queryFactory
-                .selectFrom(albumReleaseRequest)
-                .where(albumReleaseRequest.requesterUserId.eq(requesterUserId))
-                .orderBy(albumReleaseRequest.createdAt.desc())
+                .selectFrom(albumApplication)
+                .where(albumApplication.requesterUserId.eq(requesterUserId))
+                .orderBy(albumApplication.createdAt.desc())
                 .fetch();
     }
 
     @Override
-    public Page<AlbumReleaseRequest> searchAlbumReleaseRequests(
+    public Page<AlbumApplication> searchAlbumApplications(
             ApplicationStatus status,
             Pageable pageable
     ) {
-        List<AlbumReleaseRequest> content = queryFactory
-                .selectFrom(albumReleaseRequest)
+        List<AlbumApplication> content = queryFactory
+                .selectFrom(albumApplication)
                 .where(statusEq(status))
-                .orderBy(albumReleaseRequest.createdAt.asc())
+                .orderBy(albumApplication.createdAt.asc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
 
         Long total = queryFactory
-                .select(albumReleaseRequest.count())
-                .from(albumReleaseRequest)
+                .select(albumApplication.count())
+                .from(albumApplication)
                 .where(statusEq(status))
                 .fetchOne();
 
@@ -68,6 +68,6 @@ public class AlbumReleaseRequestQueryRepositoryImpl implements AlbumReleaseReque
 
     // 상태 필터 조건
     private BooleanExpression statusEq(ApplicationStatus status) {
-        return status != null ? albumReleaseRequest.status.eq(status) : null;
+        return status != null ? albumApplication.status.eq(status) : null;
     }
 }

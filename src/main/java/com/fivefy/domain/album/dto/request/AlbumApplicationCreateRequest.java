@@ -5,7 +5,7 @@ import jakarta.validation.constraints.*;
 /**
  * 앨범 등록 요청 생성 요청 DTO
  */
-public record AlbumReleaseRequestCreateRequest(
+public record AlbumApplicationCreateRequest(
 
         @NotNull(message = "아티스트 ID는 필수입니다.")
         Long artistId,
