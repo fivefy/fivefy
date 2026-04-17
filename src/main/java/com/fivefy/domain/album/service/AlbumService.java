@@ -8,6 +8,7 @@ import com.fivefy.domain.album.dto.response.*;
 import com.fivefy.domain.album.entity.Album;
 import com.fivefy.domain.album.entity.AlbumApplication;
 import com.fivefy.domain.album.enums.AlbumApplicationErrorCode;
+import com.fivefy.domain.album.enums.AlbumErrorCode;
 import com.fivefy.domain.album.repository.AlbumApplicationRepository;
 import com.fivefy.domain.album.repository.AlbumRepository;
 import com.fivefy.domain.artist.entity.Artist;
@@ -156,6 +157,19 @@ public class AlbumService {
         return AlbumApplicationRejectResponse.from(application);
     }
 
+    /**
+     * 앨범 상세 조회
+     */
+    @Transactional(readOnly = true)
+    public AlbumDetailResponse getAlbum(Long albumId) {
+        Album album = findAlbum(albumId);
+
+        // 아티스트 이름 조회
+        Artist artist = findArtist(album.getArtistId());
+
+        return AlbumDetailResponse.of(album, artist.getName());
+    }
+
     // =========================
     // 조회
     // =========================
@@ -189,6 +203,20 @@ public class AlbumService {
                 .orElseThrow(() -> new BusinessException(
                         AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_NOT_FOUND
                 ));
+    }
+
+    // 앨범 조회
+    private Album findAlbum(Long albumId) {
+        Album album = albumRepository.findById(albumId)
+                .orElseThrow(() -> new BusinessException(
+                        AlbumErrorCode.ERR_ALBUM_NOT_FOUND
+                ));
+
+        if (album.getDeletedAt() != null) {
+            throw new BusinessException(AlbumErrorCode.ERR_ALBUM_NOT_FOUND);
+        }
+
+        return album;
     }
 
     // =========================

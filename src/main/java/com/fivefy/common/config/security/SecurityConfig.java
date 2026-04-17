@@ -43,6 +43,8 @@ public class SecurityConfig {
                                 "/api/users/login",
                                 "/api/users/reissue",
                                 "/api/popular-charts/**",
+                                "/api/albums/{albumId}",
+                                "/test/**"
                                 "/test/**",
                                 "/api/portone/config",
                                 "/api/webhook/portone"
@@ -53,7 +55,6 @@ public class SecurityConfig {
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                         .accessDeniedHandler(jwtAccessDeniedHandler))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(lastActiveAtFilter, JwtFilter.class)
                 .build();
     }
 

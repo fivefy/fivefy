@@ -122,4 +122,17 @@ public class AlbumController {
                 BaseResponse.success(HttpStatus.OK, "앨범 등록 신청 거절 성공", response)
         );
     }
+
+    /**
+     * 앨범 상세 조회 API
+     */
+    @GetMapping("/albums/{albumId}")
+    public ResponseEntity<BaseResponse<AlbumDetailResponse>> getAlbum(
+            @PathVariable Long albumId
+    ) {
+        AlbumDetailResponse response = albumService.getAlbum(albumId);
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(BaseResponse.success(HttpStatus.OK, "앨범 상세 조회 성공", response));
+    }
 }
