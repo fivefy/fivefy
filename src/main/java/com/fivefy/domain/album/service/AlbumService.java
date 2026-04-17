@@ -126,7 +126,7 @@ public class AlbumService {
     }
 
     /**
-     * 앨범 등록 신청 승인
+     * 앨범 등록 신청 승인 (관리자)
      */
     @Transactional
     public AlbumApplicationApproveResponse approveAlbumApplication(Long adminId, Long applicationId) {
@@ -142,7 +142,7 @@ public class AlbumService {
     }
 
     /**
-     * 앨범 등록 신청 거절
+     * 앨범 등록 신청 거절 (관리자)
      */
     @Transactional
     public AlbumApplicationRejectResponse rejectAlbumApplication(

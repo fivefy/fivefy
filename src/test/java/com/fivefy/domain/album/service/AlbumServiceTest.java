@@ -49,7 +49,7 @@ import static org.mockito.Mockito.when;
  * 내 앨범 등록 신청 목록 조회 기능을 검증한다.
  * 내 앨범 등록 신청 목록 빈 결과 조회 기능을 검증한다.
  * 앨범 등록 신청 상세 조회 기능을 검증한다.
- * 관리자 앨범 등록 신청 목록 조회 기능을 검증한다.
+ * 앨범 등록 신청 목록 조회 기능을 검증한다.
  * 앨범 등록 신청 승인 기능을 검증한다.
  * 앨범 등록 신청 거절 기능을 검증한다.
  * 앨범 상세 조회 기능을 검증한다.
@@ -537,7 +537,7 @@ class AlbumServiceTest {
     }
 
     @Nested
-    @DisplayName("관리자 앨범 등록 신청 목록 조회")
+    @DisplayName("앨범 등록 신청 목록 조회")
     class GetAlbumApplications {
 
         @Test
