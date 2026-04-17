@@ -51,6 +51,7 @@ public class UserQueryRepositoryImpl implements UserQueryRepository{
                 .set(user.status, toStatus)
                 .where(
                         user.status.eq(fromStatus),
+                        user.createdAt.lt(threshold),
                         user.lastActiveAt.isNull().or(user.lastActiveAt.lt(threshold))
                 )
                 .execute();
