@@ -1,17 +1,12 @@
 package com.fivefy.domain.album.controller;
 
 import com.fivefy.common.config.security.JwtUtil;
+import com.fivefy.common.filter.LastActiveAtFilter;
 import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.domain.album.dto.request.AlbumApplicationCreateRequest;
 import com.fivefy.domain.album.dto.request.AlbumApplicationRejectRequest;
-import com.fivefy.domain.album.dto.response.AlbumApplicationApproveResponse;
-import com.fivefy.domain.album.dto.response.AlbumApplicationDetailResponse;
-import com.fivefy.domain.album.dto.response.AlbumApplicationListResponse;
-import com.fivefy.domain.album.dto.response.AlbumApplicationRejectResponse;
-import com.fivefy.domain.album.dto.response.AlbumApplicationResponse;
-import com.fivefy.domain.album.dto.response.AlbumDetailResponse;
-import com.fivefy.domain.album.dto.response.ArtistAlbumListResponse;
+import com.fivefy.domain.album.dto.response.*;
 import com.fivefy.domain.album.service.AlbumService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -55,6 +50,9 @@ class AlbumControllerTest {
 
     @MockitoBean
     private JwtUtil jwtUtil;
+
+    @MockitoBean
+    private LastActiveAtFilter lastActiveAtFilter;
 
     @Nested
     @DisplayName("앨범 등록 신청 생성 API")

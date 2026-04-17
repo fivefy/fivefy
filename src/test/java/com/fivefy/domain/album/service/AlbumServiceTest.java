@@ -833,6 +833,7 @@ class AlbumServiceTest {
                     "url",
                     null
             );
+            album.publish();
             ReflectionTestUtils.setField(album, "id", albumId);
 
             Artist artist = mock(Artist.class);
