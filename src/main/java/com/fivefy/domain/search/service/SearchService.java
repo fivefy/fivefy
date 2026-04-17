@@ -30,10 +30,6 @@ public class SearchService {
             throw new BusinessException(SearchErrorCode.ERR_SEARCH_KEYWORD_BLANK);
         }
 
-        if (trimmedKeyword.length() < 2) {
-            throw new BusinessException(SearchErrorCode.ERR_SEARCH_KEYWORD_TOO_SHORT);
-        }
-
         List<SearchArtistResponse> artists = searchQueryRepository
                 .searchArtists(trimmedKeyword, ARTIST_LIMIT)
                 .stream().map(SearchArtistResponse::from).toList();
@@ -52,9 +48,7 @@ public class SearchService {
 
         SearchResponse response = SearchResponse.of(artists, tracks, albums);
 
-        if (userId != null) {
-            searchHistoryService.saveSearchHistory(userId, trimmedKeyword, response.resultCount());
-        }
+        searchHistoryService.saveSearchHistory(userId, trimmedKeyword, response.resultCount());
 
         return response;
     }
