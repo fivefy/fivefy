@@ -32,4 +32,28 @@ public class UserQueryRepositoryImpl implements UserQueryRepository{
                 )
                 .execute();
     }
+
+    @Override
+    public void updateLastActiveAt(Long userId, LocalDateTime lastActiveAt) {
+        queryFactory
+                .update(user)
+                .set(user.lastActiveAt, lastActiveAt)
+                .where(user.id.eq(userId))
+                .execute();
+    }
+
+    @Override
+    public int suspendInactiveUsers(LocalDateTime threshold,
+                                    UserStatus fromStatus,
+                                    UserStatus toStatus) {
+        return (int) queryFactory
+                .update(user)
+                .set(user.status, toStatus)
+                .where(
+                        user.status.eq(fromStatus),
+                        user.createdAt.lt(threshold),
+                        user.lastActiveAt.isNull().or(user.lastActiveAt.lt(threshold))
+                )
+                .execute();
+    }
 }

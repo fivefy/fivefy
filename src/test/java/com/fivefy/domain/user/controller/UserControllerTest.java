@@ -17,6 +17,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -44,6 +45,7 @@ class UserControllerTest extends RestDocsSupport {
 
     @MockitoBean private UserService userService;
     @MockitoBean private JwtUtil jwtUtil;
+    @MockitoBean private StringRedisTemplate stringRedisTemplate;
 
     @Nested
     @DisplayName("회원가입")

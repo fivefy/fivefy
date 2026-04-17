@@ -64,6 +64,11 @@ public class User extends BaseEntity {
         return user;
     }
 
+    public void reactivate() {
+        this.status = UserStatus.ACTIVE;
+        this.lastActiveAt = LocalDateTime.now();
+    }
+
     public void updateName(String name) {
         this.name = name;
     }
