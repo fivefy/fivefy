@@ -10,7 +10,13 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
 @Getter
 @Entity
-@Table(name = "search_histories")
+@Table(
+        name = "search_histories",
+        indexes = {
+                @Index(name = "idx_search_histories_user_id", columnList = "user_id"),
+                @Index(name = "idx_search_histories_created_at", columnList = "created_at")
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SearchHistory extends BaseEntity {
 
@@ -18,7 +24,6 @@ public class SearchHistory extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
     private Long userId;
 
     @Column(nullable = false)
@@ -27,7 +32,6 @@ public class SearchHistory extends BaseEntity {
     private Integer resultCount;
 
     public static SearchHistory create(Long userId, String keyword, Integer resultCount) {
-        validateNonNull(userId, "userId");
         validateNonNull(keyword, "keyword");
 
         SearchHistory searchHistory = new SearchHistory();
