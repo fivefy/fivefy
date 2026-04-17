@@ -1,6 +1,6 @@
-package com.fivefy.domain.order.repository;
+package com.fivefy.domain.cashorder.repository;
 
-import com.fivefy.domain.order.entity.CashOrder;
+import com.fivefy.domain.cashorder.entity.CashOrder;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

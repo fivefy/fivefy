@@ -1,4 +1,4 @@
-package com.fivefy.domain.order.enums;
+package com.fivefy.domain.cashorder.enums;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

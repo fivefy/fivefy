@@ -1,8 +1,8 @@
-package com.fivefy.domain.order.dto;
+package com.fivefy.domain.cashorder.dto;
 
-import com.fivefy.domain.order.entity.CashOrder;
-import com.fivefy.domain.order.enums.CashOrderStatus;
-import com.fivefy.domain.order.enums.CashProductType;
+import com.fivefy.domain.cashorder.entity.CashOrder;
+import com.fivefy.domain.cashorder.enums.CashOrderStatus;
+import com.fivefy.domain.cashorder.enums.CashProductType;
 
 public record CashOrderResponse(
         Long cashOrderId,

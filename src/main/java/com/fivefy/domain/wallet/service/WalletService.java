@@ -37,6 +37,8 @@ public class WalletService {
     @Transactional(readOnly = true)
     public List<PointHistoryResponse> getHistories(Long userId) {
         // 지갑 여부 확인 시
+        // 지갑 존재 여부 확인 후 walletId 기준으로 이력 조회
+        // 최신순 정렬 (createdAt DESC)
         Wallet wallet = getWallet(userId);
         return pointHistoryRepository.findByWalletIdOrderByCreatedAtDesc(wallet.getId())
                 .stream()

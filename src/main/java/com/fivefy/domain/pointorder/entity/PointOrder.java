@@ -1,7 +1,7 @@
-package com.fivefy.domain.order.entity;
+package com.fivefy.domain.pointorder.entity;
 
 import com.fivefy.common.entity.BaseEntity;
-import com.fivefy.domain.order.enums.PointOrderStatus;
+import com.fivefy.domain.pointorder.enums.PointOrderStatus;
 import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;

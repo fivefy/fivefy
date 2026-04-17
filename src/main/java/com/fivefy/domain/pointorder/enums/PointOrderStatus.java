@@ -1,4 +1,4 @@
-package com.fivefy.domain.order.enums;
+package com.fivefy.domain.pointorder.enums;
 
 public enum PointOrderStatus {
     PENDING,    // 주문 대기

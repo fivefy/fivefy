@@ -1,4 +1,4 @@
-package com.fivefy.domain.order.dto;
+package com.fivefy.domain.cashorder.dto;
 
 public record CashOrderRefundRequest(
         String orderNumber,

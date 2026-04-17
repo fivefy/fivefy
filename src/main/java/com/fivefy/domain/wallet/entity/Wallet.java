@@ -40,7 +40,8 @@ public class Wallet extends BaseEntity {
     private LocalDateTime updatedAt;
 
     /**
-     * 지갑(빈지갑 생성 후 충전)
+     * 지갑 생성 팩토리 메서드
+     * 회원가입 시 호출, 모든 잔액 0으로 초기화
      * @param userId
      *        balance       : 유료 재화
      *        eventBalance  : 무료 재화
@@ -61,7 +62,8 @@ public class Wallet extends BaseEntity {
     }
 
     /**
-     * 충전(유료 재화)
+     * 무료 포인트 충전 (이벤트·관리자 지급 시 호출)
+     * eventBalance 증가 후 totalBalance 재계산
      * @param amount
      */
     public void chargeBalance(Long amount) {
@@ -74,7 +76,8 @@ public class Wallet extends BaseEntity {
     }
 
     /**
-     * 사용 : 구독 구매
+     * 유료 포인트 사용 (PointOrder 구독 구매 시 호출)
+     * 잔액 부족 시 예외 발생 (환불 시 호출하면 안 됨 → 별도 처리 필요)
      * @param amount
      */
     public void useBalance(Long amount) {
@@ -84,6 +87,12 @@ public class Wallet extends BaseEntity {
         this.balance -= amount;
         this.totalBalance = this.balance + this.eventBalance;
     }
+
+    /**
+     * 무료 포인트 사용 (무료 포인트로 구독 구매 시 호출)
+     * 잔액 부족 시 예외 발생(현재 기능하진 않음)
+     * @param amount
+     */
     public void useEventBalance(Long amount) {
         if (this.eventBalance < amount) {
             throw new IllegalArgumentException("무료 포인트 부족");

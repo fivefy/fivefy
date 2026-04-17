@@ -1,8 +1,8 @@
-package com.fivefy.domain.order.entity;
+package com.fivefy.domain.cashorder.entity;
 
 import com.fivefy.common.entity.BaseEntity;
-import com.fivefy.domain.order.enums.CashOrderStatus;
-import com.fivefy.domain.order.enums.CashProductType;
+import com.fivefy.domain.cashorder.enums.CashOrderStatus;
+import com.fivefy.domain.cashorder.enums.CashProductType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -66,8 +66,9 @@ public class CashOrder extends BaseEntity {
     }
 
     /**
-     * 상태 변경 매서드 : PENDING -> SUCCESS
-     * @param webhookId : 웹훅 ID 저장(=멱등키, 중복 방지용)
+     * 결제 완료 처리 (PENDING → SUCCESS)
+     * processWebhook()에서 금액 검증 통과 후 호출
+     * @param webhookId : 웹훅 ID 저장 : 중복 웹훅 수신 시 existsByWebhookId()로 차단
      */
     public void success(String webhookId) {
         if (this.status != CashOrderStatus.PENDING) {
@@ -77,6 +78,10 @@ public class CashOrder extends BaseEntity {
         this.webhookId = webhookId;
     }
 
+    /**
+     *  환불 처리 (SUCCESS → REFUNDE
+     *  refund()에서 포트원 취소 API 성공 확인 후 호출
+     */
     public void refund() {
         if (this.status != CashOrderStatus.SUCCESS) {
             throw new IllegalStateException("SUCCESS 상태에서만 환불 처리할 수 있습니다.");

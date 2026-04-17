@@ -1,4 +1,4 @@
-package com.fivefy.domain.order.enums;
+package com.fivefy.domain.cashorder.enums;
 
 public enum CashOrderStatus {
     PENDING,    // 결제 대기

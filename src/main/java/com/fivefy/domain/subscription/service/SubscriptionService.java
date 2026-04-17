@@ -1,8 +1,7 @@
 package com.fivefy.domain.subscription.service;
 
-import com.fivefy.domain.order.entity.PointOrder;
-import com.fivefy.domain.order.enums.PointOrderStatus;
-import com.fivefy.domain.order.repository.PointOrderRepository;
+import com.fivefy.domain.pointorder.entity.PointOrder;
+import com.fivefy.domain.pointorder.repository.PointOrderRepository;
 import com.fivefy.domain.subscription.dto.SubscriptionPurchaseRequest;
 import com.fivefy.domain.subscription.dto.SubscriptionRefundRequest;
 import com.fivefy.domain.subscription.dto.SubscriptionResponse;

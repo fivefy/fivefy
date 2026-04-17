@@ -1,10 +1,10 @@
-package com.fivefy.domain.order.controller;
+package com.fivefy.domain.cashorder.controller;
 
-import com.fivefy.domain.order.dto.CashOrderPurchaseResponse;
-import com.fivefy.domain.order.dto.CashOrderRefundRequest;
-import com.fivefy.domain.order.dto.CashOrderResponse;
-import com.fivefy.domain.order.dto.CashOrderVerifyRequest;
-import com.fivefy.domain.order.service.CashOrderService;
+import com.fivefy.domain.cashorder.dto.CashOrderPurchaseResponse;
+import com.fivefy.domain.cashorder.dto.CashOrderRefundRequest;
+import com.fivefy.domain.cashorder.dto.CashOrderResponse;
+import com.fivefy.domain.cashorder.dto.CashOrderVerifyRequest;
+import com.fivefy.domain.cashorder.service.CashOrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

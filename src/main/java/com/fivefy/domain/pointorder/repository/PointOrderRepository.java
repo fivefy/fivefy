@@ -1,6 +1,6 @@
-package com.fivefy.domain.order.repository;
+package com.fivefy.domain.pointorder.repository;
 
-import com.fivefy.domain.order.entity.PointOrder;
+import com.fivefy.domain.pointorder.entity.PointOrder;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

@@ -17,7 +17,7 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     /**
-     * 내 결제 내역 조회
+     * 내 결제 내역 전체 조회
      */
     @GetMapping
     public ResponseEntity<List<PaymentResponse>> getMyPayments(
