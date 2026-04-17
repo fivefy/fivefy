@@ -27,8 +27,7 @@ public class Subscription extends BaseEntity {
     @Column(nullable = false)
     private Long userId;
 
-    // 테스트 : @Column(nullable = false)
-    @Column // 테스트 : pointOrderId 임의로 집어넣음
+    @Column(nullable = false)
     private Long pointOrderId;
 
     @Enumerated(EnumType.STRING)

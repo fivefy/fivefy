@@ -5,6 +5,7 @@ import com.fivefy.domain.subscription.dto.SubscriptionPurchaseRequest;
 import com.fivefy.domain.subscription.dto.SubscriptionRefundRequest;
 import com.fivefy.domain.subscription.dto.SubscriptionResponse;
 import com.fivefy.domain.subscription.service.SubscriptionService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -27,7 +28,7 @@ public class SubscriptionController {
     @PostMapping("/purchases")
     public ResponseEntity<SubscriptionResponse> purchase(
             @AuthenticationPrincipal Long userId,
-            @RequestBody SubscriptionPurchaseRequest request
+            @Valid @RequestBody SubscriptionPurchaseRequest request
     ) {
         return ResponseEntity.ok(subscriptionService.purchase(userId, request));
     }
@@ -50,7 +51,7 @@ public class SubscriptionController {
     @PostMapping("/refunds")
     public ResponseEntity<SubscriptionResponse> refund(
             @AuthenticationPrincipal Long userId,
-            @RequestBody SubscriptionRefundRequest request
+            @Valid @RequestBody SubscriptionRefundRequest request
     ) {
         return ResponseEntity.ok(subscriptionService.refund(userId, request));
     }

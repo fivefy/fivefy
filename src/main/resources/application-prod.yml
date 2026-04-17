@@ -31,6 +31,6 @@ portone:
   api-url: ${PORTONE_API_URL}
   channel-key: ${PORTONE_CHANNEL_KEY}
   # 웹훅 시크릿 키
-  webhook-secret: ${PORTON_WEBHOOK_SECRET}
+  webhook-secret: ${PORTONE_WEBHOOK_SECRET}
 
 

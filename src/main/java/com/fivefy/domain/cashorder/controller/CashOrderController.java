@@ -5,6 +5,7 @@ import com.fivefy.domain.cashorder.dto.CashOrderRefundRequest;
 import com.fivefy.domain.cashorder.dto.CashOrderResponse;
 import com.fivefy.domain.cashorder.dto.CashOrderVerifyRequest;
 import com.fivefy.domain.cashorder.service.CashOrderService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -29,7 +30,7 @@ public class CashOrderController {
     @PostMapping("/purchase")
     public ResponseEntity<CashOrderPurchaseResponse> purchase(
             @AuthenticationPrincipal Long userId,
-            @RequestBody CashOrderVerifyRequest request
+            @Valid @RequestBody CashOrderVerifyRequest request
     ) {
 
         return ResponseEntity.ok(cashOrderService.purchase(userId, request));
@@ -44,7 +45,7 @@ public class CashOrderController {
     @PostMapping("/refund")
     public ResponseEntity<CashOrderResponse> refund(
             @AuthenticationPrincipal Long userId,
-            @RequestBody CashOrderRefundRequest request
+            @Valid @RequestBody CashOrderRefundRequest request
     ) {
 
         return ResponseEntity.ok(cashOrderService.refund(userId, request));
