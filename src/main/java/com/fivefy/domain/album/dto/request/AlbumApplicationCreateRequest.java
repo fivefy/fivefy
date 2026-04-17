@@ -3,9 +3,9 @@ package com.fivefy.domain.album.dto.request;
 import jakarta.validation.constraints.*;
 
 /**
- * 앨범 등록 요청 생성 요청 DTO
+ * 앨범 등록 신청 생성 요청 DTO
  */
-public record AlbumReleaseRequestCreateRequest(
+public record AlbumApplicationCreateRequest(
 
         @NotNull(message = "아티스트 ID는 필수입니다.")
         Long artistId,
@@ -23,6 +23,5 @@ public record AlbumReleaseRequestCreateRequest(
         @Min(value = 0, message = "공개 예약 옵션은 0 이상이어야 합니다.")
         @Max(value = 7, message = "공개 예약 옵션은 7 이하여야 합니다.")
         Integer publishDelayDays
-
 ) {
 }

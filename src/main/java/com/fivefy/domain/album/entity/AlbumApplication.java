@@ -3,7 +3,7 @@ package com.fivefy.domain.album.entity;
 import com.fivefy.common.entity.BaseEntity;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
-import com.fivefy.domain.album.enums.AlbumReleaseErrorCode;
+import com.fivefy.domain.album.enums.AlbumApplicationErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -17,15 +17,15 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 @Getter
 @Entity
 @Table(
-        name = "album_release_requests",
+        name = "album_applications",
         indexes = {
-                @Index(name = "idx_album_release_request_requester_user_id", columnList = "requester_user_id"),
-                @Index(name = "idx_album_release_request_artist_id", columnList = "artist_id"),
-                @Index(name = "idx_album_release_request_status", columnList = "status")
+                @Index(name = "idx_album_application_requester_user_id", columnList = "requester_user_id"),
+                @Index(name = "idx_album_application_artist_id", columnList = "artist_id"),
+                @Index(name = "idx_album_application_status", columnList = "status")
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class AlbumReleaseRequest extends BaseEntity {
+public class AlbumApplication extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -66,7 +66,7 @@ public class AlbumReleaseRequest extends BaseEntity {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public static AlbumReleaseRequest create(
+    public static AlbumApplication create(
             Long requesterUserId,
             Long artistId,
             String title,
@@ -79,17 +79,17 @@ public class AlbumReleaseRequest extends BaseEntity {
         validateNonNull(title, "title");
         validateNonNull(publishDelayDays, "publishDelayDays");
 
-        AlbumReleaseRequest request = new AlbumReleaseRequest();
+        AlbumApplication application = new AlbumApplication();
 
-        request.requesterUserId = requesterUserId;
-        request.artistId = artistId;
-        request.title = title;
-        request.description = description;
-        request.coverImageUrl = coverImageUrl;
-        request.publishDelayDays = publishDelayDays;
-        request.status = ApplicationStatus.PENDING;
+        application.requesterUserId = requesterUserId;
+        application.artistId = artistId;
+        application.title = title;
+        application.description = description;
+        application.coverImageUrl = coverImageUrl;
+        application.publishDelayDays = publishDelayDays;
+        application.status = ApplicationStatus.PENDING;
 
-        return request;
+        return application;
     }
 
     public void approve(Long adminId) {
@@ -116,7 +116,7 @@ public class AlbumReleaseRequest extends BaseEntity {
     private void validatePending() {
         if (this.status != ApplicationStatus.PENDING) {
             throw new BusinessException(
-                    AlbumReleaseErrorCode.ERR_ALBUM_RELEASE_ALREADY_PROCESSED);
+                    AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_PROCESSED);
         }
     }
 }
