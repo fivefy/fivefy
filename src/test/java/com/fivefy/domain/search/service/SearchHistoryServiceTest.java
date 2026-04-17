@@ -11,7 +11,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.ListOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 
-import static org.mockito.ArgumentMatchers.any;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
@@ -100,6 +103,66 @@ class SearchHistoryServiceTest {
             // then
             verify(redisTemplate, never()).opsForList();
             verify(searchHistoryRepository, times(1)).save(any()); // DB는 저장
+        }
+    }
+
+    @Nested
+    @DisplayName("최근 검색 기록 조회")
+    class GetRecentSearchHistories {
+
+        @Test
+        @DisplayName("최근 검색 기록을 Redis에서 조회한다")
+        void getRecentSearchHistories_returnsFromRedis() {
+            // given
+            given(redisTemplate.opsForList()).willReturn(listOperations);
+            given(listOperations.range(REDIS_KEY, 0, -1))
+                    .willReturn(List.of("아이유", "루나", "뉴진스"));
+
+            // when
+            List<String> result = searchHistoryService.getRecentSearchHistories(USER_ID);
+
+            // then
+            assertThat(result).hasSize(3);
+            assertThat(result).containsExactly("아이유", "루나", "뉴진스");
+        }
+
+        @Test
+        @DisplayName("userId null 시 빈 리스트를 반환한다")
+        void getRecentSearchHistories_nullUserId_returnsEmptyList() {
+            // when
+            List<String> result = searchHistoryService.getRecentSearchHistories(null);
+
+            // then
+            assertThat(result).isEmpty();
+            verify(redisTemplate, never()).opsForList();
+        }
+    }
+
+    @Nested
+    @DisplayName("검색 기록 삭제")
+    class DeleteSearchHistory {
+
+        @Test
+        @DisplayName("개별 검색 기록을 Redis에서 삭제한다")
+        void deleteRecentSearchHistory_removesFromRedis() {
+            // given
+            given(redisTemplate.opsForList()).willReturn(listOperations);
+
+            // when
+            searchHistoryService.deleteRecentSearchHistory(USER_ID, KEYWORD);
+
+            // then
+            verify(listOperations, times(1)).remove(REDIS_KEY, 0, KEYWORD);
+        }
+
+        @Test
+        @DisplayName("전체 검색 기록을 Redis에서 삭제한다")
+        void deleteAllRecentSearchHistories_deletesKeyFromRedis() {
+            // when
+            searchHistoryService.deleteAllRecentSearchHistories(USER_ID);
+
+            // then
+            verify(redisTemplate, times(1)).delete(REDIS_KEY);
         }
     }
 }
