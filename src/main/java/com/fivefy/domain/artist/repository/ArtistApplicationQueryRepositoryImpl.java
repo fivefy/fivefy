@@ -2,7 +2,7 @@ package com.fivefy.domain.artist.repository;
 
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.domain.artist.entity.ArtistApplication;
-import com.fivefy.domain.artist.entity.QArtistApplication;
+import com.fivefy.domain.artist.enums.ArtistType;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -13,23 +13,60 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Objects;
+
+import static com.fivefy.domain.artist.entity.QArtistApplication.artistApplication;
 
 /**
- * 아티스트 등록 요청 Querydsl Repository 구현체
+ * 아티스트 등록 신청 Querydsl Repository 구현체
  */
 @RequiredArgsConstructor
 public class ArtistApplicationQueryRepositoryImpl implements ArtistApplicationQueryRepository {
 
     private final JPAQueryFactory queryFactory;
 
-    private static final QArtistApplication artistApplication = QArtistApplication.artistApplication;
+    /**
+     * 동일 유저 + 이름 + 타입 기준으로 진행 중/승인된 신청 존재 여부 조회
+     */
+    @Override
+    public boolean existsActiveApplication(Long requesterUserId, String requestedName, ArtistType artistType) {
+        // 중복 신청 방지를 위해 PENDING/APPROVED 상태만 검사
+        Integer result = queryFactory
+                .selectOne()
+                .from(artistApplication)
+                .where(
+                        artistApplication.requesterUserId.eq(requesterUserId),
+                        artistApplication.requestedName.eq(requestedName),
+                        artistApplication.artistType.eq(artistType),
+                        artistApplication.status.in(
+                                ApplicationStatus.PENDING,
+                                ApplicationStatus.APPROVED
+                        )
+                )
+                .fetchFirst();
+        // 결과 존재 여부로 boolean 반환
+        return result != null;
+    }
 
     /**
-     * 관리자용 아티스트 등록 요청 목록을 페이징 조회한다.
+     * 사용자 본인의 아티스트 등록 신청 목록 조회 (최신순)
+     */
+    @Override
+    public List<ArtistApplication> searchMyArtistApplications(Long requesterUserId) {
+        // 사용자 기준 신청 목록을 최신순으로 조회
+        return queryFactory
+                .selectFrom(artistApplication)
+                .where(artistApplication.requesterUserId.eq(requesterUserId))
+                .orderBy(artistApplication.createdAt.desc())
+                .fetch();
+    }
+
+    /**
+     * 아티스트 등록 신청 목록 페이징 조회
      */
     @Override
     public Page<ArtistApplication> searchArtistApplications(ApplicationStatus status, Pageable pageable) {
-        // 페이징 조건과 정렬 조건을 반영해 등록 요청 목록을 조회한다.
+        // 페이징 조건과 정렬 조건을 반영한 실제 데이터 조회
         List<ArtistApplication> contents = queryFactory
                 .selectFrom(artistApplication)
                 .where(statusEq(status))
@@ -38,44 +75,41 @@ public class ArtistApplicationQueryRepositoryImpl implements ArtistApplicationQu
                 .orderBy(getOrderSpecifiers(pageable))
                 .fetch();
 
-        // 전체 등록 요청 수를 조회한다.
+        // 전체 등록 신청 수를 조회
         Long total = queryFactory
                 .select(artistApplication.count())
                 .from(artistApplication)
                 .where(statusEq(status))
                 .fetchOne();
 
-        // 조회 결과를 Page 객체로 변환해 반환한다.
-        return new PageImpl<>(contents, pageable, total == null ? 0L : total);
+        // 조회 결과를 Page 객체로 변환하여 반환
+        return new PageImpl<>(contents, pageable, Objects.requireNonNullElse(total, 0L));
     }
 
     /**
-     * Pageable의 정렬 조건을 Querydsl OrderSpecifier로 변환한다.
+     * Pageable 정렬 조건을 Querydsl OrderSpecifier로 변환
      */
     private OrderSpecifier<?>[] getOrderSpecifiers(Pageable pageable) {
 
-        QArtistApplication artistApplication = QArtistApplication.artistApplication;
-
         return pageable.getSort().stream()
                 .map(order -> {
-                    // Spring Sort 방향을 Querydsl 정렬 방향으로 변환한다.
+                    // Spring Sort -> Querydsl 정렬 방향으로 변환
                     Order direction = order.isAscending() ? Order.ASC : Order.DESC;
 
-                    // 정렬 대상 필드에 맞는 OrderSpecifier를 생성한다.
+                    // 정렬 대상 필드에 맞는 OrderSpecifier를 생성
                     return switch (order.getProperty()) {
                         case "createdAt" -> new OrderSpecifier<>(direction, artistApplication.createdAt);
                         case "status" -> new OrderSpecifier<>(direction, artistApplication.status);
-                        // 지원하지 않는 정렬 조건이면 createdAt 기준 최신/오래된 순 정렬로 fallback 한다.
+                        // 지원하지 않는 정렬 조건이면 createdAt 기준 최신/오래된 순 정렬로 fallback
                         default -> new OrderSpecifier<>(Order.ASC, artistApplication.createdAt);
                     };
                 })
                 .toArray(OrderSpecifier[]::new);
     }
 
-    /**
-     * 상태 조건이 있으면 해당 상태만 조회한다.
-     */
+    // 상태 필터 조건
     private BooleanExpression statusEq(ApplicationStatus status) {
-        return status == null ? null : artistApplication.status.eq(status);
+        // 상태가 없으면 전체 조회
+        return status != null ? artistApplication.status.eq(status) : null;
     }
 }

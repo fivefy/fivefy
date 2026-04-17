@@ -187,7 +187,7 @@ class ArtistServiceTest {
             ReflectionTestUtils.setField(secondApplication, "createdAt",
                     LocalDateTime.of(2026, 4, 14, 10, 0, 0));
 
-            when(artistApplicationRepository.findAllByRequesterUserIdOrderByCreatedAtDesc(userId))
+            when(artistApplicationRepository.searchMyArtistApplications(userId))
                     .thenReturn(List.of(firstApplication, secondApplication));
 
             // when
@@ -205,7 +205,7 @@ class ArtistServiceTest {
             assertThat(response.get(1).artistType()).isEqualTo(ArtistType.COLLABORATION.name());
 
             verify(artistApplicationRepository, times(1))
-                    .findAllByRequesterUserIdOrderByCreatedAtDesc(userId);
+                    .searchMyArtistApplications(userId);
             verify(userRepository, times(1)).findById(userId);
         }
 
@@ -219,7 +219,7 @@ class ArtistServiceTest {
             when(userRepository.findById(userId))
                     .thenReturn(java.util.Optional.of(user));
 
-            when(artistApplicationRepository.findAllByRequesterUserIdOrderByCreatedAtDesc(userId))
+            when(artistApplicationRepository.searchMyArtistApplications(userId))
                     .thenReturn(List.of());
 
             // when
@@ -229,7 +229,7 @@ class ArtistServiceTest {
             assertThat(response).isEmpty();
 
             verify(artistApplicationRepository, times(1))
-                    .findAllByRequesterUserIdOrderByCreatedAtDesc(userId);
+                    .searchMyArtistApplications(userId);
             verify(userRepository, times(1)).findById(userId);
         }
     }
@@ -1117,7 +1117,7 @@ class ArtistServiceTest {
             // when & then
             assertThatThrownBy(() -> artistService.deleteArtist(userId, artistId))
                     .isInstanceOf(BusinessException.class)
-                    .hasMessage(ArtistErrorCode.ERR_ARTIST_ALREADY_DELETED.getMessage());
+                    .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
 
             verify(artistRepository, times(1)).findById(artistId);
         }

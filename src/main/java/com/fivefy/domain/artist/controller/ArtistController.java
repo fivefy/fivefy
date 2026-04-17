@@ -6,7 +6,13 @@ import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationCreateRequest;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationRejectRequest;
 import com.fivefy.domain.artist.dto.request.ArtistProfileUpdateRequest;
-import com.fivefy.domain.artist.dto.response.*;
+import com.fivefy.domain.artist.dto.response.ArtistApplicationApproveResponse;
+import com.fivefy.domain.artist.dto.response.ArtistApplicationDetailResponse;
+import com.fivefy.domain.artist.dto.response.ArtistApplicationListResponse;
+import com.fivefy.domain.artist.dto.response.ArtistApplicationRejectResponse;
+import com.fivefy.domain.artist.dto.response.ArtistApplicationResponse;
+import com.fivefy.domain.artist.dto.response.ArtistDetailResponse;
+import com.fivefy.domain.artist.dto.response.MyArtistResponse;
 import com.fivefy.domain.artist.service.ArtistService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +26,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 아티스트 도메인 컨트롤러
+ */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api")
@@ -28,36 +37,38 @@ public class ArtistController {
     private final ArtistService artistService;
 
     /**
-     * 아티스트 등록 요청 생성 API
+     * 아티스트 등록 신청 생성 API
      */
     @PostMapping("/artist-applications")
     public ResponseEntity<BaseResponse<ArtistApplicationResponse>> createArtistApplication(
             @AuthenticationPrincipal Long userId,
             @Valid @RequestBody ArtistApplicationCreateRequest request
     ) {
-        ArtistApplicationResponse response = artistService.createArtistApplication(userId, request);
+        ArtistApplicationResponse response =
+                artistService.createArtistApplication(userId, request);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(
-                BaseResponse.success(HttpStatus.CREATED, "아티스트 등록 요청 성공", response)
+                BaseResponse.success(HttpStatus.CREATED, "아티스트 등록 신청 성공", response)
         );
     }
 
     /**
-     * 내 아티스트 등록 요청 목록 조회 API
+     * 내 아티스트 등록 신청 목록 조회 API
      */
     @GetMapping("/artist-applications/me")
     public ResponseEntity<BaseResponse<List<ArtistApplicationResponse>>> getMyArtistApplications(
             @AuthenticationPrincipal Long userId
     ) {
-        List<ArtistApplicationResponse> response = artistService.getMyArtistApplications(userId);
+        List<ArtistApplicationResponse> response =
+                artistService.getMyArtistApplications(userId);
 
         return ResponseEntity.status(HttpStatus.OK).body(
-                BaseResponse.success(HttpStatus.OK, "내 아티스트 등록 요청 목록 조회 성공", response)
+                BaseResponse.success(HttpStatus.OK, "내 아티스트 등록 신청 목록 조회 성공", response)
         );
     }
 
     /**
-     * 관리자용 아티스트 등록 요청 목록 조회 API
+     * 아티스트 등록 신청 목록 조회 API
      */
     @GetMapping("/admin/artist-applications")
     public ResponseEntity<BaseResponse<PageResponse<ArtistApplicationListResponse>>> getArtistApplications(
@@ -72,12 +83,12 @@ public class ArtistController {
                 artistService.getArtistApplications(status, pageable);
 
         return ResponseEntity.status(HttpStatus.OK).body(
-                BaseResponse.success(HttpStatus.OK, "아티스트 등록 요청 목록 조회 성공", response)
+                BaseResponse.success(HttpStatus.OK, "아티스트 등록 신청 목록 조회 성공", response)
         );
     }
 
     /**
-     * 아티스트 등록 요청 목록 상세 조회 API
+     * 아티스트 등록 신청 상세 조회 API
      */
     @GetMapping("/artist-applications/{applicationId}")
     public ResponseEntity<BaseResponse<ArtistApplicationDetailResponse>> getArtistApplication(
@@ -88,12 +99,12 @@ public class ArtistController {
                 artistService.getArtistApplication(userId, applicationId);
 
         return ResponseEntity.status(HttpStatus.OK).body(
-                BaseResponse.success(HttpStatus.OK, "아티스트 등록 요청 상세 조회 성공", response)
+                BaseResponse.success(HttpStatus.OK, "아티스트 등록 신청 상세 조회 성공", response)
         );
     }
 
     /**
-     * 아티스트 등록 요청 승인 API
+     * 아티스트 등록 신청 승인 API
      */
     @PostMapping("/admin/artist-applications/{applicationId}/approve")
     public ResponseEntity<BaseResponse<ArtistApplicationApproveResponse>> approveArtistApplication(
@@ -104,12 +115,12 @@ public class ArtistController {
                 artistService.approveArtistApplication(userId, applicationId);
 
         return ResponseEntity.status(HttpStatus.OK).body(
-                BaseResponse.success(HttpStatus.OK, "아티스트 등록 요청 승인 성공", response)
+                BaseResponse.success(HttpStatus.OK, "아티스트 등록 신청 승인 성공", response)
         );
     }
 
     /**
-     * 아티스트 등록 요청 거절 API
+     * 아티스트 등록 신청 거절 API
      */
     @PostMapping("/admin/artist-applications/{applicationId}/reject")
     public ResponseEntity<BaseResponse<ArtistApplicationRejectResponse>> rejectArtistApplication(
@@ -121,7 +132,7 @@ public class ArtistController {
                 artistService.rejectArtistApplication(userId, applicationId, request);
 
         return ResponseEntity.status(HttpStatus.OK).body(
-                BaseResponse.success(HttpStatus.OK, "아티스트 등록 요청 거절 성공", response)
+                BaseResponse.success(HttpStatus.OK, "아티스트 등록 신청 거절 성공", response)
         );
     }
 
@@ -193,7 +204,8 @@ public class ArtistController {
             @AuthenticationPrincipal Long userId,
             @PathVariable Long artistId
     ) {
-        ArtistDetailResponse response = artistService.activateArtist(userId, artistId);
+        ArtistDetailResponse response =
+                artistService.activateArtist(userId, artistId);
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 BaseResponse.success(HttpStatus.OK, "아티스트 활성화 성공", response)
@@ -208,7 +220,8 @@ public class ArtistController {
             @AuthenticationPrincipal Long userId,
             @PathVariable Long artistId
     ) {
-        ArtistDetailResponse response = artistService.deactivateArtist(userId, artistId);
+        ArtistDetailResponse response =
+                artistService.deactivateArtist(userId, artistId);
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 BaseResponse.success(HttpStatus.OK, "아티스트 비활성화 성공", response)
