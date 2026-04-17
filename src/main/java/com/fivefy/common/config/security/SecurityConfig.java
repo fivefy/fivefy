@@ -44,7 +44,6 @@ public class SecurityConfig {
                                 "/api/users/login",
                                 "/api/users/reissue",
                                 "/api/popular-charts/**",
-                                "/test/**"
                                 "/test/**",
                                 "/api/portone/config",
                                 "/api/webhook/portone"
