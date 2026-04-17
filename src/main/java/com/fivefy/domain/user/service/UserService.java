@@ -2,9 +2,14 @@ package com.fivefy.domain.user.service;
 
 import com.fivefy.common.config.security.JwtUtil;
 import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.user.dto.event.UserDeletedEvent;
+import com.fivefy.domain.user.dto.request.UserDeleteRequest;
 import com.fivefy.domain.user.dto.request.UserLoginRequest;
+import com.fivefy.domain.user.dto.request.UserProfileUpdateRequest;
 import com.fivefy.domain.user.dto.request.UserSignupRequest;
 import com.fivefy.domain.user.dto.response.UserLoginResponse;
+import com.fivefy.domain.user.dto.response.UserProfileResponse;
+import com.fivefy.domain.user.dto.response.UserProfileUpdateResponse;
 import com.fivefy.domain.user.dto.response.UserSignupResponse;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.repository.UserRepository;
@@ -15,6 +20,7 @@ import io.jsonwebtoken.ExpiredJwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.RedisOperations;
@@ -24,6 +30,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.springframework.util.StringUtils;
 
 import java.time.Duration;
 import java.util.List;
@@ -41,6 +48,7 @@ public class UserService {
     private final WalletRepository walletRepository;
     private final JwtUtil jwtUtil;
     private final StringRedisTemplate redisTemplate;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final String DUMMY_HASH = "$2a$10$7EqJtq98hPqEX7fNZaFWoOHiS8GdKx2UY8ailqXF/w3vGN9VOGQ0y";
     private static final String RT_PREFIX = "RT:";
@@ -85,7 +93,7 @@ public class UserService {
      4. return
      */
     public UserLoginResponse loginUser(UserLoginRequest request) {
-        User user = userRepository.findByEmail(request.email()).orElse(null);
+        User user = userRepository.findByEmailAndDeletedAtIsNull(request.email()).orElse(null);
         String targetPassword = (user != null) ? user.getPassword() : DUMMY_HASH;
         boolean isMatch = passwordEncoder.matches(request.password(), targetPassword);
 
@@ -143,7 +151,7 @@ public class UserService {
             throw new BusinessException(ERR_USER_INVALID_RT);
         }
 
-        User user = userRepository.findById(userId).orElseThrow(
+        User user = userRepository.findByIdAndDeletedAtIsNull(userId).orElseThrow(
                 () -> new BusinessException(ERR_USER_NOT_FOUND)
         );
         // 유예 기간 RT로 요청이 오면 AT는 새로 발급, RT는 현재 최신 정보 반환 (동시성)
@@ -193,5 +201,53 @@ public class UserService {
     public void logoutUser(Long userId) {
         redisTemplate.delete(RT_PREFIX + userId);
         redisTemplate.delete(PREV_RT_PREFIX + userId);
+    }
+
+    @Transactional(readOnly = true)
+    public UserProfileResponse getUserProfile(Long userId) {
+        User user = userRepository.findByIdAndDeletedAtIsNull(userId).orElseThrow(
+                () -> new BusinessException(ERR_USER_NOT_FOUND)
+        );
+
+        return UserProfileResponse.from(user);
+    }
+
+    @Transactional
+    public UserProfileUpdateResponse updateUserProfile(Long userId, UserProfileUpdateRequest request) {
+        User user = userRepository.findByIdAndDeletedAtIsNull(userId).orElseThrow(
+                () -> new BusinessException(ERR_USER_NOT_FOUND)
+        );
+
+        if (request.passwordChange() != null) {
+            if (!passwordEncoder.matches(request.passwordChange().currentPassword(), user.getPassword())) {
+                throw new BusinessException(ERR_USER_MISMATCH_PASSWORD);
+            }
+
+            String encodedNewPassword = passwordEncoder.encode(request.passwordChange().newPassword());
+            user.updatePassword(encodedNewPassword);
+        }
+
+        if (StringUtils.hasText(request.name())) {
+            user.updateName(request.name());
+        }
+
+        return UserProfileUpdateResponse.from(user.getName(), user.getUpdatedAt());
+    }
+
+    @Transactional
+    public void deleteUser(Long userId, UserDeleteRequest request) {
+        User user = userRepository.findByIdAndDeletedAtIsNull(userId).orElseThrow(
+                () -> new BusinessException(ERR_USER_NOT_FOUND)
+        );
+
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            throw new BusinessException(ERR_USER_MISMATCH_PASSWORD);
+        }
+
+        // TODO 연관 데이터 처리
+        user.delete();
+
+        // 트랜잭션 커밋 후 Redis 정리를 위한 이벤트 발행
+        eventPublisher.publishEvent(new UserDeletedEvent(userId));
     }
 }

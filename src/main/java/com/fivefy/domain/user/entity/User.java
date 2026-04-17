@@ -1,6 +1,7 @@
 package com.fivefy.domain.user.entity;
 
 import com.fivefy.common.entity.BaseEntity;
+import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.user.enums.UserRole;
 import com.fivefy.domain.user.enums.UserStatus;
 import jakarta.persistence.*;
@@ -12,6 +13,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import java.time.LocalDateTime;
 
 import static com.fivefy.common.util.ValidationUtils.validateNonNull;
+import static com.fivefy.domain.user.enums.UserErrorCode.ERR_USER_ALREADY_DELETED;
 
 @Getter
 @Entity
@@ -60,5 +62,21 @@ public class User extends BaseEntity {
         user.status = UserStatus.ACTIVE;
 
         return user;
+    }
+
+    public void updateName(String name) {
+        this.name = name;
+    }
+
+    public void updatePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
+
+    public void delete() {
+        if (this.deletedAt != null) {
+            throw new BusinessException(ERR_USER_ALREADY_DELETED);
+        }
+        this.status = UserStatus.DELETED;
+        this.deletedAt = LocalDateTime.now();
     }
 }

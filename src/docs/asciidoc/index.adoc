@@ -71,10 +71,10 @@ include::{snippets}/user-signup/response-fields.adoc[]
 
 ==== 에러 케이스 — 요청 검증 실패
 
-include::{snippets}/user-signup-validate/http-request.adoc[]
-include::{snippets}/user-signup-validate/request-fields.adoc[]
-include::{snippets}/user-signup-validate/http-response.adoc[]
-include::{snippets}/user-signup-validate/response-fields.adoc[]
+include::{snippets}/user-signup-invalid/http-request.adoc[]
+include::{snippets}/user-signup-invalid/request-fields.adoc[]
+include::{snippets}/user-signup-invalid/http-response.adoc[]
+include::{snippets}/user-signup-invalid/response-fields.adoc[]
 
 ==== 에러 케이스 — 중복 이메일
 
@@ -96,10 +96,10 @@ include::{snippets}/user-login/response-fields.adoc[]
 
 ==== 에러 케이스 — 요청 검증 실패
 
-include::{snippets}/user-login-validate/http-request.adoc[]
-include::{snippets}/user-login-validate/request-fields.adoc[]
-include::{snippets}/user-login-validate/http-response.adoc[]
-include::{snippets}/user-login-validate/response-fields.adoc[]
+include::{snippets}/user-login-invalid/http-request.adoc[]
+include::{snippets}/user-login-invalid/request-fields.adoc[]
+include::{snippets}/user-login-invalid/http-response.adoc[]
+include::{snippets}/user-login-invalid/response-fields.adoc[]
 
 ==== 에러 케이스 — 로그인 실패
 
@@ -140,6 +140,60 @@ include::{snippets}/user-logout/http-request.adoc[]
 include::{snippets}/user-logout/http-response.adoc[]
 include::{snippets}/user-logout/response-cookies.adoc[]
 include::{snippets}/user-logout/response-fields.adoc[]
+
+---
+
+=== 내 프로필 조회
+
+include::{snippets}/user-get-profile/http-request.adoc[]
+include::{snippets}/user-get-profile/http-response.adoc[]
+include::{snippets}/user-get-profile/response-fields.adoc[]
+
+---
+
+=== 내 프로필 수정
+
+include::{snippets}/user-update-profile/http-request.adoc[]
+include::{snippets}/user-update-profile/request-fields.adoc[]
+include::{snippets}/user-update-profile/http-response.adoc[]
+include::{snippets}/user-update-profile/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/user-update-profile-invalid/http-request.adoc[]
+include::{snippets}/user-update-profile-invalid/request-fields.adoc[]
+include::{snippets}/user-update-profile-invalid/http-response.adoc[]
+include::{snippets}/user-update-profile-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 비밀번호 불일치
+
+include::{snippets}/user-update-profile-mismatch-password/http-request.adoc[]
+include::{snippets}/user-update-profile-mismatch-password/request-fields.adoc[]
+include::{snippets}/user-update-profile-mismatch-password/http-response.adoc[]
+include::{snippets}/user-update-profile-mismatch-password/response-fields.adoc[]
+
+---
+
+=== 회원 탈퇴
+
+include::{snippets}/user-delete/http-request.adoc[]
+include::{snippets}/user-delete/request-fields.adoc[]
+include::{snippets}/user-delete/http-response.adoc[]
+include::{snippets}/user-delete/response-cookies.adoc[]
+include::{snippets}/user-delete/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/user-delete-invalid/http-request.adoc[]
+include::{snippets}/user-delete-invalid/http-response.adoc[]
+include::{snippets}/user-delete-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 비밀번호 불일치
+
+include::{snippets}/user-delete-mismatch-password/http-request.adoc[]
+include::{snippets}/user-delete-mismatch-password/request-fields.adoc[]
+include::{snippets}/user-delete-mismatch-password/http-response.adoc[]
+include::{snippets}/user-delete-mismatch-password/response-fields.adoc[]
 
 ---
 

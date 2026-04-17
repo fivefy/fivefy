@@ -6,7 +6,11 @@ import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.user.dto.request.UserLoginRequest;
 import com.fivefy.domain.user.dto.request.UserSignupRequest;
 import com.fivefy.domain.user.dto.response.UserLoginResponse;
+import com.fivefy.domain.user.dto.response.UserProfileResponse;
+import com.fivefy.domain.user.dto.response.UserProfileUpdateResponse;
 import com.fivefy.domain.user.dto.response.UserSignupResponse;
+import com.fivefy.domain.user.enums.UserRole;
+import com.fivefy.domain.user.enums.UserStatus;
 import com.fivefy.domain.user.service.UserService;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.DisplayName;
@@ -19,18 +23,19 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 import static com.fivefy.domain.user.enums.UserErrorCode.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.doThrow;
 import static org.springframework.restdocs.cookies.CookieDocumentation.*;
 import static org.springframework.restdocs.headers.HeaderDocumentation.*;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.JsonFieldType.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WithMockUser
@@ -90,7 +95,7 @@ class UserControllerTest extends RestDocsSupport {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest())
-                    .andDo(document("user-signup-validate",
+                    .andDo(document("user-signup-invalid",
                             requestFields(
                                     fieldWithPath("name").type(STRING).description("이름 (값 없음)"),
                                     fieldWithPath("email").type(STRING).description("이메일"),
@@ -255,7 +260,7 @@ class UserControllerTest extends RestDocsSupport {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest())
-                    .andDo(document("user-login-validate",
+                    .andDo(document("user-login-invalid",
                             requestFields(
                                     fieldWithPath("email").type(STRING).description("이메일 (값 없음)"),
                                     fieldWithPath("password").type(STRING).description("비밀번호")
@@ -386,7 +391,7 @@ class UserControllerTest extends RestDocsSupport {
     }
 
     @Nested
-    @DisplayName("로그아웃 API")
+    @DisplayName("로그아웃")
     class Logout {
 
         @Test
@@ -406,6 +411,245 @@ class UserControllerTest extends RestDocsSupport {
                             ),
                             responseCookies(
                                     cookieWithName("refreshToken").description("만료된 리프레시 토큰 (maxAge=0)")
+                            )
+                    ));
+        }
+    }
+
+    @Nested
+    @DisplayName("내 프로필 조회")
+    class GetUserProfile {
+
+        @Test
+        @DisplayName("프로필 조회 성공 시 200 반환")
+        void getUserProfileSuccess() throws Exception {
+            // given
+            UserProfileResponse response = new UserProfileResponse(
+                    "test@test.com", "테스트",
+                    UserRole.USER, UserStatus.ACTIVE,
+                    LocalDateTime.now()
+            );
+            given(userService.getUserProfile(any())).willReturn(response);
+
+            //when & then
+            mockMvc.perform(get("/api/users/me"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.email").value("test@test.com"))
+                    .andExpect(jsonPath("$.data.name").value("테스트"))
+                    .andDo(document("user-get-profile",
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    fieldWithPath("data.email").type(STRING).description("이메일"),
+                                    fieldWithPath("data.name").type(STRING).description("이름"),
+                                    fieldWithPath("data.role").type(STRING).description("역할"),
+                                    fieldWithPath("data.status").type(STRING).description("상태"),
+                                    fieldWithPath("data.createdAt").type(STRING).description("가입 일시")
+                            )
+                    ));
+        }
+    }
+
+    @Nested
+    @DisplayName("내 프로필 수정")
+    class UpdateUserProfile {
+
+        @Test
+        @DisplayName("프로필 수정 성공 시 200 반환")
+        void updateUserProfileSuccess() throws Exception {
+            // given
+            UserProfileUpdateResponse response = new UserProfileUpdateResponse(
+                    "새이름", LocalDateTime.now()
+            );
+            given(userService.updateUserProfile(any(), any())).willReturn(response);
+
+            Map<String, Object> request = Map.of("name", "새이름");
+
+            // when & then
+            mockMvc.perform(patch("/api/users/me")
+                            .with(csrf().asHeader())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.name").value("새이름"))
+                    .andDo(document("user-update-profile",
+                            requestFields(
+                                    fieldWithPath("name").type(STRING).description("새로운 이름")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    fieldWithPath("data.name").type(STRING).description("수정된 이름"),
+                                    fieldWithPath("data.updatedAt").type(STRING).description("수정 일시")
+                            )
+                    ));
+        }
+
+        @Test
+        @DisplayName("이름이 2자 미만이면 400 반환")
+        void updateWithInvalidName() throws Exception {
+            // given
+            Map<String, Object> request = Map.of("name", "a");
+
+            // when & then
+            mockMvc.perform(patch("/api/users/me")
+                            .with(csrf().asHeader())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("새 비밀번호 형식이 맞지 않으면 400 반환")
+        void updateWithInvalidNewPassword() throws Exception {
+            // given
+            Map<String, Object> request = Map.of(
+                    "passwordChange", Map.of(
+                            "currentPassword", "Test1234!",
+                            "newPassword", "1234"  // 형식 불일치
+                    )
+            );
+
+            // when & then
+            mockMvc.perform(patch("/api/users/me")
+                            .with(csrf().asHeader())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andDo(document("user-update-profile-invalid",
+                            requestFields(
+                                    fieldWithPath("passwordChange.currentPassword").type(STRING).description("현재 비밀번호"),
+                                    fieldWithPath("passwordChange.newPassword").type(STRING).description("새로운 비밀번호 (잘못된 형식)")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지"),
+                                    fieldWithPath("data").type(ARRAY).description("상세 에러 내역"),
+                                    fieldWithPath("data[].field").type(STRING).description("에러가 발생한 필드명"),
+                                    fieldWithPath("data[].message").type(STRING).description("에러 상세 사유")
+                            )
+                    ));
+        }
+
+        @Test
+        @DisplayName("현재 비밀번호 불일치 시 401 반환")
+        void updateWithWrongCurrentPassword() throws Exception {
+            // given
+            given(userService.updateUserProfile(any(), any()))
+                    .willThrow(new BusinessException(ERR_USER_MISMATCH_PASSWORD));
+
+            Map<String, Object> request = Map.of(
+                    "passwordChange", Map.of(
+                            "currentPassword", "wrongPassword1!",
+                            "newPassword", "NewPass1!"
+                    )
+            );
+
+            // when & then
+            mockMvc.perform(patch("/api/users/me")
+                            .with(csrf().asHeader())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message").value(ERR_USER_MISMATCH_PASSWORD.getMessage()))
+                    .andDo(document("user-update-profile-mismatch-password",
+                            requestFields(
+                                    fieldWithPath("passwordChange.currentPassword").type(STRING).description("현재 비밀번호 (다름)"),
+                                    fieldWithPath("passwordChange.newPassword").type(STRING).description("새로운 비밀번호")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
+        }
+    }
+
+    @Nested
+    @DisplayName("회원 탈퇴")
+    class DeleteUser {
+
+        @Test
+        @DisplayName("탈퇴 성공 — 200, RT 쿠키 만료")
+        void deleteUserSuccess() throws Exception {
+            // given
+            Map<String, String> request = Map.of("password", "Test1234!");
+
+            // when & then
+            mockMvc.perform(delete("/api/users/me")
+                            .with(csrf().asHeader())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").value("회원 탈퇴 성공"))
+                    .andExpect(cookie().maxAge("refreshToken", 0))
+                    .andDo(document("user-delete",
+                            requestFields(
+                                    fieldWithPath("password").type(STRING).description("비밀번호 확인")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("응답 메시지")
+                            ),
+                            responseCookies(
+                                    cookieWithName("refreshToken").description("만료된 리프레시 토큰 (maxAge=0)")
+                            )
+                    ));
+        }
+
+        @Test
+        @DisplayName("비밀번호 없이 요청 시 400 반환")
+        void deleteUserWithoutPassword() throws Exception {
+            // given
+            Map<String, String> request = Map.of();
+
+            // when & then
+            mockMvc.perform(delete("/api/users/me")
+                            .with(csrf().asHeader())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andDo(document("user-delete-invalid",
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지"),
+                                    fieldWithPath("data").type(ARRAY).description("상세 에러 내역"),
+                                    fieldWithPath("data[].field").type(STRING).description("에러가 발생한 필드명"),
+                                    fieldWithPath("data[].message").type(STRING).description("에러 상세 사유")
+                            )
+                    ));
+        }
+
+        @Test
+        @DisplayName("비밀번호 불일치 시 401 반환")
+        void deleteUserWithWrongPassword() throws Exception {
+            // given
+            doThrow(new BusinessException(ERR_USER_MISMATCH_PASSWORD))
+                    .when(userService).deleteUser(any(), any());
+
+            Map<String, String> request = Map.of("password", "wrongPassword1!");
+
+            // when & then
+            mockMvc.perform(delete("/api/users/me")
+                            .with(csrf().asHeader())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message").value(ERR_USER_MISMATCH_PASSWORD.getMessage()))
+                    .andDo(document("user-delete-mismatch-password",
+                            requestFields(
+                                    fieldWithPath("password").type(STRING).description("비밀번호 확인 (다름)")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
                             )
                     ));
         }

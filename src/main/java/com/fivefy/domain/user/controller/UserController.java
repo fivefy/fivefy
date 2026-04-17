@@ -1,12 +1,15 @@
 package com.fivefy.domain.user.controller;
 
 import com.fivefy.common.dto.response.BaseResponse;
+import com.fivefy.domain.user.dto.request.UserDeleteRequest;
 import com.fivefy.domain.user.dto.request.UserLoginRequest;
+import com.fivefy.domain.user.dto.request.UserProfileUpdateRequest;
 import com.fivefy.domain.user.dto.request.UserSignupRequest;
 import com.fivefy.domain.user.dto.response.UserLoginResponse;
+import com.fivefy.domain.user.dto.response.UserProfileResponse;
+import com.fivefy.domain.user.dto.response.UserProfileUpdateResponse;
 import com.fivefy.domain.user.dto.response.UserSignupResponse;
 import com.fivefy.domain.user.service.UserService;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -60,18 +63,45 @@ public class UserController {
     public ResponseEntity<BaseResponse<Void>> logoutUser(@AuthenticationPrincipal Long userId) {
         userService.logoutUser(userId);
 
-        ResponseCookie expiredCookie = ResponseCookie.from("refreshToken", "")
-                .httpOnly(true)
-                .secure(true)
-                .path("/api/users/reissue")
-                .maxAge(0)
-                .sameSite("Strict")
-                .build();
+        ResponseCookie expiredCookie = buildExpiredRefreshTokenCookie();
 
         return ResponseEntity.status(HttpStatus.OK)
                 .header(HttpHeaders.SET_COOKIE, expiredCookie.toString())
                 .body(BaseResponse.success(HttpStatus.OK, "로그아웃 성공", null));
     }
+
+    @GetMapping("/users/me")
+    public ResponseEntity<BaseResponse<UserProfileResponse>> getUserProfile(@AuthenticationPrincipal Long userId) {
+        return ResponseEntity.status(HttpStatus.OK).body(
+                BaseResponse.success(HttpStatus.OK, "내 프로필 조회 성공", userService.getUserProfile(userId))
+        );
+    }
+
+    @PatchMapping("/users/me")
+    public ResponseEntity<BaseResponse<UserProfileUpdateResponse>> updateUserProfile(
+            @AuthenticationPrincipal Long userId,
+            @Valid @RequestBody UserProfileUpdateRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.OK).body(
+                BaseResponse.success(HttpStatus.OK, "내 프로필 수정 성공", userService.updateUserProfile(userId, request))
+        );
+    }
+
+    @DeleteMapping("/users/me")
+    public ResponseEntity<BaseResponse<Void>> deleteUser(
+            @AuthenticationPrincipal Long userId,
+            @Valid @RequestBody UserDeleteRequest request
+    ) {
+        userService.deleteUser(userId, request);
+
+        ResponseCookie expiredCookie = buildExpiredRefreshTokenCookie();
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .header(HttpHeaders.SET_COOKIE, expiredCookie.toString())
+                .body(BaseResponse.success(HttpStatus.OK, "회원 탈퇴 성공", null)
+        );
+    }
+
 
     private ResponseCookie buildRefreshTokenCookie(String refreshToken) {
         return ResponseCookie.from("refreshToken", refreshToken)
@@ -79,6 +109,16 @@ public class UserController {
                 .secure(true)
                 .path("/api/users/reissue")
                 .maxAge(Duration.ofDays(7))
+                .sameSite("Strict")
+                .build();
+    }
+
+    private ResponseCookie buildExpiredRefreshTokenCookie() {
+        return ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/api/users/reissue")
+                .maxAge(0)
                 .sameSite("Strict")
                 .build();
     }

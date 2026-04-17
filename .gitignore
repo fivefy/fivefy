@@ -37,7 +37,7 @@ out/
 .vscode/
 
 ### macOS ###
-.idea/
+.DS_Store
 
 ### env ###
 .env
