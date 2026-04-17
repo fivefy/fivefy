@@ -3,7 +3,7 @@ package com.fivefy.domain.album.dto.request;
 import jakarta.validation.constraints.*;
 
 /**
- * 앨범 등록 요청 생성 요청 DTO
+ * 앨범 등록 신청 생성 요청 DTO
  */
 public record AlbumApplicationCreateRequest(
 

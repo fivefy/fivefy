@@ -20,7 +20,7 @@ public class AlbumApplicationQueryRepositoryImpl implements AlbumApplicationQuer
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public boolean existsPendingRequest(Long requesterUserId, Long artistId, String title) {
+    public boolean existsPendingApplication(Long requesterUserId, Long artistId, String title) {
         Integer result = queryFactory
                 .selectOne()
                 .from(albumApplication)

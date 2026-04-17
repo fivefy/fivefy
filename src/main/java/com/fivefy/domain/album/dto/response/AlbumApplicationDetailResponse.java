@@ -6,10 +6,10 @@ import com.fivefy.domain.album.entity.AlbumApplication;
 import java.time.LocalDateTime;
 
 /**
- * 앨범 등록 요청 상세 응답 DTO
+ * 앨범 등록 신청 상세 응답 DTO
  */
 public record AlbumApplicationDetailResponse(
-        Long requestId,
+        Long applicationId,
         Long requesterUserId,
         Long artistId,
         String title,
@@ -23,21 +23,21 @@ public record AlbumApplicationDetailResponse(
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
-    public static AlbumApplicationDetailResponse from(AlbumApplication request) {
+    public static AlbumApplicationDetailResponse from(AlbumApplication application) {
         return new AlbumApplicationDetailResponse(
-                request.getId(),
-                request.getRequesterUserId(),
-                request.getArtistId(),
-                request.getTitle(),
-                request.getDescription(),
-                request.getCoverImageUrl(),
-                request.getPublishDelayDays(),
-                request.getStatus(),
-                request.getReviewedByAdminId(),
-                request.getReviewedAt(),
-                request.getRejectionReason(),
-                request.getCreatedAt(),
-                request.getUpdatedAt()
+                application.getId(),
+                application.getRequesterUserId(),
+                application.getArtistId(),
+                application.getTitle(),
+                application.getDescription(),
+                application.getCoverImageUrl(),
+                application.getPublishDelayDays(),
+                application.getStatus(),
+                application.getReviewedByAdminId(),
+                application.getReviewedAt(),
+                application.getRejectionReason(),
+                application.getCreatedAt(),
+                application.getUpdatedAt()
         );
     }
 }

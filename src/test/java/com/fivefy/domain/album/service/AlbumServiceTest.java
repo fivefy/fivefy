@@ -46,12 +46,12 @@ import static org.mockito.Mockito.when;
 /**
  * AlbumService의 비즈니스 로직을 검증하는 단위 테스트
  *
- * 앨범 등록 요청 생성 기능을 검증한다.
- * 내 앨범 등록 요청 목록 조회 기능을 검증한다.
- * 내 앨범 등록 요청 목록 빈 결과 조회 기능을 검증한다.
- * 앨범 등록 요청 상세 조회 기능을 검증한다.
- * 관리자 앨범 등록 요청 목록 조회 기능을 검증한다.
- * 앨범 등록 요청 승인 기능을 검증한다.
+ * 앨범 등록 신청 생성 기능을 검증한다.
+ * 내 앨범 등록 신청 목록 조회 기능을 검증한다.
+ * 내 앨범 등록 신청 목록 빈 결과 조회 기능을 검증한다.
+ * 앨범 등록 신청 상세 조회 기능을 검증한다.
+ * 관리자 앨범 등록 신청 목록 조회 기능을 검증한다.
+ * 앨범 등록 신청 승인 기능을 검증한다.
  */
 @ExtendWith(MockitoExtension.class)
 class AlbumServiceTest {
@@ -72,11 +72,11 @@ class AlbumServiceTest {
     private AlbumService albumService;
 
     @Nested
-    @DisplayName("앨범 등록 요청 생성")
+    @DisplayName("앨범 등록 신청 생성")
     class CreateAlbumApplication {
 
         @Test
-        @DisplayName("앨범 등록 요청 생성 성공")
+        @DisplayName("앨범 등록 신청 생성 성공")
         void createAlbumApplication_success() {
             Long userId = 1L;
             Long artistId = 10L;
@@ -102,10 +102,10 @@ class AlbumServiceTest {
             ReflectionTestUtils.setField(artist, "id", artistId);
 
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
-            when(albumApplicationRepository.existsPendingRequest(userId, artistId, request.title()))
+            when(albumApplicationRepository.existsPendingApplication(userId, artistId, request.title()))
                     .thenReturn(false);
 
-            AlbumApplication savedRequest = AlbumApplication.create(
+            AlbumApplication savedApplication = AlbumApplication.create(
                     userId,
                     artistId,
                     request.title(),
@@ -113,16 +113,16 @@ class AlbumServiceTest {
                     request.coverImageUrl(),
                     request.publishDelayDays()
             );
-            ReflectionTestUtils.setField(savedRequest, "id", 1L);
-            ReflectionTestUtils.setField(savedRequest, "createdAt", LocalDateTime.of(2026, 4, 16, 16, 0, 0));
+            ReflectionTestUtils.setField(savedApplication, "id", 1L);
+            ReflectionTestUtils.setField(savedApplication, "createdAt", LocalDateTime.of(2026, 4, 16, 16, 0, 0));
 
             when(albumApplicationRepository.save(any(AlbumApplication.class)))
-                    .thenReturn(savedRequest);
+                    .thenReturn(savedApplication);
 
             AlbumApplicationResponse response =
                     albumService.createAlbumApplication(userId, request);
 
-            assertThat(response.requestId()).isEqualTo(1L);
+            assertThat(response.applicationId()).isEqualTo(1L);
             assertThat(response.artistId()).isEqualTo(artistId);
             assertThat(response.title()).isEqualTo("Love poem");
             assertThat(response.status()).isEqualTo(ApplicationStatus.PENDING);
@@ -130,7 +130,7 @@ class AlbumServiceTest {
         }
 
         @Test
-        @DisplayName("존재하지 않는 유저면 앨범 등록 요청 생성 실패")
+        @DisplayName("존재하지 않는 유저면 앨범 등록 신청 생성 실패")
         void createAlbumApplication_fail_whenUserNotFound() {
             Long userId = 1L;
 
@@ -150,7 +150,7 @@ class AlbumServiceTest {
         }
 
         @Test
-        @DisplayName("존재하지 않는 아티스트면 앨범 등록 요청 생성 실패")
+        @DisplayName("존재하지 않는 아티스트면 앨범 등록 신청 생성 실패")
         void createAlbumApplication_fail_whenArtistNotFound() {
             Long userId = 1L;
             Long artistId = 10L;
@@ -173,7 +173,7 @@ class AlbumServiceTest {
         }
 
         @Test
-        @DisplayName("삭제된 아티스트면 앨범 등록 요청 생성 실패")
+        @DisplayName("삭제된 아티스트면 앨범 등록 신청 생성 실패")
         void createAlbumApplication_fail_whenArtistDeleted() {
             Long userId = 1L;
             Long artistId = 10L;
@@ -207,7 +207,7 @@ class AlbumServiceTest {
         }
 
         @Test
-        @DisplayName("아티스트 소유자가 아니면 앨범 등록 요청 생성 실패")
+        @DisplayName("아티스트 소유자가 아니면 앨범 등록 신청 생성 실패")
         void createAlbumApplication_fail_whenForbiddenArtistAccess() {
             Long userId = 1L;
             Long artistId = 10L;
@@ -240,7 +240,7 @@ class AlbumServiceTest {
         }
 
         @Test
-        @DisplayName("비활성화된 아티스트면 앨범 등록 요청 생성 실패")
+        @DisplayName("비활성화된 아티스트면 앨범 등록 신청 생성 실패")
         void createAlbumApplication_fail_whenArtistInactive() {
             Long userId = 1L;
             Long artistId = 10L;
@@ -274,7 +274,7 @@ class AlbumServiceTest {
         }
 
         @Test
-        @DisplayName("공개 예약 옵션이 범위를 벗어나면 앨범 등록 요청 생성 실패")
+        @DisplayName("공개 예약 옵션이 범위를 벗어나면 앨범 등록 신청 생성 실패")
         void createAlbumApplication_fail_whenInvalidPublishDelayDays() {
             Long userId = 1L;
             Long artistId = 10L;
@@ -307,7 +307,7 @@ class AlbumServiceTest {
         }
 
         @Test
-        @DisplayName("동일한 진행 중 요청이 이미 있으면 앨범 등록 요청 생성 실패")
+        @DisplayName("동일한 진행 중 신청이 이미 있으면 앨범 등록 신청 생성 실패")
         void createAlbumApplication_fail_whenAlreadyExists() {
             Long userId = 1L;
             Long artistId = 10L;
@@ -333,7 +333,7 @@ class AlbumServiceTest {
             ReflectionTestUtils.setField(artist, "id", artistId);
 
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
-            when(albumApplicationRepository.existsPendingRequest(userId, artistId, request.title()))
+            when(albumApplicationRepository.existsPendingApplication(userId, artistId, request.title()))
                     .thenReturn(true);
 
             assertThatThrownBy(() -> albumService.createAlbumApplication(userId, request))
@@ -343,7 +343,7 @@ class AlbumServiceTest {
     }
 
     @Nested
-    @DisplayName("내 앨범 등록 요청 목록 조회")
+    @DisplayName("내 앨범 등록 신청 목록 조회")
     class GetMyAlbumApplications {
 
         @Test
@@ -355,43 +355,43 @@ class AlbumServiceTest {
             User user = mock(User.class);
             when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
-            AlbumApplication request1 = AlbumApplication.create(
+            AlbumApplication application1 = AlbumApplication.create(
                     userId,
                     artistId,
-                    "두 번째 요청",
+                    "두 번째 신청",
                     "설명2",
                     "https://example.com/cover2.jpg",
                     2
             );
-            ReflectionTestUtils.setField(request1, "id", 2L);
-            ReflectionTestUtils.setField(request1, "createdAt", LocalDateTime.of(2026, 4, 16, 16, 0, 0));
+            ReflectionTestUtils.setField(application1, "id", 2L);
+            ReflectionTestUtils.setField(application1, "createdAt", LocalDateTime.of(2026, 4, 16, 16, 0, 0));
 
-            AlbumApplication request2 = AlbumApplication.create(
+            AlbumApplication application2 = AlbumApplication.create(
                     userId,
                     artistId,
-                    "첫 번째 요청",
+                    "첫 번째 신청",
                     "설명1",
                     "https://example.com/cover1.jpg",
                     0
             );
-            ReflectionTestUtils.setField(request2, "id", 1L);
-            ReflectionTestUtils.setField(request2, "createdAt", LocalDateTime.of(2026, 4, 15, 16, 0, 0));
+            ReflectionTestUtils.setField(application2, "id", 1L);
+            ReflectionTestUtils.setField(application2, "createdAt", LocalDateTime.of(2026, 4, 15, 16, 0, 0));
 
             when(albumApplicationRepository.searchMyAlbumApplications(userId))
-                    .thenReturn(List.of(request1, request2));
+                    .thenReturn(List.of(application1, application2));
 
             List<AlbumApplicationResponse> response =
                     albumService.getMyAlbumApplications(userId);
 
             assertThat(response).hasSize(2);
-            assertThat(response.get(0).requestId()).isEqualTo(2L);
-            assertThat(response.get(0).title()).isEqualTo("두 번째 요청");
-            assertThat(response.get(1).requestId()).isEqualTo(1L);
-            assertThat(response.get(1).title()).isEqualTo("첫 번째 요청");
+            assertThat(response.get(0).applicationId()).isEqualTo(2L);
+            assertThat(response.get(0).title()).isEqualTo("두 번째 신청");
+            assertThat(response.get(1).applicationId()).isEqualTo(1L);
+            assertThat(response.get(1).title()).isEqualTo("첫 번째 신청");
         }
 
         @Test
-        @DisplayName("내 앨범 등록 요청이 없으면 빈 목록 조회 성공")
+        @DisplayName("내 앨범 등록 신청이 없으면 빈 목록 조회 성공")
         void getMyAlbumApplications_success_whenEmpty() {
             Long userId = 1L;
 
@@ -420,20 +420,20 @@ class AlbumServiceTest {
     }
 
     @Nested
-    @DisplayName("앨범 등록 요청 상세 조회")
+    @DisplayName("앨범 등록 신청 상세 조회")
     class GetAlbumApplication {
 
         @Test
-        @DisplayName("요청자 본인이면 상세 조회 성공")
+        @DisplayName("신청자 본인이면 상세 조회 성공")
         void getAlbumApplication_success_whenRequester() {
             Long userId = 1L;
-            Long requestId = 100L;
+            Long applicationId = 100L;
             Long artistId = 10L;
 
             User user = mock(User.class);
             when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
-            AlbumApplication request = AlbumApplication.create(
+            AlbumApplication application = AlbumApplication.create(
                     userId,
                     artistId,
                     "Palette",
@@ -441,16 +441,16 @@ class AlbumServiceTest {
                     "https://example.com/album.jpg",
                     0
             );
-            ReflectionTestUtils.setField(request, "id", requestId);
-            ReflectionTestUtils.setField(request, "createdAt", LocalDateTime.of(2026, 4, 14, 15, 0, 0));
-            ReflectionTestUtils.setField(request, "updatedAt", LocalDateTime.of(2026, 4, 14, 15, 0, 0));
+            ReflectionTestUtils.setField(application, "id", applicationId);
+            ReflectionTestUtils.setField(application, "createdAt", LocalDateTime.of(2026, 4, 14, 15, 0, 0));
+            ReflectionTestUtils.setField(application, "updatedAt", LocalDateTime.of(2026, 4, 14, 15, 0, 0));
 
-            when(albumApplicationRepository.findById(requestId)).thenReturn(Optional.of(request));
+            when(albumApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
 
             AlbumApplicationDetailResponse response =
-                    albumService.getAlbumApplication(userId, requestId);
+                    albumService.getAlbumApplication(userId, applicationId);
 
-            assertThat(response.requestId()).isEqualTo(requestId);
+            assertThat(response.applicationId()).isEqualTo(applicationId);
             assertThat(response.requesterUserId()).isEqualTo(userId);
             assertThat(response.artistId()).isEqualTo(artistId);
             assertThat(response.title()).isEqualTo("Palette");
@@ -462,7 +462,7 @@ class AlbumServiceTest {
         @DisplayName("관리자면 상세 조회 성공")
         void getAlbumApplication_success_whenAdmin() {
             Long userId = 99L;
-            Long requestId = 100L;
+            Long applicationId = 100L;
             Long requesterUserId = 1L;
             Long artistId = 10L;
 
@@ -470,7 +470,7 @@ class AlbumServiceTest {
             when(admin.getRole()).thenReturn(UserRole.ADMIN);
             when(userRepository.findById(userId)).thenReturn(Optional.of(admin));
 
-            AlbumApplication request = AlbumApplication.create(
+            AlbumApplication application = AlbumApplication.create(
                     requesterUserId,
                     artistId,
                     "Palette",
@@ -478,16 +478,16 @@ class AlbumServiceTest {
                     "https://example.com/album.jpg",
                     0
             );
-            ReflectionTestUtils.setField(request, "id", requestId);
-            ReflectionTestUtils.setField(request, "createdAt", LocalDateTime.of(2026, 4, 14, 15, 0, 0));
-            ReflectionTestUtils.setField(request, "updatedAt", LocalDateTime.of(2026, 4, 14, 15, 0, 0));
+            ReflectionTestUtils.setField(application, "id", applicationId);
+            ReflectionTestUtils.setField(application, "createdAt", LocalDateTime.of(2026, 4, 14, 15, 0, 0));
+            ReflectionTestUtils.setField(application, "updatedAt", LocalDateTime.of(2026, 4, 14, 15, 0, 0));
 
-            when(albumApplicationRepository.findById(requestId)).thenReturn(Optional.of(request));
+            when(albumApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
 
             AlbumApplicationDetailResponse response =
-                    albumService.getAlbumApplication(userId, requestId);
+                    albumService.getAlbumApplication(userId, applicationId);
 
-            assertThat(response.requestId()).isEqualTo(requestId);
+            assertThat(response.applicationId()).isEqualTo(applicationId);
             assertThat(response.requesterUserId()).isEqualTo(requesterUserId);
         }
 
@@ -495,7 +495,7 @@ class AlbumServiceTest {
         @DisplayName("본인도 관리자도 아니면 상세 조회 실패")
         void getAlbumApplication_fail_whenForbidden() {
             Long userId = 2L;
-            Long requestId = 100L;
+            Long applicationId = 100L;
             Long requesterUserId = 1L;
             Long artistId = 10L;
 
@@ -503,7 +503,7 @@ class AlbumServiceTest {
             when(user.getRole()).thenReturn(UserRole.USER);
             when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
-            AlbumApplication request = AlbumApplication.create(
+            AlbumApplication application = AlbumApplication.create(
                     requesterUserId,
                     artistId,
                     "Palette",
@@ -511,31 +511,31 @@ class AlbumServiceTest {
                     "https://example.com/album.jpg",
                     0
             );
-            ReflectionTestUtils.setField(request, "id", requestId);
+            ReflectionTestUtils.setField(application, "id", applicationId);
 
-            when(albumApplicationRepository.findById(requestId)).thenReturn(Optional.of(request));
+            when(albumApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
 
-            assertThatThrownBy(() -> albumService.getAlbumApplication(userId, requestId))
+            assertThatThrownBy(() -> albumService.getAlbumApplication(userId, applicationId))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_DETAIL_FORBIDDEN.getMessage());
         }
 
         @Test
-        @DisplayName("존재하지 않는 요청이면 상세 조회 실패")
+        @DisplayName("존재하지 않는 신청이면 상세 조회 실패")
         void getAlbumApplication_fail_whenNotFound() {
             Long userId = 1L;
-            Long requestId = 100L;
+            Long applicationId = 100L;
 
-            when(albumApplicationRepository.findById(requestId)).thenReturn(Optional.empty());
+            when(albumApplicationRepository.findById(applicationId)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> albumService.getAlbumApplication(userId, requestId))
+            assertThatThrownBy(() -> albumService.getAlbumApplication(userId, applicationId))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_NOT_FOUND.getMessage());
         }
     }
 
     @Nested
-    @DisplayName("관리자 앨범 등록 요청 목록 조회")
+    @DisplayName("관리자 앨범 등록 신청 목록 조회")
     class GetAlbumApplications {
 
         @Test
@@ -543,39 +543,39 @@ class AlbumServiceTest {
         void getAlbumApplications_success_withoutStatus() {
             Pageable pageable = PageRequest.of(0, 20);
 
-            AlbumApplication request1 = AlbumApplication.create(
+            AlbumApplication application1 = AlbumApplication.create(
                     1L,
                     10L,
-                    "첫 번째 요청",
+                    "첫 번째 신청",
                     "설명1",
                     "https://example.com/cover1.jpg",
                     0
             );
-            ReflectionTestUtils.setField(request1, "id", 1L);
-            ReflectionTestUtils.setField(request1, "createdAt", LocalDateTime.of(2026, 4, 14, 15, 0, 0));
+            ReflectionTestUtils.setField(application1, "id", 1L);
+            ReflectionTestUtils.setField(application1, "createdAt", LocalDateTime.of(2026, 4, 14, 15, 0, 0));
 
-            AlbumApplication request2 = AlbumApplication.create(
+            AlbumApplication application2 = AlbumApplication.create(
                     2L,
                     20L,
-                    "두 번째 요청",
+                    "두 번째 신청",
                     "설명2",
                     "https://example.com/cover2.jpg",
                     3
             );
-            ReflectionTestUtils.setField(request2, "id", 2L);
-            ReflectionTestUtils.setField(request2, "createdAt", LocalDateTime.of(2026, 4, 15, 15, 0, 0));
+            ReflectionTestUtils.setField(application2, "id", 2L);
+            ReflectionTestUtils.setField(application2, "createdAt", LocalDateTime.of(2026, 4, 15, 15, 0, 0));
 
             when(albumApplicationRepository.searchAlbumApplications(null, pageable))
-                    .thenReturn(new PageImpl<>(List.of(request1, request2), pageable, 2));
+                    .thenReturn(new PageImpl<>(List.of(application1, application2), pageable, 2));
 
             PageResponse<AlbumApplicationListResponse> response =
                     albumService.getAlbumApplications(null, pageable);
 
             assertThat(response.content()).hasSize(2);
-            assertThat(response.content().get(0).requestId()).isEqualTo(1L);
+            assertThat(response.content().get(0).applicationId()).isEqualTo(1L);
             assertThat(response.content().get(0).requesterUserId()).isEqualTo(1L);
-            assertThat(response.content().get(0).title()).isEqualTo("첫 번째 요청");
-            assertThat(response.content().get(1).requestId()).isEqualTo(2L);
+            assertThat(response.content().get(0).title()).isEqualTo("첫 번째 신청");
+            assertThat(response.content().get(1).applicationId()).isEqualTo(2L);
             assertThat(response.page()).isEqualTo(0);
             assertThat(response.size()).isEqualTo(20);
             assertThat(response.totalElements()).isEqualTo(2);
@@ -587,19 +587,19 @@ class AlbumServiceTest {
         void getAlbumApplications_success_withStatus() {
             Pageable pageable = PageRequest.of(0, 20);
 
-            AlbumApplication request = AlbumApplication.create(
+            AlbumApplication application = AlbumApplication.create(
                     1L,
                     10L,
-                    "승인 대기 요청",
+                    "승인 대기 신청",
                     "설명",
                     "https://example.com/cover.jpg",
                     0
             );
-            ReflectionTestUtils.setField(request, "id", 1L);
-            ReflectionTestUtils.setField(request, "createdAt", LocalDateTime.of(2026, 4, 14, 15, 0, 0));
+            ReflectionTestUtils.setField(application, "id", 1L);
+            ReflectionTestUtils.setField(application, "createdAt", LocalDateTime.of(2026, 4, 14, 15, 0, 0));
 
             when(albumApplicationRepository.searchAlbumApplications(ApplicationStatus.PENDING, pageable))
-                    .thenReturn(new PageImpl<>(List.of(request), pageable, 1));
+                    .thenReturn(new PageImpl<>(List.of(application), pageable, 1));
 
             PageResponse<AlbumApplicationListResponse> response =
                     albumService.getAlbumApplications(ApplicationStatus.PENDING, pageable);
@@ -627,16 +627,16 @@ class AlbumServiceTest {
     }
 
     @Nested
-    @DisplayName("앨범 등록 요청 승인")
+    @DisplayName("앨범 등록 신청 승인")
     class ApproveAlbumApplication {
 
         @Test
-        @DisplayName("즉시 공개 요청이면 승인과 함께 앨범 생성 및 공개 성공")
+        @DisplayName("즉시 공개 신청이면 승인과 함께 앨범 생성 및 공개 성공")
         void approveAlbumApplication_success_whenImmediatePublish() {
             Long adminId = 1L;
-            Long requestId = 10L;
+            Long applicationId = 10L;
 
-            AlbumApplication request = AlbumApplication.create(
+            AlbumApplication application = AlbumApplication.create(
                     2L,
                     100L,
                     "Palette",
@@ -644,24 +644,24 @@ class AlbumServiceTest {
                     "https://example.com/album.jpg",
                     0
             );
-            ReflectionTestUtils.setField(request, "id", requestId);
+            ReflectionTestUtils.setField(application, "id", applicationId);
 
             Album savedAlbum = Album.create(
-                    request.getArtistId(),
-                    request.getTitle(),
-                    request.getDescription(),
-                    request.getCoverImageUrl(),
+                    application.getArtistId(),
+                    application.getTitle(),
+                    application.getDescription(),
+                    application.getCoverImageUrl(),
                     null
             );
             ReflectionTestUtils.setField(savedAlbum, "id", 1000L);
 
-            when(albumApplicationRepository.findById(requestId)).thenReturn(Optional.of(request));
+            when(albumApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
             when(albumRepository.save(any(Album.class))).thenReturn(savedAlbum);
 
             AlbumApplicationApproveResponse response =
-                    albumService.approveAlbumApplication(adminId, requestId);
+                    albumService.approveAlbumApplication(adminId, applicationId);
 
-            assertThat(response.requestId()).isEqualTo(requestId);
+            assertThat(response.applicationId()).isEqualTo(applicationId);
             assertThat(response.albumId()).isEqualTo(1000L);
             assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED.name());
             assertThat(response.reviewedByAdminId()).isEqualTo(adminId);
@@ -669,12 +669,12 @@ class AlbumServiceTest {
         }
 
         @Test
-        @DisplayName("예약 공개 요청이면 승인과 함께 앨범 생성 성공")
+        @DisplayName("예약 공개 신청이면 승인과 함께 앨범 생성 성공")
         void approveAlbumApplication_success_whenScheduledPublish() {
             Long adminId = 1L;
-            Long requestId = 10L;
+            Long applicationId = 10L;
 
-            AlbumApplication request = AlbumApplication.create(
+            AlbumApplication application = AlbumApplication.create(
                     2L,
                     100L,
                     "Palette",
@@ -682,24 +682,24 @@ class AlbumServiceTest {
                     "https://example.com/album.jpg",
                     3
             );
-            ReflectionTestUtils.setField(request, "id", requestId);
+            ReflectionTestUtils.setField(application, "id", applicationId);
 
             Album savedAlbum = Album.create(
-                    request.getArtistId(),
-                    request.getTitle(),
-                    request.getDescription(),
-                    request.getCoverImageUrl(),
+                    application.getArtistId(),
+                    application.getTitle(),
+                    application.getDescription(),
+                    application.getCoverImageUrl(),
                     LocalDateTime.now().plusDays(3)
             );
             ReflectionTestUtils.setField(savedAlbum, "id", 1000L);
 
-            when(albumApplicationRepository.findById(requestId)).thenReturn(Optional.of(request));
+            when(albumApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
             when(albumRepository.save(any(Album.class))).thenReturn(savedAlbum);
 
             AlbumApplicationApproveResponse response =
-                    albumService.approveAlbumApplication(adminId, requestId);
+                    albumService.approveAlbumApplication(adminId, applicationId);
 
-            assertThat(response.requestId()).isEqualTo(requestId);
+            assertThat(response.applicationId()).isEqualTo(applicationId);
             assertThat(response.albumId()).isEqualTo(1000L);
             assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED.name());
             assertThat(response.reviewedByAdminId()).isEqualTo(adminId);
@@ -707,25 +707,25 @@ class AlbumServiceTest {
         }
 
         @Test
-        @DisplayName("존재하지 않는 요청이면 승인 실패")
+        @DisplayName("존재하지 않는 신청이면 승인 실패")
         void approveAlbumApplication_fail_whenNotFound() {
             Long adminId = 1L;
-            Long requestId = 10L;
+            Long applicationId = 10L;
 
-            when(albumApplicationRepository.findById(requestId)).thenReturn(Optional.empty());
+            when(albumApplicationRepository.findById(applicationId)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> albumService.approveAlbumApplication(adminId, requestId))
+            assertThatThrownBy(() -> albumService.approveAlbumApplication(adminId, applicationId))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_NOT_FOUND.getMessage());
         }
 
         @Test
-        @DisplayName("이미 처리된 요청이면 승인 실패")
+        @DisplayName("이미 처리된 신청이면 승인 실패")
         void approveAlbumApplication_fail_whenAlreadyProcessed() {
             Long adminId = 1L;
-            Long requestId = 10L;
+            Long applicationId = 10L;
 
-            AlbumApplication request = AlbumApplication.create(
+            AlbumApplication application = AlbumApplication.create(
                     2L,
                     100L,
                     "Palette",
@@ -733,12 +733,12 @@ class AlbumServiceTest {
                     "https://example.com/album.jpg",
                     0
             );
-            ReflectionTestUtils.setField(request, "id", requestId);
-            request.approve(adminId);
+            ReflectionTestUtils.setField(application, "id", applicationId);
+            application.approve(adminId);
 
-            when(albumApplicationRepository.findById(requestId)).thenReturn(Optional.of(request));
+            when(albumApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
 
-            assertThatThrownBy(() -> albumService.approveAlbumApplication(adminId, requestId))
+            assertThatThrownBy(() -> albumService.approveAlbumApplication(adminId, applicationId))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_PROCESSED.getMessage());
         }

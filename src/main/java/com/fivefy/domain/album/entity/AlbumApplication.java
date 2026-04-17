@@ -17,11 +17,11 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 @Getter
 @Entity
 @Table(
-        name = "album_release_requests",
+        name = "album_applications",
         indexes = {
-                @Index(name = "idx_album_release_request_requester_user_id", columnList = "requester_user_id"),
-                @Index(name = "idx_album_release_request_artist_id", columnList = "artist_id"),
-                @Index(name = "idx_album_release_request_status", columnList = "status")
+                @Index(name = "idx_album_application_requester_user_id", columnList = "requester_user_id"),
+                @Index(name = "idx_album_application_artist_id", columnList = "artist_id"),
+                @Index(name = "idx_album_application_status", columnList = "status")
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -79,17 +79,17 @@ public class AlbumApplication extends BaseEntity {
         validateNonNull(title, "title");
         validateNonNull(publishDelayDays, "publishDelayDays");
 
-        AlbumApplication request = new AlbumApplication();
+        AlbumApplication application = new AlbumApplication();
 
-        request.requesterUserId = requesterUserId;
-        request.artistId = artistId;
-        request.title = title;
-        request.description = description;
-        request.coverImageUrl = coverImageUrl;
-        request.publishDelayDays = publishDelayDays;
-        request.status = ApplicationStatus.PENDING;
+        application.requesterUserId = requesterUserId;
+        application.artistId = artistId;
+        application.title = title;
+        application.description = description;
+        application.coverImageUrl = coverImageUrl;
+        application.publishDelayDays = publishDelayDays;
+        application.status = ApplicationStatus.PENDING;
 
-        return request;
+        return application;
     }
 
     public void approve(Long adminId) {

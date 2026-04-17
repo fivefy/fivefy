@@ -6,24 +6,24 @@ import com.fivefy.domain.album.entity.AlbumApplication;
 import java.time.LocalDateTime;
 
 /**
- * 앨범 등록 요청 목록 응답 DTO
+ * 앨범 등록 신청 목록 응답 DTO
  */
 public record AlbumApplicationListResponse(
-        Long requestId,
+        Long applicationId,
         Long requesterUserId,
         Long artistId,
         String title,
         ApplicationStatus status,
         LocalDateTime createdAt
 ) {
-    public static AlbumApplicationListResponse from(AlbumApplication request) {
+    public static AlbumApplicationListResponse from(AlbumApplication application) {
         return new AlbumApplicationListResponse(
-                request.getId(),
-                request.getRequesterUserId(),
-                request.getArtistId(),
-                request.getTitle(),
-                request.getStatus(),
-                request.getCreatedAt()
+                application.getId(),
+                application.getRequesterUserId(),
+                application.getArtistId(),
+                application.getTitle(),
+                application.getStatus(),
+                application.getCreatedAt()
         );
     }
 }

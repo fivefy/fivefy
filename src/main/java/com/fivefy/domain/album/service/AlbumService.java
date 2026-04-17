@@ -37,20 +37,20 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AlbumService {
 
-    private final AlbumApplicationRepository AlbumApplicationRepository;
+    private final AlbumApplicationRepository albumApplicationRepository;
     private final AlbumRepository albumRepository;
     private final ArtistRepository artistRepository;
     private final UserRepository userRepository;
 
     /**
-     * 앨범 등록 요청 생성
+     * 앨범 등록 신청 생성
      */
     @Transactional
     public AlbumApplicationResponse createAlbumApplication(
             Long userId,
             AlbumApplicationCreateRequest request
     ) {
-        // 요청 유저 존재 확인
+        // 신청 유저 존재 확인
         findUser(userId);
 
         // 아티스트 조회 및 삭제 여부 검증
@@ -65,11 +65,11 @@ public class AlbumService {
         // 공개 예약 정책 검증
         validatePublishDelayDays(request.publishDelayDays());
 
-        // 중복 요청 검증
-        validateDuplicatePendingRequest(userId, request.artistId(), request.title());
+        // 중복 신청 검증
+        validateDuplicatePendingApplication(userId, request.artistId(), request.title());
 
-        // 등록 요청 생성 및 저장
-        AlbumApplication savedRequest = AlbumApplicationRepository.save(
+        // 등록 신청 생성 및 저장
+        AlbumApplication savedApplication = albumApplicationRepository.save(
                 AlbumApplication.create(
                         userId,
                         request.artistId(),
@@ -80,38 +80,38 @@ public class AlbumService {
                 )
         );
 
-        return AlbumApplicationResponse.from(savedRequest);
+        return AlbumApplicationResponse.from(savedApplication);
     }
 
     /**
-     * 내 앨범 등록 요청 목록 조회
+     * 내 앨범 등록 신청 목록 조회
      */
     @Transactional(readOnly = true)
     public List<AlbumApplicationResponse> getMyAlbumApplications(Long userId) {
         findUser(userId);
 
-        return AlbumApplicationRepository.searchMyAlbumApplications(userId)
+        return albumApplicationRepository.searchMyAlbumApplications(userId)
                 .stream()
                 .map(AlbumApplicationResponse::from)
                 .toList();
     }
 
     /**
-     * 앨범 등록 요청 상세 조회
+     * 앨범 등록 신청 상세 조회
      */
     @Transactional(readOnly = true)
-    public AlbumApplicationDetailResponse getAlbumApplication(Long userId, Long requestId) {
-        AlbumApplication request = findAlbumApplication(requestId);
+    public AlbumApplicationDetailResponse getAlbumApplication(Long userId, Long applicationId) {
+        AlbumApplication application = findAlbumApplication(applicationId);
         User user = findUser(userId);
 
-        // 요청자 또는 관리자만 조회 가능
-        validateAlbumApplicationDetailAccess(userId, user, request);
+        // 신청자 또는 관리자만 조회 가능
+        validateAlbumApplicationDetailAccess(userId, user, application);
 
-        return AlbumApplicationDetailResponse.from(request);
+        return AlbumApplicationDetailResponse.from(application);
     }
 
     /**
-     * 앨범 등록 요청 목록 조회 (관리자)
+     * 앨범 등록 신청 목록 조회 (관리자)
      */
     @Transactional(readOnly = true)
     public PageResponse<AlbumApplicationListResponse> getAlbumApplications(
@@ -119,7 +119,7 @@ public class AlbumService {
             Pageable pageable
     ) {
         Page<AlbumApplication> page =
-                AlbumApplicationRepository.searchAlbumApplications(status, pageable);
+                albumApplicationRepository.searchAlbumApplications(status, pageable);
 
         return PageResponse.from(
                 page.map(AlbumApplicationListResponse::from)
@@ -127,19 +127,19 @@ public class AlbumService {
     }
 
     /**
-     * 앨범 등록 요청 승인
+     * 앨범 등록 신청 승인
      */
     @Transactional
-    public AlbumApplicationApproveResponse approveAlbumApplication(Long adminId, Long requestId) {
-        AlbumApplication request = findAlbumApplication(requestId);
+    public AlbumApplicationApproveResponse approveAlbumApplication(Long adminId, Long applicationId) {
+        AlbumApplication application = findAlbumApplication(applicationId);
 
         // 상태 전이는 엔티티에 위임
-        request.approve(adminId);
+        application.approve(adminId);
 
-        // 승인 요청 기반 실제 앨범 생성
-        Album savedAlbum = albumRepository.save(createAlbum(request));
+        // 신청 승인 기반 실제 앨범 생성
+        Album savedAlbum = albumRepository.save(createAlbum(application));
 
-        return AlbumApplicationApproveResponse.from(request, savedAlbum.getId());
+        return AlbumApplicationApproveResponse.from(application, savedAlbum.getId());
     }
 
     // =========================
@@ -171,9 +171,9 @@ public class AlbumService {
         return artist;
     }
 
-    // 앨범 등록 요청 조회
-    private AlbumApplication findAlbumApplication(Long requestId) {
-        return AlbumApplicationRepository.findById(requestId)
+    // 앨범 등록 신청 조회
+    private AlbumApplication findAlbumApplication(Long applicationId) {
+        return albumApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new BusinessException(
                         AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_NOT_FOUND
                 ));
@@ -210,9 +210,9 @@ public class AlbumService {
         }
     }
 
-    // 중복 요청 검증
-    private void validateDuplicatePendingRequest(Long userId, Long artistId, String title) {
-        if (AlbumApplicationRepository.existsPendingRequest(userId, artistId, title)) {
+    // 중복 신청 검증
+    private void validateDuplicatePendingApplication(Long userId, Long artistId, String title) {
+        if (albumApplicationRepository.existsPendingApplication(userId, artistId, title)) {
             throw new BusinessException(
                     AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_EXISTS
             );
@@ -223,9 +223,9 @@ public class AlbumService {
     private void validateAlbumApplicationDetailAccess(
             Long userId,
             User user,
-            AlbumApplication request
+            AlbumApplication application
     ) {
-        boolean isRequester = request.getRequesterUserId().equals(userId);
+        boolean isRequester = application.getRequesterUserId().equals(userId);
         boolean isAdmin = user.getRole() == UserRole.ADMIN;
 
         if (!isRequester && !isAdmin) {
@@ -239,21 +239,21 @@ public class AlbumService {
     // 생성 / 후처리
     // =========================
 
-    // 승인 요청 기반 앨범 생성
-    private Album createAlbum(AlbumApplication request) {
+    // 신청 승인 기반 앨범 생성
+    private Album createAlbum(AlbumApplication application) {
         LocalDateTime scheduledPublishAt =
-                calculateScheduledPublishAt(request.getPublishDelayDays());
+                calculateScheduledPublishAt(application.getPublishDelayDays());
 
         Album album = Album.create(
-                request.getArtistId(),
-                request.getTitle(),
-                request.getDescription(),
-                request.getCoverImageUrl(),
+                application.getArtistId(),
+                application.getTitle(),
+                application.getDescription(),
+                application.getCoverImageUrl(),
                 scheduledPublishAt
         );
 
         // 즉시 공개
-        if (request.getPublishDelayDays() == 0) {
+        if (application.getPublishDelayDays() == 0) {
             album.publish();
         }
 

@@ -6,11 +6,11 @@ import com.fivefy.domain.album.entity.AlbumApplication;
 import java.time.LocalDateTime;
 
 /**
- * 앨범 등록 요청 생성 응답 및 내 앨범 등록 요청 목록 응답 DTO
+ * 앨범 등록 신청 생성 응답 및 내 앨범 등록 신청 목록 응답 DTO
  */
 public record AlbumApplicationResponse(
 
-        Long requestId,
+        Long applicationId,
         Long artistId,
         String title,
         ApplicationStatus status,
