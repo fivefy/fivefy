@@ -170,6 +170,19 @@ public class AlbumService {
         return AlbumDetailResponse.of(album, artist.getName());
     }
 
+    /**
+     * 아티스트별 앨범 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public List<ArtistAlbumListResponse> getArtistAlbums(Long artistId) {
+        // 삭제되지 않은 아티스트 확인
+        findNotDeletedArtist(artistId);
+
+        return albumRepository.searchArtistAlbums(artistId).stream()
+                .map(ArtistAlbumListResponse::from)
+                .toList();
+    }
+
     // =========================
     // 조회
     // =========================

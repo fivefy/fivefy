@@ -135,4 +135,19 @@ public class AlbumController {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(BaseResponse.success(HttpStatus.OK, "앨범 상세 조회 성공", response));
     }
+
+    /**
+     * 아티스트별 앨범 목록 조회 API
+     */
+    @GetMapping("/artists/{artistId}/albums")
+    public ResponseEntity<BaseResponse<List<ArtistAlbumListResponse>>> getArtistAlbums(
+            @PathVariable Long artistId
+    ) {
+        List<ArtistAlbumListResponse> response =
+                albumService.getArtistAlbums(artistId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                BaseResponse.success(HttpStatus.OK, "아티스트별 앨범 목록 조회 성공", response)
+        );
+    }
 }

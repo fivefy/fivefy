@@ -50,6 +50,9 @@ import static org.mockito.Mockito.when;
  * 앨범 등록 신청 상세 조회 기능을 검증한다.
  * 관리자 앨범 등록 신청 목록 조회 기능을 검증한다.
  * 앨범 등록 신청 승인 기능을 검증한다.
+ * 앨범 등록 신청 거절 기능을 검증한다.
+ * 앨범 상세 조회 기능을 검증한다.
+ * 아티스트별 앨범 목록 조회 기능을 검증한다.
  */
 @ExtendWith(MockitoExtension.class)
 class AlbumServiceTest {
@@ -872,6 +875,121 @@ class AlbumServiceTest {
             assertThatThrownBy(() -> albumService.getAlbum(albumId))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(AlbumErrorCode.ERR_ALBUM_NOT_FOUND.getMessage());
+        }
+    }
+
+    @Nested
+    @DisplayName("아티스트별 앨범 목록 조회")
+    class GetArtistAlbums {
+
+        @Test
+        @DisplayName("실제 공개된 시간 기준 내림차순 목록 조회 성공")
+        void getArtistAlbums_success() {
+            Long artistId = 10L;
+
+            Artist artist = Artist.create(
+                    1L,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/artist.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+
+            Album album1 = Album.create(
+                    artistId,
+                    "Palette",
+                    "정규 앨범",
+                    "https://example.com/album1.jpg",
+                    null
+            );
+            album1.publish();
+            ReflectionTestUtils.setField(album1, "id", 100L);
+            ReflectionTestUtils.setField(album1, "trackCount", 10L);
+            ReflectionTestUtils.setField(album1, "publishedAt", LocalDateTime.of(2026, 5, 1, 18, 0, 0));
+
+            Album album2 = Album.create(
+                    artistId,
+                    "Love poem",
+                    "미니 앨범",
+                    "https://example.com/album2.jpg",
+                    null
+            );
+            album2.publish();
+            ReflectionTestUtils.setField(album2, "id", 101L);
+            ReflectionTestUtils.setField(album2, "trackCount", 6L);
+            ReflectionTestUtils.setField(album2, "publishedAt", LocalDateTime.of(2026, 4, 1, 18, 0, 0));
+
+            when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
+            when(albumRepository.searchArtistAlbums(artistId))
+                    .thenReturn(List.of(album1, album2));
+
+            List<ArtistAlbumListResponse> response =
+                    albumService.getArtistAlbums(artistId);
+
+            assertThat(response).hasSize(2);
+            assertThat(response.get(0).albumId()).isEqualTo(100L);
+            assertThat(response.get(0).title()).isEqualTo("Palette");
+            assertThat(response.get(0).trackCount()).isEqualTo(10L);
+            assertThat(response.get(1).albumId()).isEqualTo(101L);
+        }
+
+        @Test
+        @DisplayName("공개된 앨범이 없으면 빈 목록 조회 성공")
+        void getArtistAlbums_success_whenEmpty() {
+            Long artistId = 10L;
+
+            Artist artist = Artist.create(
+                    1L,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/artist.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+
+            when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
+            when(albumRepository.searchArtistAlbums(artistId))
+                    .thenReturn(List.of());
+
+            List<ArtistAlbumListResponse> response =
+                    albumService.getArtistAlbums(artistId);
+
+            assertThat(response).isEmpty();
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 아티스트면 목록 조회 실패")
+        void getArtistAlbums_fail_whenArtistNotFound() {
+            Long artistId = 10L;
+
+            when(artistRepository.findById(artistId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> albumService.getArtistAlbums(artistId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("삭제된 아티스트면 목록 조회 실패")
+        void getArtistAlbums_fail_whenArtistDeleted() {
+            Long artistId = 10L;
+
+            Artist artist = Artist.create(
+                    1L,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/artist.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+            ReflectionTestUtils.setField(artist, "deletedAt", LocalDateTime.of(2026, 4, 17, 12, 0, 0));
+
+            when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
+
+            assertThatThrownBy(() -> albumService.getArtistAlbums(artistId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
         }
     }
 }
