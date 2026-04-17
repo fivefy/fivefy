@@ -185,7 +185,6 @@ include::{snippets}/user-delete/response-fields.adoc[]
 ==== 에러 케이스 - 요청 검증 실패
 
 include::{snippets}/user-delete-invalid/http-request.adoc[]
-include::{snippets}/user-delete-invalid/request-fields.adoc[]
 include::{snippets}/user-delete-invalid/http-response.adoc[]
 include::{snippets}/user-delete-invalid/response-fields.adoc[]
 
