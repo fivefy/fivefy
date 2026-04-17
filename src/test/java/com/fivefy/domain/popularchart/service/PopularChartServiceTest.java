@@ -126,5 +126,17 @@ class PopularChartServiceTest {
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(PopularChartErrorCode.CHART_NOT_FOUND.getMessage());
         }
+
+        @Test
+        @DisplayName("월요일이 아닌 snapshotDate로 조회 시 예외 발생")
+        void getTop100_invalidSnapshotDate() {
+            // given
+            LocalDate invalidDate = LocalDate.of(2026, 4, 14); // 화요일
+
+            // when & then
+            assertThatThrownBy(() -> popularChartService.getTop100(invalidDate))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(PopularChartErrorCode.INVALID_SNAPSHOT_DATE.getMessage());
+        }
     }
 }
