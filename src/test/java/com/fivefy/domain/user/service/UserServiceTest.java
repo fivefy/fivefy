@@ -162,7 +162,7 @@ class UserServiceTest {
         }
 
         @Test
-        @DisplayName("로그인 성공")
+        @DisplayName("로그인 성공 - ACTIVE 유저")
         void loginSuccess() {
             // given
             given(userRepository.findByEmailAndDeletedAtIsNull(request.email())).willReturn(Optional.of(user));
@@ -177,6 +177,7 @@ class UserServiceTest {
             // then
             assertThat(response.accessToken()).isEqualTo("accessToken");
             assertThat(response.refreshToken()).isEqualTo("refreshToken");
+            assertThat(user.getStatus()).isEqualTo(UserStatus.ACTIVE);
         }
 
         @Test
@@ -198,6 +199,75 @@ class UserServiceTest {
                     eq("refreshToken"),
                     eq(Duration.ofDays(7))
             );
+        }
+
+        @Test
+        @DisplayName("SUSPENDED 유저 로그인 시 자동 재활성화")
+        void loginSuspendedUserReactivates() {
+            // given
+            ReflectionTestUtils.setField(user, "status", UserStatus.SUSPENDED);
+            given(userRepository.findByEmailAndDeletedAtIsNull(request.email())).willReturn(Optional.of(user));
+            given(passwordEncoder.matches(request.password(), user.getPassword())).willReturn(true);
+            given(jwtUtil.createAccessToken(any(), any())).willReturn("accessToken");
+            given(jwtUtil.createRefreshToken(any())).willReturn("refreshToken");
+            given(redisTemplate.opsForValue()).willReturn(valueOperations);
+
+            // when
+            userService.loginUser(request);
+
+            // then — ACTIVE로 복귀
+            assertThat(user.getStatus()).isEqualTo(UserStatus.ACTIVE);
+            assertThat(user.getLastActiveAt()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("SUSPENDED 유저 재활성화 후 정상 토큰 발급")
+        void loginSuspendedUserIssuesToken() {
+            // given
+            ReflectionTestUtils.setField(user, "status", UserStatus.SUSPENDED);
+            given(userRepository.findByEmailAndDeletedAtIsNull(request.email())).willReturn(Optional.of(user));
+            given(passwordEncoder.matches(request.password(), user.getPassword())).willReturn(true);
+            given(jwtUtil.createAccessToken(any(), any())).willReturn("accessToken");
+            given(jwtUtil.createRefreshToken(any())).willReturn("refreshToken");
+            given(redisTemplate.opsForValue()).willReturn(valueOperations);
+
+            // when
+            UserLoginResponse response = userService.loginUser(request);
+
+            // then
+            assertThat(response.accessToken()).isNotNull();
+            verify(valueOperations).set(
+                    eq("RT:" + user.getId()),
+                    eq("refreshToken"),
+                    eq(Duration.ofDays(7))
+            );
+        }
+
+        @Test
+        @DisplayName("BANNED 유저 로그인 시 ERR_USER_BANNED 예외")
+        void loginBannedUserThrowsException() {
+            // given
+            ReflectionTestUtils.setField(user, "status", UserStatus.BANNED);
+            given(userRepository.findByEmailAndDeletedAtIsNull(request.email())).willReturn(Optional.of(user));
+            given(passwordEncoder.matches(request.password(), user.getPassword())).willReturn(true);
+
+            // when & then
+            assertThatThrownBy(() -> userService.loginUser(request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ERR_USER_BANNED.getMessage());
+        }
+
+        @Test
+        @DisplayName("BANNED 유저는 토큰 발급하지 않음")
+        void loginBannedUserDoesNotIssueToken() {
+            // given
+            ReflectionTestUtils.setField(user, "status", UserStatus.BANNED);
+            given(userRepository.findByEmailAndDeletedAtIsNull(request.email())).willReturn(Optional.of(user));
+            given(passwordEncoder.matches(request.password(), user.getPassword())).willReturn(true);
+
+            // when & then
+            assertThatThrownBy(() -> userService.loginUser(request));
+            verifyNoInteractions(redisTemplate);
         }
 
         @Test
