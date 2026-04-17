@@ -12,6 +12,7 @@ import com.fivefy.domain.user.dto.response.UserProfileResponse;
 import com.fivefy.domain.user.dto.response.UserProfileUpdateResponse;
 import com.fivefy.domain.user.dto.response.UserSignupResponse;
 import com.fivefy.domain.user.entity.User;
+import com.fivefy.domain.user.enums.UserStatus;
 import com.fivefy.domain.user.repository.UserRepository;
 import com.fivefy.domain.wallet.entity.Wallet;
 import com.fivefy.domain.wallet.repository.WalletRepository;
@@ -92,6 +93,7 @@ public class UserService {
      3. redis에 RT 저장
      4. return
      */
+    @Transactional
     public UserLoginResponse loginUser(UserLoginRequest request) {
         User user = userRepository.findByEmailAndDeletedAtIsNull(request.email()).orElse(null);
         String targetPassword = (user != null) ? user.getPassword() : DUMMY_HASH;
@@ -99,6 +101,15 @@ public class UserService {
 
         if (user == null || !isMatch) {
             throw new BusinessException(ERR_USER_LOGIN_FAIL);
+        }
+
+        switch (user.getStatus()) {
+            case ACTIVE -> {}
+            case SUSPENDED -> {
+                log.info("SUSPENDED 유저 자동 재활성화 — userId={}, lastActiveAt={}", user.getId(), user.getLastActiveAt());
+                user.reactivate();
+            }
+            case BANNED -> throw new BusinessException(ERR_USER_BANNED);
         }
 
         String accessToken = jwtUtil.createAccessToken(user.getId(), user.getRole());

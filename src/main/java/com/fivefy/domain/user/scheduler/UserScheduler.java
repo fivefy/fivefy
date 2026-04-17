@@ -56,9 +56,22 @@ public class UserScheduler {
     @Scheduled(cron = "0 0 * * * *")
     @SchedulerLock(name = "syncLastActiveAt", lockAtMostFor = "10m", lockAtLeastFor = "1m")
     public void syncLastActiveAt() {
+        long startedAt = System.currentTimeMillis();
         log.info("lastActiveAt 동기화 시작");
+
         SyncResult result = flushLastActiveFromRedis();
-        log.info("lastActiveAt 동기화 완료 — 성공: {}건, 실패: {}건", result.updated, result.errors);
+
+        long elapsedMs = System.currentTimeMillis() - startedAt;
+        log.info("lastActiveAt 동기화 완료 — 성공: {}건, 실패: {}건, 배치: {}개, 소요: {}ms",
+                result.updated, result.errors, result.batches, elapsedMs);
+
+        // 임계치 알림 — 10분 lock 대비 경고선 5분
+        if (elapsedMs > 5 * 60 * 1000) {
+            log.warn("syncLastActiveAt 소요시간 임계 초과 — {}ms", elapsedMs);
+        }
+        if (result.errors > 0) {
+            log.warn("syncLastActiveAt 실패건 발생 — {}건", result.errors);
+        }
     }
 
     // 매일 새벽 3시 — 30일 미접속 유저 SUSPENDED 처리
@@ -91,6 +104,7 @@ public class UserScheduler {
     private SyncResult flushLastActiveFromRedis() {
         int updated = 0;
         int errors = 0;
+        int batches = 0;
         List<KeyValue> batch = new ArrayList<>(BATCH_SIZE);
 
         try (Cursor<String> cursor = redisTemplate.scan(
@@ -116,6 +130,7 @@ public class UserScheduler {
                     BatchResult r = processBatch(batch);
                     updated += r.updated;
                     errors += r.errors;
+                    batches++;
                     batch.clear();
                 }
             }
@@ -125,9 +140,10 @@ public class UserScheduler {
             BatchResult r = processBatch(batch);
             updated += r.updated;
             errors += r.errors;
+            batches++;
         }
 
-        return new SyncResult(updated, errors);
+        return new SyncResult(updated, errors, batches);
     }
 
     /**
@@ -164,6 +180,6 @@ public class UserScheduler {
     }
 
     private record KeyValue(String key, String value) {}
-    private record SyncResult(int updated, int errors) {}
+    private record SyncResult(int updated, int errors, int batches) {}
     private record BatchResult(int updated, int errors) {}
 }
