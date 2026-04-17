@@ -4,10 +4,8 @@ import com.fivefy.common.dto.response.BaseResponse;
 import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.domain.album.dto.request.AlbumApplicationCreateRequest;
-import com.fivefy.domain.album.dto.response.AlbumApplicationApproveResponse;
-import com.fivefy.domain.album.dto.response.AlbumApplicationDetailResponse;
-import com.fivefy.domain.album.dto.response.AlbumApplicationListResponse;
-import com.fivefy.domain.album.dto.response.AlbumApplicationResponse;
+import com.fivefy.domain.album.dto.request.AlbumApplicationRejectRequest;
+import com.fivefy.domain.album.dto.response.*;
 import com.fivefy.domain.album.service.AlbumService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -105,6 +103,23 @@ public class AlbumController {
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 BaseResponse.success(HttpStatus.OK, "앨범 등록 신청 승인 성공", response)
+        );
+    }
+
+    /**
+     * 앨범 등록 신청 거절 API
+     */
+    @PostMapping("/admin/album-applications/{applicationId}/reject")
+    public ResponseEntity<BaseResponse<AlbumApplicationRejectResponse>> rejectAlbumApplication(
+            @AuthenticationPrincipal Long adminId,
+            @PathVariable Long applicationId,
+            @Valid @RequestBody AlbumApplicationRejectRequest request
+    ) {
+        AlbumApplicationRejectResponse response =
+                albumService.rejectAlbumApplication(adminId, applicationId, request.rejectionReason());
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                BaseResponse.success(HttpStatus.OK, "앨범 등록 신청 거절 성공", response)
         );
     }
 }

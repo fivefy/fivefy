@@ -4,10 +4,7 @@ import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.album.dto.request.AlbumApplicationCreateRequest;
-import com.fivefy.domain.album.dto.response.AlbumApplicationApproveResponse;
-import com.fivefy.domain.album.dto.response.AlbumApplicationDetailResponse;
-import com.fivefy.domain.album.dto.response.AlbumApplicationListResponse;
-import com.fivefy.domain.album.dto.response.AlbumApplicationResponse;
+import com.fivefy.domain.album.dto.response.*;
 import com.fivefy.domain.album.entity.Album;
 import com.fivefy.domain.album.entity.AlbumApplication;
 import com.fivefy.domain.album.enums.AlbumApplicationErrorCode;
@@ -136,10 +133,27 @@ public class AlbumService {
         // 상태 전이는 엔티티에 위임
         application.approve(adminId);
 
-        // 신청 승인 기반 실제 앨범 생성
+        // 승인된 신청 기반 앨범 생성
         Album savedAlbum = albumRepository.save(createAlbum(application));
 
         return AlbumApplicationApproveResponse.from(application, savedAlbum.getId());
+    }
+
+    /**
+     * 앨범 등록 신청 거절
+     */
+    @Transactional
+    public AlbumApplicationRejectResponse rejectAlbumApplication(
+            Long adminId,
+            Long applicationId,
+            String rejectionReason
+    ) {
+        AlbumApplication application = findAlbumApplication(applicationId);
+
+        // 상태 전이는 엔티티에 위임
+        application.reject(adminId, rejectionReason);
+
+        return AlbumApplicationRejectResponse.from(application);
     }
 
     // =========================
@@ -158,9 +172,7 @@ public class AlbumService {
                 .orElseThrow(() -> new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND));
     }
 
-    /**
-     * 삭제되지 않은 아티스트 조회
-     */
+    // 삭제되지 않은 아티스트 조회
     private Artist findNotDeletedArtist(Long artistId) {
         Artist artist = findArtist(artistId);
 
@@ -199,9 +211,7 @@ public class AlbumService {
         }
     }
 
-    /**
-     * 공개 예약 옵션 검증
-     */
+    // 공개 예약 옵션 검증
     private void validatePublishDelayDays(Integer publishDelayDays) {
         if (publishDelayDays == null || publishDelayDays < 0 || publishDelayDays > 7) {
             throw new BusinessException(
@@ -239,7 +249,7 @@ public class AlbumService {
     // 생성 / 후처리
     // =========================
 
-    // 신청 승인 기반 앨범 생성
+    // 승인된 신청 기반 앨범 생성
     private Album createAlbum(AlbumApplication application) {
         LocalDateTime scheduledPublishAt =
                 calculateScheduledPublishAt(application.getPublishDelayDays());

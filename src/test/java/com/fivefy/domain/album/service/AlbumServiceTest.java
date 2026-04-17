@@ -4,10 +4,7 @@ import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.album.dto.request.AlbumApplicationCreateRequest;
-import com.fivefy.domain.album.dto.response.AlbumApplicationApproveResponse;
-import com.fivefy.domain.album.dto.response.AlbumApplicationDetailResponse;
-import com.fivefy.domain.album.dto.response.AlbumApplicationListResponse;
-import com.fivefy.domain.album.dto.response.AlbumApplicationResponse;
+import com.fivefy.domain.album.dto.response.*;
 import com.fivefy.domain.album.entity.Album;
 import com.fivefy.domain.album.entity.AlbumApplication;
 import com.fivefy.domain.album.enums.AlbumApplicationErrorCode;
@@ -739,6 +736,77 @@ class AlbumServiceTest {
             when(albumApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
 
             assertThatThrownBy(() -> albumService.approveAlbumApplication(adminId, applicationId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_PROCESSED.getMessage());
+        }
+    }
+
+    @Nested
+    @DisplayName("앨범 등록 신청 거절")
+    class RejectAlbumApplication {
+
+        @Test
+        @DisplayName("거절 성공")
+        void rejectAlbumApplication_success() {
+            Long adminId = 1L;
+            Long applicationId = 10L;
+            String rejectionReason = "앨범 정보가 부족합니다";
+
+            AlbumApplication application = AlbumApplication.create(
+                    2L,
+                    100L,
+                    "Palette",
+                    "정규 앨범",
+                    "https://example.com/album.jpg",
+                    0
+            );
+            ReflectionTestUtils.setField(application, "id", applicationId);
+
+            when(albumApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+
+            AlbumApplicationRejectResponse response =
+                    albumService.rejectAlbumApplication(adminId, applicationId, rejectionReason);
+
+            assertThat(response.applicationId()).isEqualTo(applicationId);
+            assertThat(response.status()).isEqualTo(ApplicationStatus.REJECTED);
+            assertThat(response.reviewedByAdminId()).isEqualTo(adminId);
+            assertThat(response.reviewedAt()).isNotNull();
+            assertThat(response.rejectionReason()).isEqualTo(rejectionReason);
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 신청이면 거절 실패")
+        void rejectAlbumApplication_fail_whenNotFound() {
+            Long adminId = 1L;
+            Long applicationId = 10L;
+
+            when(albumApplicationRepository.findById(applicationId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> albumService.rejectAlbumApplication(adminId, applicationId, "사유"))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("이미 처리된 신청이면 거절 실패")
+        void rejectAlbumApplication_fail_whenAlreadyProcessed() {
+            Long adminId = 1L;
+            Long applicationId = 10L;
+
+            AlbumApplication application = AlbumApplication.create(
+                    2L,
+                    100L,
+                    "Palette",
+                    "정규 앨범",
+                    "https://example.com/album.jpg",
+                    0
+            );
+            ReflectionTestUtils.setField(application, "id", applicationId);
+            application.approve(adminId);
+
+            when(albumApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+
+            assertThatThrownBy(() -> albumService.rejectAlbumApplication(adminId, applicationId, "사유"))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_PROCESSED.getMessage());
         }

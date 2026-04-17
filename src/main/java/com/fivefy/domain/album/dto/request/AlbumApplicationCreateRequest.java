@@ -23,6 +23,5 @@ public record AlbumApplicationCreateRequest(
         @Min(value = 0, message = "공개 예약 옵션은 0 이상이어야 합니다.")
         @Max(value = 7, message = "공개 예약 옵션은 7 이하여야 합니다.")
         Integer publishDelayDays
-
 ) {
 }
