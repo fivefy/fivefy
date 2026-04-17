@@ -9,6 +9,7 @@ import com.fivefy.domain.album.entity.Album;
 import com.fivefy.domain.album.entity.AlbumApplication;
 import com.fivefy.domain.album.enums.AlbumApplicationErrorCode;
 import com.fivefy.domain.album.enums.AlbumErrorCode;
+import com.fivefy.domain.album.enums.AlbumStatus;
 import com.fivefy.domain.album.repository.AlbumApplicationRepository;
 import com.fivefy.domain.album.repository.AlbumRepository;
 import com.fivefy.domain.artist.entity.Artist;
@@ -852,7 +853,8 @@ class AlbumServiceTest {
             when(albumRepository.findById(1L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> albumService.getAlbum(1L))
-                    .isInstanceOf(BusinessException.class);
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(AlbumErrorCode.ERR_ALBUM_NOT_FOUND.getMessage());
         }
 
         @Test
@@ -875,6 +877,62 @@ class AlbumServiceTest {
             assertThatThrownBy(() -> albumService.getAlbum(albumId))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(AlbumErrorCode.ERR_ALBUM_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("공개되지 않은 앨범이면 상세 조회 실패")
+        void getAlbum_fail_whenNotPublished() {
+            Long albumId = 1L;
+
+            Album album = Album.create(
+                    10L,
+                    "Palette",
+                    "정규 앨범",
+                    "https://example.com/album.jpg",
+                    null
+            );
+            ReflectionTestUtils.setField(album, "id", albumId);
+            ReflectionTestUtils.setField(album, "status", AlbumStatus.UNPUBLISHED);
+
+            when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
+
+            assertThatThrownBy(() -> albumService.getAlbum(albumId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(AlbumErrorCode.ERR_ALBUM_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("삭제된 아티스트의 앨범이면 상세 조회 실패")
+        void getAlbum_fail_whenArtistDeleted() {
+            Long albumId = 1L;
+            Long artistId = 10L;
+
+            Album album = Album.create(
+                    artistId,
+                    "Palette",
+                    "정규 앨범",
+                    "https://example.com/album.jpg",
+                    null
+            );
+            album.publish();
+            ReflectionTestUtils.setField(album, "id", albumId);
+
+            Artist artist = Artist.create(
+                    1L,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/artist.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+            ReflectionTestUtils.setField(artist, "deletedAt", LocalDateTime.of(2026, 4, 17, 12, 0, 0));
+
+            when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
+            when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
+
+            assertThatThrownBy(() -> albumService.getAlbum(albumId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
         }
     }
 

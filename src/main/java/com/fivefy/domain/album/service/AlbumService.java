@@ -9,6 +9,7 @@ import com.fivefy.domain.album.entity.Album;
 import com.fivefy.domain.album.entity.AlbumApplication;
 import com.fivefy.domain.album.enums.AlbumApplicationErrorCode;
 import com.fivefy.domain.album.enums.AlbumErrorCode;
+import com.fivefy.domain.album.enums.AlbumStatus;
 import com.fivefy.domain.album.repository.AlbumApplicationRepository;
 import com.fivefy.domain.album.repository.AlbumRepository;
 import com.fivefy.domain.artist.entity.Artist;
@@ -162,10 +163,10 @@ public class AlbumService {
      */
     @Transactional(readOnly = true)
     public AlbumDetailResponse getAlbum(Long albumId) {
-        Album album = findAlbum(albumId);
+        Album album = findPublishedAlbum(albumId);
 
-        // 아티스트 이름 조회
-        Artist artist = findArtist(album.getArtistId());
+        // 공개 상세 조회에서는 삭제된 아티스트도 노출되면 안 되니까
+        Artist artist = findNotDeletedArtist(album.getArtistId());
 
         return AlbumDetailResponse.of(album, artist.getName());
     }
@@ -218,14 +219,12 @@ public class AlbumService {
                 ));
     }
 
-    // 앨범 조회
-    private Album findAlbum(Long albumId) {
+    // 공개 가능한 앨범 조회
+    private Album findPublishedAlbum(Long albumId) {
         Album album = albumRepository.findById(albumId)
-                .orElseThrow(() -> new BusinessException(
-                        AlbumErrorCode.ERR_ALBUM_NOT_FOUND
-                ));
+                .orElseThrow(() -> new BusinessException(AlbumErrorCode.ERR_ALBUM_NOT_FOUND));
 
-        if (album.getDeletedAt() != null) {
+        if (album.getDeletedAt() != null || album.getStatus() != AlbumStatus.PUBLISHED) {
             throw new BusinessException(AlbumErrorCode.ERR_ALBUM_NOT_FOUND);
         }
 
