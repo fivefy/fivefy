@@ -21,11 +21,11 @@ public class PointHistory extends BaseEntity {
     private Long id;
 
     @Column(nullable = false)
-    private Long pointId;
+    private Long walletId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private PointType pointtype;
+    private PointType pointType;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -42,17 +42,17 @@ public class PointHistory extends BaseEntity {
 
     /**
      * 지갑 사용 내역
-     * @param pointId           : 포인트 지갑 식별자
+     * @param walletId          : 포인트 지갑 식별자
      * @param pointType         : 유료 재화, 무료 재화
-     * @param pointHistoryType  : 사용, 환불
+     * @param pointHistoryType  : 사용, 환불, 충전
      * @param amount            : 변동 금액
-     * @param balanceAfter      : 변동 내역
+     * @param balanceAfter      : 변동 후 내역
      * @param logDescription    : 로그(설명)
      * @return
      */
-    public static PointHistory create(Long pointId, PointType pointType, PointHistoryType pointHistoryType,
+    public static PointHistory create(Long walletId, PointType pointType, PointHistoryType pointHistoryType,
                                       Long amount, Long balanceAfter, String logDescription) {
-        validateNonNull(pointId, "pointId");
+        validateNonNull(walletId, "walletId");
         validateNonNull(pointType, "pointType");
         validateNonNull(pointHistoryType, "pointHistoryType");
         validateNonNull(amount, "amount");
@@ -60,8 +60,8 @@ public class PointHistory extends BaseEntity {
         validateNonNull(logDescription, "logDescription");
 
         PointHistory history = new PointHistory();
-            history.pointId = pointId;
-            history.pointtype = pointType;
+            history.walletId = walletId;
+            history.pointType = pointType;
             history.pointHistoryType = pointHistoryType;
             history.amount = amount;
             history.balanceAfter = balanceAfter;

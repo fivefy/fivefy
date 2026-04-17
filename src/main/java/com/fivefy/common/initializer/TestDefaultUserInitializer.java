@@ -120,13 +120,19 @@ public class TestDefaultUserInitializer implements ApplicationRunner {
             case MONTH -> now.plusMonths(1);
             case YEAR -> now.plusYears(1);
             case FREE -> now.plusDays(3);
+            case RECURRING -> now.plusMonths(1);
         };
         LocalDateTime nextBillingDate = null;
         if (subscriptionPlanType != SubscriptionPlanType.FREE) {
             nextBillingDate = expiryDate;
         }
-        subscriptionRepository.save(Subscription
-                .create(user.getId(), subscriptionPlanType, now, expiryDate, nextBillingDate
+        subscriptionRepository.save(Subscription.create(
+                user.getId(),
+                null,        // pointOrderId — 더미데이터는 null
+                subscriptionPlanType,
+                now,
+                expiryDate,
+                nextBillingDate
                 )
         );
     }
