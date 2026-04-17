@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,6 +27,7 @@ public class PopularChartService {
         if (snapshotDate == null) {
             targetDate = findLatestSnapshotDate();
         } else {
+            validateSnapshotDate(snapshotDate);
             targetDate = snapshotDate.atStartOfDay();
         }
 
@@ -38,6 +40,12 @@ public class PopularChartService {
         return charts.stream()
                 .map(PopularChartResponse::from)
                 .toList();
+    }
+
+    private void validateSnapshotDate(LocalDate snapshotDate) {
+        if (snapshotDate.getDayOfWeek() != DayOfWeek.MONDAY) {
+            throw new BusinessException(PopularChartErrorCode.INVALID_SNAPSHOT_DATE);
+        }
     }
 
     // 최신 snapshotDate 기준으로 차트 조회

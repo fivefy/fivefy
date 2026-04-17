@@ -34,7 +34,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class PlaylistServiceTest {
 
-    @InjectMocks private PlaylistService playlistService;
+    @InjectMocks
+    private PlaylistService playlistService;
 
     @Mock private PlaylistRepository playlistRepository;
 

@@ -31,6 +31,7 @@ class PlaylistTest {
     @Test
     @DisplayName("플레이리스트 생성 시 제목이 null이면 예외 발생")
     void create_invalid_title_null() {
+        // when & then
         assertThatThrownBy(() ->
                 Playlist.create(1L, null, "desc")
         )
@@ -41,6 +42,7 @@ class PlaylistTest {
     @Test
     @DisplayName("플레이리스트 생성 시 제목이 blank면 예외 발생")
     void create_invalid_title_blank() {
+        // when & then
         assertThatThrownBy(() ->
                 Playlist.create(1L, "", "desc")
         )
@@ -51,8 +53,10 @@ class PlaylistTest {
     @Test
     @DisplayName("플레이리스트 생성 시 제목이 100자를 초과하면 예외 발생")
     void create_invalid_title_too_long() {
+        // given
         String tooLongTitle = "a".repeat(101);
 
+        // when & then
         assertThatThrownBy(() ->
                 Playlist.create(1L, tooLongTitle, "desc")
         )

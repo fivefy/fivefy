@@ -32,14 +32,11 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class PlaylistTrackServiceTest {
 
-    @InjectMocks
-    private PlaylistTrackService playlistTrackService;
+    @InjectMocks private
+    PlaylistTrackService playlistTrackService;
 
-    @Mock
-    private PlaylistTrackRepository playlistTrackRepository;
-
-    @Mock
-    private PlaylistRepository playlistRepository;
+    @Mock private PlaylistTrackRepository playlistTrackRepository;
+    @Mock private PlaylistRepository playlistRepository;
 
     @Nested
     @DisplayName("플레이리스트 트랙 추가")

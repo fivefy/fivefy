@@ -35,17 +35,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 class PlaybackControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
+    @Autowired private ObjectMapper objectMapper;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @MockitoBean
-    private PlaybackService playbackService;
-
-    @MockitoBean
-    private JwtUtil jwtUtil;
+    @MockitoBean private PlaybackService playbackService;
+    @MockitoBean private JwtUtil jwtUtil;
 
     @Nested
     @DisplayName("재생 시작")

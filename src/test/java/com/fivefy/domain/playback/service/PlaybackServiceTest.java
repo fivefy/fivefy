@@ -33,7 +33,8 @@ import static org.mockito.Mockito.mock;
 @ExtendWith(MockitoExtension.class)
 class PlaybackServiceTest {
 
-    @InjectMocks private PlaybackService playbackService;
+    @InjectMocks
+    private PlaybackService playbackService;
 
     @Mock private PlaybackRepository playbackRepository;
     @Mock private PlaylistTrackRepository playlistTrackRepository;
