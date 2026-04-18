@@ -23,6 +23,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -36,8 +37,7 @@ import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.JsonFieldType.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
-import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
-import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
+import static org.springframework.restdocs.request.RequestDocumentation.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -46,7 +46,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * ArtistController 웹 계층 테스트 및 REST Docs 문서화
  */
-@WithMockUser
 @WebMvcTest(ArtistController.class)
 class ArtistControllerTest extends RestDocsSupport {
 
@@ -60,6 +59,7 @@ class ArtistControllerTest extends RestDocsSupport {
     private LastActiveAtFilter lastActiveAtFilter;
 
     @Nested
+    @WithMockUser
     @DisplayName("아티스트 등록 신청 생성 API")
     class CreateArtistApplication {
 
@@ -102,9 +102,8 @@ class ArtistControllerTest extends RestDocsSupport {
                                     fieldWithPath("profileImageUrl").type(STRING).description("프로필 이미지 URL")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    baseSuccessResponseFields()
+                            ).and(
                                     fieldWithPath("data.applicationId").type(NUMBER).description("신청 ID"),
                                     fieldWithPath("data.requestedName").type(STRING).description("아티스트 이름"),
                                     fieldWithPath("data.artistType").type(STRING).description("아티스트 유형"),
@@ -137,12 +136,9 @@ class ArtistControllerTest extends RestDocsSupport {
                                     fieldWithPath("profileImageUrl").type(STRING).description("프로필 이미지 URL")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("에러 메시지"),
-                                    fieldWithPath("data").type(ARRAY).description("상세 에러 내역"),
-                                    fieldWithPath("data[].field").type(STRING).description("에러가 발생한 필드명"),
-                                    fieldWithPath("data[].message").type(STRING).description("에러 상세 사유")
+                                    baseErrorResponseFields()
+                            ).and(
+                                    validationErrorResponseFields()
                             )
                     ));
         }
@@ -178,20 +174,19 @@ class ArtistControllerTest extends RestDocsSupport {
                                     fieldWithPath("profileImageUrl").type(STRING).description("프로필 이미지 URL")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                                    baseErrorResponseFields()
                             )
                     ));
         }
     }
 
     @Nested
-    @DisplayName("내 아티스트 신청 목록 조회 API")
+    @WithMockUser
+    @DisplayName("내 아티스트 등록 신청 목록 조회 API")
     class GetMyArtistApplications {
 
         @Test
-        @DisplayName("내 아티스트 신청 목록 조회 성공")
+        @DisplayName("내 아티스트 등록 신청 목록 조회 성공")
         void getMyArtistApplications_success() throws Exception {
             List<ArtistApplicationResponse> response = List.of(
                     new ArtistApplicationResponse(
@@ -215,29 +210,31 @@ class ArtistControllerTest extends RestDocsSupport {
 
             mockMvc.perform(get("/api/artist-applications/me"))
                     .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("내 아티스트 등록 신청 목록 조회 성공"))
                     .andExpect(jsonPath("$.data[0].applicationId").value(2L))
                     .andDo(document("artist-applications-me",
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    baseSuccessResponseFields()
+                            ).and(
                                     fieldWithPath("data").type(ARRAY).description("내 신청 목록"),
                                     fieldWithPath("data[].applicationId").type(NUMBER).description("신청 ID"),
                                     fieldWithPath("data[].requestedName").type(STRING).description("아티스트 이름"),
                                     fieldWithPath("data[].artistType").type(STRING).description("아티스트 유형"),
                                     fieldWithPath("data[].status").type(STRING).description("신청 상태"),
-                                    fieldWithPath("data[].createdAt").type(STRING).description("생성 시각")
+                                    fieldWithPath("data[].createdAt").type(STRING).description("신청 생성 시각")
                             )
                     ));
         }
     }
 
     @Nested
-    @DisplayName("아티스트 신청 상세 조회 API")
+    @WithMockUser
+    @DisplayName("아티스트 등록 신청 상세 조회 API")
     class GetArtistApplication {
 
         @Test
-        @DisplayName("아티스트 신청 상세 조회 성공")
+        @DisplayName("아티스트 등록 신청 상세 조회 성공")
         void getArtistApplication_success() throws Exception {
             Long applicationId = 10L;
 
@@ -261,17 +258,18 @@ class ArtistControllerTest extends RestDocsSupport {
 
             mockMvc.perform(get("/api/artist-applications/{applicationId}", applicationId))
                     .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("아티스트 등록 신청 상세 조회 성공"))
                     .andExpect(jsonPath("$.data.applicationId").value(applicationId))
                     .andDo(document("artist-applications-get",
                             pathParameters(
                                     parameterWithName("applicationId").description("신청 ID")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    baseSuccessResponseFields()
+                            ).and(
                                     fieldWithPath("data.applicationId").type(NUMBER).description("신청 ID"),
-                                    fieldWithPath("data.requesterUserId").type(NUMBER).description("신청자 유저 ID"),
+                                    fieldWithPath("data.requesterUserId").type(NUMBER).description("신청자 ID"),
                                     fieldWithPath("data.requestedName").type(STRING).description("아티스트 이름"),
                                     fieldWithPath("data.artistType").type(STRING).description("아티스트 유형"),
                                     fieldWithPath("data.bio").type(STRING).description("아티스트 소개"),
@@ -306,9 +304,7 @@ class ArtistControllerTest extends RestDocsSupport {
                                     parameterWithName("applicationId").description("신청 ID")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                                    baseErrorResponseFields()
                             )
                     ));
         }
@@ -333,21 +329,19 @@ class ArtistControllerTest extends RestDocsSupport {
                                     parameterWithName("applicationId").description("신청 ID")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                                    baseErrorResponseFields()
                             )
                     ));
         }
     }
 
     @Nested
-    @DisplayName("관리자 아티스트 신청 목록 조회 API")
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("아티스트 등록 신청 목록 조회 API")
     class GetArtistApplications {
 
         @Test
-        @WithMockUser(roles = "ADMIN")
-        @DisplayName("관리자 아티스트 신청 목록 조회 성공")
+        @DisplayName("아티스트 등록 신청 목록 조회 성공")
         void getArtistApplications_success() throws Exception {
 
             ArtistApplicationListResponse content = new ArtistApplicationListResponse(
@@ -367,39 +361,49 @@ class ArtistControllerTest extends RestDocsSupport {
             given(artistService.getArtistApplications(eq(null), any(Pageable.class)))
                     .willReturn(response);
 
-            mockMvc.perform(get("/api/admin/artist-applications"))
+            mockMvc.perform(get("/api/admin/artist-applications")
+                            .param("page", "0")
+                            .param("size", "10")
+                            .param("sort", "createdAt,asc"))
                     .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("아티스트 등록 신청 목록 조회 성공"))
                     .andExpect(jsonPath("$.data.content[0].applicationId").value(1L))
+                    .andExpect(jsonPath("$.data.page").value(0))
+                    .andExpect(jsonPath("$.data.size").value(10))
+                    .andExpect(jsonPath("$.data.totalPages").value(1))
+                    .andExpect(jsonPath("$.data.totalElements").value(1))
                     .andDo(document("admin-artist-applications",
+                            queryParameters(
+                                    parameterWithName("status").optional().description("신청 상태"),
+                                    parameterWithName("page").optional().description("페이지 번호"),
+                                    parameterWithName("size").optional().description("페이지 크기"),
+                                    parameterWithName("sort").optional().description("정렬 조건")
+                            ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
-
+                                    baseSuccessResponseFields()
+                            ).and(
                                     fieldWithPath("data.content").type(ARRAY).description("신청 목록"),
                                     fieldWithPath("data.content[].applicationId").type(NUMBER).description("신청 ID"),
                                     fieldWithPath("data.content[].requesterUserId").type(NUMBER).description("신청자 ID"),
                                     fieldWithPath("data.content[].requestedName").type(STRING).description("아티스트 이름"),
                                     fieldWithPath("data.content[].artistType").type(STRING).description("아티스트 유형"),
                                     fieldWithPath("data.content[].status").type(STRING).description("신청 상태"),
-                                    fieldWithPath("data.content[].createdAt").type(STRING).description("생성 시각"),
-
-                                    fieldWithPath("data.page").type(NUMBER).description("현재 페이지"),
-                                    fieldWithPath("data.size").type(NUMBER).description("페이지 크기"),
-                                    fieldWithPath("data.totalElements").type(NUMBER).description("전체 개수"),
-                                    fieldWithPath("data.totalPages").type(NUMBER).description("전체 페이지 수")
+                                    fieldWithPath("data.content[].createdAt").type(STRING).description("신청 생성 시각")
+                            ).and(
+                                    pageResponseFields()
                             )
                     ));
         }
     }
 
     @Nested
-    @DisplayName("아티스트 신청 승인 API")
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("아티스트 등록 신청 승인 API")
     class ApproveArtistApplication {
 
         @Test
-        @WithMockUser(roles = "ADMIN")
-        @DisplayName("아티스트 신청 승인 성공")
+        @DisplayName("아티스트 등록 신청 승인 성공")
         void approveArtistApplication_success() throws Exception {
             Long applicationId = 10L;
 
@@ -418,15 +422,16 @@ class ArtistControllerTest extends RestDocsSupport {
             mockMvc.perform(post("/api/admin/artist-applications/{applicationId}/approve", applicationId)
                             .with(csrf().asHeader()))
                     .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("아티스트 등록 신청 승인 성공"))
                     .andExpect(jsonPath("$.data.applicationId").value(applicationId))
                     .andDo(document("admin-artist-applications-approve",
                             pathParameters(
                                     parameterWithName("applicationId").description("신청 ID")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    baseSuccessResponseFields()
+                            ).and(
                                     fieldWithPath("data.applicationId").type(NUMBER).description("신청 ID"),
                                     fieldWithPath("data.artistId").type(NUMBER).description("생성된 아티스트 ID"),
                                     fieldWithPath("data.artistType").type(STRING).description("아티스트 유형"),
@@ -438,7 +443,6 @@ class ArtistControllerTest extends RestDocsSupport {
         }
 
         @Test
-        @WithMockUser(roles = "ADMIN")
         @DisplayName("이미 처리된 신청 승인 시 400 반환")
         void approveArtistApplication_fail_whenAlreadyProcessed() throws Exception {
             Long applicationId = 10L;
@@ -459,21 +463,19 @@ class ArtistControllerTest extends RestDocsSupport {
                                     parameterWithName("applicationId").description("신청 ID")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                                    baseErrorResponseFields()
                             )
                     ));
         }
     }
 
     @Nested
-    @DisplayName("아티스트 신청 거절 API")
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("아티스트 등록 신청 거절 API")
     class RejectArtistApplication {
 
         @Test
-        @WithMockUser(roles = "ADMIN")
-        @DisplayName("아티스트 신청 거절 성공")
+        @DisplayName("아티스트 등록 신청 거절 성공")
         void rejectArtistApplication_success() throws Exception {
             Long applicationId = 10L;
 
@@ -497,6 +499,8 @@ class ArtistControllerTest extends RestDocsSupport {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("아티스트 등록 신청 거절 성공"))
                     .andExpect(jsonPath("$.data.applicationId").value(applicationId))
                     .andDo(document("admin-artist-applications-reject",
                             pathParameters(
@@ -506,9 +510,8 @@ class ArtistControllerTest extends RestDocsSupport {
                                     fieldWithPath("rejectionReason").type(STRING).description("거절 사유")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    baseSuccessResponseFields()
+                            ).and(
                                     fieldWithPath("data.applicationId").type(NUMBER).description("신청 ID"),
                                     fieldWithPath("data.artistType").type(STRING).description("아티스트 유형"),
                                     fieldWithPath("data.status").type(STRING).description("신청 상태"),
@@ -520,7 +523,6 @@ class ArtistControllerTest extends RestDocsSupport {
         }
 
         @Test
-        @WithMockUser(roles = "ADMIN")
         @DisplayName("거절 사유 없이 요청하면 400 반환")
         void rejectArtistApplication_fail_withoutReason() throws Exception {
             ArtistApplicationRejectRequest request =
@@ -536,18 +538,14 @@ class ArtistControllerTest extends RestDocsSupport {
                                     fieldWithPath("rejectionReason").type(STRING).description("거절 사유 (값 없음)")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("에러 메시지"),
-                                    fieldWithPath("data").type(ARRAY).description("상세 에러 내역"),
-                                    fieldWithPath("data[].field").type(STRING).description("에러가 발생한 필드명"),
-                                    fieldWithPath("data[].message").type(STRING).description("에러 상세 사유")
+                                    baseErrorResponseFields()
+                            ).and(
+                                    validationErrorResponseFields()
                             )
                     ));
         }
 
         @Test
-        @WithMockUser(roles = "ADMIN")
         @DisplayName("이미 처리된 신청 거절 시 400 반환")
         void rejectArtistApplication_fail_whenAlreadyProcessed() throws Exception {
             Long applicationId = 10L;
@@ -576,15 +574,14 @@ class ArtistControllerTest extends RestDocsSupport {
                                     fieldWithPath("rejectionReason").type(STRING).description("거절 사유")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                                    baseErrorResponseFields()
                             )
                     ));
         }
     }
 
     @Nested
+    @WithMockUser
     @DisplayName("내 아티스트 목록 조회 API")
     class GetMyArtists {
 
@@ -617,12 +614,13 @@ class ArtistControllerTest extends RestDocsSupport {
 
             mockMvc.perform(get("/api/my/artists"))
                     .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("내 아티스트 목록 조회 성공"))
                     .andExpect(jsonPath("$.data[0].artistId").value(2L))
                     .andDo(document("my-artists-get",
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    baseSuccessResponseFields()
+                            ).and(
                                     fieldWithPath("data").type(ARRAY).description("내 아티스트 목록"),
                                     fieldWithPath("data[].artistId").type(NUMBER).description("아티스트 ID"),
                                     fieldWithPath("data[].name").type(STRING).description("아티스트 이름"),
@@ -637,6 +635,7 @@ class ArtistControllerTest extends RestDocsSupport {
     }
 
     @Nested
+    @WithMockUser
     @DisplayName("아티스트 상세 조회 API")
     class GetArtist {
 
@@ -660,15 +659,16 @@ class ArtistControllerTest extends RestDocsSupport {
 
             mockMvc.perform(get("/api/artists/{artistId}", artistId))
                     .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("아티스트 상세 조회 성공"))
                     .andExpect(jsonPath("$.data.artistId").value(artistId))
                     .andDo(document("artists-get",
                             pathParameters(
                                     parameterWithName("artistId").description("아티스트 ID")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    baseSuccessResponseFields()
+                            ).and(
                                     fieldWithPath("data.artistId").type(NUMBER).description("아티스트 ID"),
                                     fieldWithPath("data.name").type(STRING).description("아티스트 이름"),
                                     fieldWithPath("data.artistType").type(STRING).description("아티스트 유형"),
@@ -701,15 +701,14 @@ class ArtistControllerTest extends RestDocsSupport {
                                     parameterWithName("artistId").description("아티스트 ID")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                                    baseErrorResponseFields()
                             )
                     ));
         }
     }
 
     @Nested
+    @WithMockUser
     @DisplayName("아티스트 프로필 수정 API")
     class UpdateArtist {
 
@@ -743,6 +742,8 @@ class ArtistControllerTest extends RestDocsSupport {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("아티스트 프로필 수정 성공"))
                     .andExpect(jsonPath("$.data.artistId").value(artistId))
                     .andDo(document("artists-update",
                             pathParameters(
@@ -754,9 +755,8 @@ class ArtistControllerTest extends RestDocsSupport {
                                     fieldWithPath("profileImageUrl").type(STRING).description("프로필 이미지 URL")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    baseSuccessResponseFields()
+                            ).and(
                                     fieldWithPath("data.artistId").type(NUMBER).description("아티스트 ID"),
                                     fieldWithPath("data.name").type(STRING).description("아티스트 이름"),
                                     fieldWithPath("data.artistType").type(STRING).description("아티스트 유형"),
@@ -803,15 +803,14 @@ class ArtistControllerTest extends RestDocsSupport {
                                     fieldWithPath("profileImageUrl").type(STRING).description("프로필 이미지 URL")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                                    baseErrorResponseFields()
                             )
                     ));
         }
     }
 
     @Nested
+    @WithMockUser
     @DisplayName("아티스트 삭제 API")
     class DeleteArtist {
 
@@ -822,6 +821,8 @@ class ArtistControllerTest extends RestDocsSupport {
             mockMvc.perform(delete("/api/artists/{artistId}", 1L)
                             .with(csrf().asHeader()))
                     .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("아티스트 삭제 성공"))
                     .andDo(document("artists-delete",
                             pathParameters(
                                     parameterWithName("artistId").description("아티스트 ID")
@@ -854,9 +855,7 @@ class ArtistControllerTest extends RestDocsSupport {
                                     parameterWithName("artistId").description("아티스트 ID")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                                    baseErrorResponseFields()
                             )
                     ));
         }
@@ -881,15 +880,14 @@ class ArtistControllerTest extends RestDocsSupport {
                                     parameterWithName("artistId").description("아티스트 ID")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                                    baseErrorResponseFields()
                             )
                     ));
         }
     }
 
     @Nested
+    @WithMockUser
     @DisplayName("아티스트 활성화 API")
     class ActivateArtist {
 
@@ -915,14 +913,15 @@ class ArtistControllerTest extends RestDocsSupport {
             mockMvc.perform(patch("/api/artists/{artistId}/activate", artistId)
                             .with(csrf().asHeader()))
                     .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("아티스트 활성화 성공"))
                     .andDo(document("artists-activate",
                             pathParameters(
                                     parameterWithName("artistId").description("아티스트 ID")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    baseSuccessResponseFields()
+                            ).and(
                                     fieldWithPath("data.artistId").type(NUMBER).description("아티스트 ID"),
                                     fieldWithPath("data.name").type(STRING).description("아티스트 이름"),
                                     fieldWithPath("data.artistType").type(STRING).description("아티스트 유형"),
@@ -956,9 +955,7 @@ class ArtistControllerTest extends RestDocsSupport {
                                     parameterWithName("artistId").description("아티스트 ID")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                                    baseErrorResponseFields()
                             )
                     ));
         }
@@ -984,9 +981,7 @@ class ArtistControllerTest extends RestDocsSupport {
                                     parameterWithName("artistId").description("아티스트 ID")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                                    baseErrorResponseFields()
                             )
                     ));
         }
@@ -1012,15 +1007,14 @@ class ArtistControllerTest extends RestDocsSupport {
                                     parameterWithName("artistId").description("아티스트 ID")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                                    baseErrorResponseFields()
                             )
                     ));
         }
     }
 
     @Nested
+    @WithMockUser
     @DisplayName("아티스트 비활성화 API")
     class DeactivateArtist {
 
@@ -1046,14 +1040,15 @@ class ArtistControllerTest extends RestDocsSupport {
             mockMvc.perform(patch("/api/artists/{artistId}/deactivate", artistId)
                             .with(csrf().asHeader()))
                     .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("아티스트 비활성화 성공"))
                     .andDo(document("artists-deactivate",
                             pathParameters(
                                     parameterWithName("artistId").description("아티스트 ID")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    baseSuccessResponseFields()
+                            ).and(
                                     fieldWithPath("data.artistId").type(NUMBER).description("아티스트 ID"),
                                     fieldWithPath("data.name").type(STRING).description("아티스트 이름"),
                                     fieldWithPath("data.artistType").type(STRING).description("아티스트 유형"),
@@ -1087,9 +1082,7 @@ class ArtistControllerTest extends RestDocsSupport {
                                     parameterWithName("artistId").description("아티스트 ID")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                                    baseErrorResponseFields()
                             )
                     ));
         }
@@ -1115,9 +1108,7 @@ class ArtistControllerTest extends RestDocsSupport {
                                     parameterWithName("artistId").description("아티스트 ID")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                                    baseErrorResponseFields()
                             )
                     ));
         }
@@ -1143,11 +1134,41 @@ class ArtistControllerTest extends RestDocsSupport {
                                     parameterWithName("artistId").description("아티스트 ID")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                                    baseErrorResponseFields()
                             )
                     ));
         }
+    }
+    private FieldDescriptor[] baseSuccessResponseFields() {
+        return new FieldDescriptor[]{
+                fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                fieldWithPath("message").type(STRING).description("응답 메시지")
+        };
+    }
+
+    private FieldDescriptor[] baseErrorResponseFields() {
+        return new FieldDescriptor[]{
+                fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                fieldWithPath("message").type(STRING).description("에러 메시지")
+        };
+    }
+
+    private FieldDescriptor[] validationErrorResponseFields() {
+        return new FieldDescriptor[]{
+                fieldWithPath("data").type(ARRAY).description("상세 에러 내역"),
+                fieldWithPath("data[].field").type(STRING).description("에러가 발생한 필드명"),
+                fieldWithPath("data[].message").type(STRING).description("에러 상세 사유")
+        };
+    }
+
+    private FieldDescriptor[] pageResponseFields() {
+        return new FieldDescriptor[]{
+                fieldWithPath("data.page").type(NUMBER).description("현재 페이지"),
+                fieldWithPath("data.size").type(NUMBER).description("페이지 크기"),
+                fieldWithPath("data.totalElements").type(NUMBER).description("전체 데이터 수"),
+                fieldWithPath("data.totalPages").type(NUMBER).description("전체 페이지 수")
+        };
     }
 }

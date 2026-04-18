@@ -75,7 +75,7 @@ public class ArtistApplicationQueryRepositoryImpl implements ArtistApplicationQu
                 .orderBy(getOrderSpecifiers(pageable))
                 .fetch();
 
-        // 전체 등록 신청 수를 조회
+        // 전체 등록 신청 수 조회
         Long total = queryFactory
                 .select(artistApplication.count())
                 .from(artistApplication)
