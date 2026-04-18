@@ -444,6 +444,13 @@ include::{snippets}/album-applications-create-invalid/request-fields.adoc[]
 include::{snippets}/album-applications-create-invalid/http-response.adoc[]
 include::{snippets}/album-applications-create-invalid/response-fields.adoc[]
 
+==== 에러 케이스 - 중복 신청
+
+include::{snippets}/album-applications-create-duplicate/http-request.adoc[]
+include::{snippets}/album-applications-create-duplicate/request-fields.adoc[]
+include::{snippets}/album-applications-create-duplicate/http-response.adoc[]
+include::{snippets}/album-applications-create-duplicate/response-fields.adoc[]
+
 ---
 
 === 내 앨범 등록 신청 목록 조회
@@ -460,6 +467,20 @@ include::{snippets}/album-applications-get/http-request.adoc[]
 include::{snippets}/album-applications-get/path-parameters.adoc[]
 include::{snippets}/album-applications-get/http-response.adoc[]
 include::{snippets}/album-applications-get/response-fields.adoc[]
+
+==== 에러 케이스 - 조회 권한 없음
+
+include::{snippets}/album-applications-get-forbidden/http-request.adoc[]
+include::{snippets}/album-applications-get-forbidden/path-parameters.adoc[]
+include::{snippets}/album-applications-get-forbidden/http-response.adoc[]
+include::{snippets}/album-applications-get-forbidden/response-fields.adoc[]
+
+==== 에러 케이스 - 신청 없음
+
+include::{snippets}/album-applications-get-not-found/http-request.adoc[]
+include::{snippets}/album-applications-get-not-found/path-parameters.adoc[]
+include::{snippets}/album-applications-get-not-found/http-response.adoc[]
+include::{snippets}/album-applications-get-not-found/response-fields.adoc[]
 
 ---
 
@@ -478,6 +499,18 @@ include::{snippets}/admin-album-applications-approve/path-parameters.adoc[]
 include::{snippets}/admin-album-applications-approve/http-response.adoc[]
 include::{snippets}/admin-album-applications-approve/response-fields.adoc[]
 
+==== 에러 케이스 - 이미 처리된 신청
+
+include::{snippets}/admin-album-applications-approve-already-processed/http-request.adoc[]
+include::{snippets}/admin-album-applications-approve-already-processed/http-response.adoc[]
+include::{snippets}/admin-album-applications-approve-already-processed/response-fields.adoc[]
+
+==== 에러 케이스 - 신청 없음
+
+include::{snippets}/admin-album-applications-approve-not-found/http-request.adoc[]
+include::{snippets}/admin-album-applications-approve-not-found/http-response.adoc[]
+include::{snippets}/admin-album-applications-approve-not-found/response-fields.adoc[]
+
 ---
 
 === 앨범 등록 신청 거절
@@ -495,6 +528,18 @@ include::{snippets}/admin-album-applications-reject-invalid/request-fields.adoc[
 include::{snippets}/admin-album-applications-reject-invalid/http-response.adoc[]
 include::{snippets}/admin-album-applications-reject-invalid/response-fields.adoc[]
 
+==== 에러 케이스 - 이미 처리된 신청
+
+include::{snippets}/admin-album-applications-reject-already-processed/http-request.adoc[]
+include::{snippets}/admin-album-applications-reject-already-processed/http-response.adoc[]
+include::{snippets}/admin-album-applications-reject-already-processed/response-fields.adoc[]
+
+==== 에러 케이스 - 신청 없음
+
+include::{snippets}/admin-album-applications-reject-not-found/http-request.adoc[]
+include::{snippets}/admin-album-applications-reject-not-found/http-response.adoc[]
+include::{snippets}/admin-album-applications-reject-not-found/response-fields.adoc[]
+
 ---
 
 === 앨범 상세 조회
@@ -504,6 +549,12 @@ include::{snippets}/albums-get/path-parameters.adoc[]
 include::{snippets}/albums-get/http-response.adoc[]
 include::{snippets}/albums-get/response-fields.adoc[]
 
+==== 에러 케이스 - 앨범 없음
+
+include::{snippets}/albums-get-not-found/http-request.adoc[]
+include::{snippets}/albums-get-not-found/http-response.adoc[]
+include::{snippets}/albums-get-not-found/response-fields.adoc[]
+
 ---
 
 === 아티스트별 앨범 목록 조회
@@ -512,6 +563,12 @@ include::{snippets}/artists-albums-get/http-request.adoc[]
 include::{snippets}/artists-albums-get/path-parameters.adoc[]
 include::{snippets}/artists-albums-get/http-response.adoc[]
 include::{snippets}/artists-albums-get/response-fields.adoc[]
+
+==== 에러 케이스 - 아티스트 없음
+
+include::{snippets}/albums-by-artist-not-found/http-request.adoc[]
+include::{snippets}/albums-by-artist-not-found/http-response.adoc[]
+include::{snippets}/albums-by-artist-not-found/response-fields.adoc[]
 
 ---
 
