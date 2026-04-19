@@ -12,9 +12,11 @@ import com.fivefy.domain.artist.enums.ArtistType;
 import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.track.dto.request.FreeTrackApplicationCreateRequest;
 import com.fivefy.domain.track.dto.request.OfficialTrackApplicationCreateRequest;
+import com.fivefy.domain.track.dto.response.TrackApplicationApproveResponse;
 import com.fivefy.domain.track.dto.response.TrackApplicationDetailResponse;
 import com.fivefy.domain.track.dto.response.TrackApplicationListResponse;
 import com.fivefy.domain.track.dto.response.TrackApplicationResponse;
+import com.fivefy.domain.track.entity.Track;
 import com.fivefy.domain.track.entity.TrackApplication;
 import com.fivefy.domain.track.enums.TrackApplicationErrorCode;
 import com.fivefy.domain.track.enums.TrackType;
@@ -66,6 +68,9 @@ class TrackServiceTest {
 
     @Mock
     private AlbumRepository albumRepository;
+
+    @Mock
+    private TrackRepository trackRepository;
 
     @InjectMocks
     private TrackService trackService;
@@ -1047,6 +1052,200 @@ class TrackServiceTest {
             assertThat(response.content()).isEmpty();
             assertThat(response.totalElements()).isZero();
             assertThat(response.totalPages()).isZero();
+        }
+    }
+
+    @Nested
+    @DisplayName("트랙 등록 신청 승인")
+    class ApproveTrackApplication {
+
+        @Test
+        @DisplayName("즉시 공개 신청이면 승인과 함께 트랙 생성 및 공개 성공")
+        void approveTrackApplication_success_whenImmediatePublish() {
+            Long adminId = 1L;
+            Long applicationId = 10L;
+
+            TrackApplication application = TrackApplication.create(
+                    2L,
+                    TrackType.OFFICIAL_RELEASE,
+                    100L,
+                    200L,
+                    1L,
+                    "밤편지",
+                    "가사",
+                    "BALLAD",
+                    "https://example.com/audio.mp3",
+                    230L,
+                    "feat. 10cm",
+                    0
+            );
+            ReflectionTestUtils.setField(application, "id", applicationId);
+
+            Track savedTrack = Track.createOfficialRelease(
+                    application.getRequesterUserId(),
+                    application.getArtistId(),
+                    application.getAlbumId(),
+                    application.getTrackNumber(),
+                    application.getTitle(),
+                    application.getLyrics(),
+                    application.getGenre(),
+                    application.getAudioUrl(),
+                    application.getDurationSec(),
+                    application.getFeaturedArtistText(),
+                    null
+            );
+            savedTrack.publish();
+            ReflectionTestUtils.setField(savedTrack, "id", 1000L);
+
+            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(trackRepository.save(any(Track.class))).thenReturn(savedTrack);
+
+            TrackApplicationApproveResponse response =
+                    trackService.approveTrackApplication(adminId, applicationId);
+
+            assertThat(response.applicationId()).isEqualTo(applicationId);
+            assertThat(response.trackId()).isEqualTo(1000L);
+            assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED.name());
+            assertThat(response.reviewedByAdminId()).isEqualTo(adminId);
+            assertThat(response.reviewedAt()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("예약 공개 신청이면 승인과 함께 트랙 생성 성공")
+        void approveTrackApplication_success_whenScheduledPublish() {
+            Long adminId = 1L;
+            Long applicationId = 10L;
+
+            TrackApplication application = TrackApplication.create(
+                    2L,
+                    TrackType.OFFICIAL_RELEASE,
+                    100L,
+                    200L,
+                    1L,
+                    "밤편지",
+                    "가사",
+                    "BALLAD",
+                    "https://example.com/audio.mp3",
+                    230L,
+                    "feat. 10cm",
+                    3
+            );
+            ReflectionTestUtils.setField(application, "id", applicationId);
+
+            Track savedTrack = Track.createOfficialRelease(
+                    application.getRequesterUserId(),
+                    application.getArtistId(),
+                    application.getAlbumId(),
+                    application.getTrackNumber(),
+                    application.getTitle(),
+                    application.getLyrics(),
+                    application.getGenre(),
+                    application.getAudioUrl(),
+                    application.getDurationSec(),
+                    application.getFeaturedArtistText(),
+                    LocalDateTime.now().plusDays(3)
+            );
+            ReflectionTestUtils.setField(savedTrack, "id", 1000L);
+
+            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(trackRepository.save(any(Track.class))).thenReturn(savedTrack);
+
+            TrackApplicationApproveResponse response =
+                    trackService.approveTrackApplication(adminId, applicationId);
+
+            assertThat(response.applicationId()).isEqualTo(applicationId);
+            assertThat(response.trackId()).isEqualTo(1000L);
+            assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED.name());
+            assertThat(response.reviewedByAdminId()).isEqualTo(adminId);
+            assertThat(response.reviewedAt()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 신청이면 승인 실패")
+        void approveTrackApplication_fail_whenNotFound() {
+            Long adminId = 1L;
+            Long applicationId = 10L;
+
+            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> trackService.approveTrackApplication(adminId, applicationId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("이미 처리된 신청이면 승인 실패")
+        void approveTrackApplication_fail_whenAlreadyProcessed() {
+            Long adminId = 1L;
+            Long applicationId = 10L;
+
+            TrackApplication application = TrackApplication.create(
+                    2L,
+                    TrackType.OFFICIAL_RELEASE,
+                    100L,
+                    200L,
+                    1L,
+                    "밤편지",
+                    "가사",
+                    "BALLAD",
+                    "https://example.com/audio.mp3",
+                    230L,
+                    "feat. 10cm",
+                    0
+            );
+            ReflectionTestUtils.setField(application, "id", applicationId);
+            application.approve(adminId);
+
+            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+
+            assertThatThrownBy(() -> trackService.approveTrackApplication(adminId, applicationId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_PROCESSED.getMessage());
+        }
+
+        @Test
+        @DisplayName("자유 창작 신청이면 승인과 함께 트랙 생성 및 공개 성공")
+        void approveTrackApplication_success_whenFreeCreation() {
+            Long adminId = 1L;
+            Long applicationId = 10L;
+
+            TrackApplication application = TrackApplication.create(
+                    2L,
+                    TrackType.FREE_CREATION,
+                    null,
+                    null,
+                    null,
+                    "밤편지 AI 버전",
+                    "가사",
+                    "BALLAD",
+                    "https://example.com/audio.mp3",
+                    210L,
+                    null,
+                    null
+            );
+            ReflectionTestUtils.setField(application, "id", applicationId);
+
+            Track savedTrack = Track.createFreeCreation(
+                    application.getRequesterUserId(),
+                    application.getTitle(),
+                    application.getLyrics(),
+                    application.getGenre(),
+                    application.getAudioUrl(),
+                    application.getDurationSec()
+            );
+            ReflectionTestUtils.setField(savedTrack, "id", 1000L);
+
+            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(trackRepository.save(any(Track.class))).thenReturn(savedTrack);
+
+            TrackApplicationApproveResponse response =
+                    trackService.approveTrackApplication(adminId, applicationId);
+
+            assertThat(response.applicationId()).isEqualTo(applicationId);
+            assertThat(response.trackId()).isEqualTo(1000L);
+            assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED.name());
+            assertThat(response.reviewedByAdminId()).isEqualTo(adminId);
+            assertThat(response.reviewedAt()).isNotNull();
         }
     }
 }
