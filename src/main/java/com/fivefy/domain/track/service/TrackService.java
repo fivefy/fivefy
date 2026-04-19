@@ -12,10 +12,7 @@ import com.fivefy.domain.artist.enums.ArtistStatus;
 import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.track.dto.request.FreeTrackApplicationCreateRequest;
 import com.fivefy.domain.track.dto.request.OfficialTrackApplicationCreateRequest;
-import com.fivefy.domain.track.dto.response.TrackApplicationApproveResponse;
-import com.fivefy.domain.track.dto.response.TrackApplicationDetailResponse;
-import com.fivefy.domain.track.dto.response.TrackApplicationListResponse;
-import com.fivefy.domain.track.dto.response.TrackApplicationResponse;
+import com.fivefy.domain.track.dto.response.*;
 import com.fivefy.domain.track.entity.Track;
 import com.fivefy.domain.track.entity.TrackApplication;
 import com.fivefy.domain.track.enums.TrackApplicationErrorCode;
@@ -199,6 +196,23 @@ public class TrackService {
         Track savedTrack = trackRepository.save(createTrack(application));
 
         return TrackApplicationApproveResponse.from(application, savedTrack.getId());
+    }
+
+    /**
+     * 트랙 등록 신청 거절 (관리자)
+     */
+    @Transactional
+    public TrackApplicationRejectResponse rejectTrackApplication(
+            Long adminId,
+            Long applicationId,
+            String rejectionReason
+    ) {
+        TrackApplication application = findTrackApplication(applicationId);
+
+        // 상태 전이는 엔티티에 위임
+        application.reject(adminId, rejectionReason);
+
+        return TrackApplicationRejectResponse.from(application);
     }
 
     // =========================
