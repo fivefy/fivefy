@@ -10,6 +10,7 @@ import com.fivefy.domain.artist.enums.ArtistStatus;
 import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.track.dto.request.FreeTrackApplicationCreateRequest;
 import com.fivefy.domain.track.dto.request.OfficialTrackApplicationCreateRequest;
+import com.fivefy.domain.track.dto.response.TrackApplicationDetailResponse;
 import com.fivefy.domain.track.dto.response.TrackApplicationResponse;
 import com.fivefy.domain.track.entity.TrackApplication;
 import com.fivefy.domain.track.enums.TrackApplicationErrorCode;
@@ -17,6 +18,7 @@ import com.fivefy.domain.track.enums.TrackType;
 import com.fivefy.domain.track.repository.TrackApplicationRepository;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
+import com.fivefy.domain.user.enums.UserRole;
 import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -143,6 +145,20 @@ public class TrackService {
                 .toList();
     }
 
+    /**
+     * 트랙 등록 신청 상세 조회
+     */
+    @Transactional(readOnly = true)
+    public TrackApplicationDetailResponse getTrackApplication(Long userId, Long applicationId) {
+        TrackApplication application = findTrackApplication(applicationId);
+        User user = findUser(userId);
+
+        // 신청자 또는 관리자만 조회 가능
+        validateTrackApplicationDetailAccess(userId, user, application);
+
+        return TrackApplicationDetailResponse.from(application);
+    }
+
     // =========================
     // 조회
     // =========================
@@ -185,6 +201,13 @@ public class TrackService {
         }
 
         return album;
+    }
+
+    // 트랙 등록 신청 조회
+    private TrackApplication findTrackApplication(Long applicationId) {
+        return trackApplicationRepository.findById(applicationId)
+                .orElseThrow(() -> new BusinessException(
+                        TrackApplicationErrorCode.ERR_TRACK_APPLICATION_NOT_FOUND));
     }
 
     // =========================
@@ -257,6 +280,22 @@ public class TrackService {
         )) {
             throw new BusinessException(
                     TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS
+            );
+        }
+    }
+
+    // 상세 조회 권한 검증
+    private void validateTrackApplicationDetailAccess(
+            Long userId,
+            User user,
+            TrackApplication application
+    ) {
+        boolean isRequester = application.getRequesterUserId().equals(userId);
+        boolean isAdmin = user.getRole() == UserRole.ADMIN;
+
+        if (!isRequester && !isAdmin) {
+            throw new BusinessException(
+                    TrackApplicationErrorCode.ERR_TRACK_APPLICATION_DETAIL_FORBIDDEN
             );
         }
     }

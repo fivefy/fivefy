@@ -3,6 +3,7 @@ package com.fivefy.domain.track.controller;
 import com.fivefy.common.dto.response.BaseResponse;
 import com.fivefy.domain.track.dto.request.FreeTrackApplicationCreateRequest;
 import com.fivefy.domain.track.dto.request.OfficialTrackApplicationCreateRequest;
+import com.fivefy.domain.track.dto.response.TrackApplicationDetailResponse;
 import com.fivefy.domain.track.dto.response.TrackApplicationResponse;
 import com.fivefy.domain.track.service.TrackService;
 import jakarta.validation.Valid;
@@ -68,6 +69,22 @@ public class TrackApplicationController {
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 BaseResponse.success(HttpStatus.OK, "내 트랙 등록 신청 목록 조회 성공", response)
+        );
+    }
+
+    /**
+     * 트랙 등록 신청 상세 조회 API
+     */
+    @GetMapping("/track-applications/{applicationId}")
+    public ResponseEntity<BaseResponse<TrackApplicationDetailResponse>> getTrackApplication(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long applicationId
+    ) {
+        TrackApplicationDetailResponse response =
+                trackService.getTrackApplication(userId, applicationId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                BaseResponse.success(HttpStatus.OK, "트랙 등록 신청 상세 조회 성공", response)
         );
     }
 }

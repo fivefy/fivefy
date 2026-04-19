@@ -1,7 +1,6 @@
 package com.fivefy.domain.track.repository;
 
 import com.fivefy.common.enums.ApplicationStatus;
-import com.fivefy.domain.track.entity.QTrackApplication;
 import com.fivefy.domain.track.entity.TrackApplication;
 import com.fivefy.domain.track.enums.TrackType;
 import com.querydsl.core.types.dsl.BooleanExpression;
