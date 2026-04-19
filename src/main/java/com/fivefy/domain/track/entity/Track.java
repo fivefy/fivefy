@@ -93,8 +93,7 @@ public class Track extends BaseEntity {
             String lyrics,
             String genre,
             String audioUrl,
-            Long durationSec,
-            LocalDateTime scheduledPublishAt
+            Long durationSec
     ) {
         validateNonNull(ownerUserId, "ownerUserId");
         validateNonNull(title, "title");
@@ -111,8 +110,8 @@ public class Track extends BaseEntity {
         track.genre = genre;
         track.audioUrl = audioUrl;
         track.durationSec = durationSec;
-        track.scheduledPublishAt = scheduledPublishAt;
         track.status = TrackStatus.PUBLISHED;
+        track.publishedAt = LocalDateTime.now();
         track.playCount = 0L;
 
         return track;
