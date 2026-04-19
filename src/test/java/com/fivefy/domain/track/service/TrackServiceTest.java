@@ -1,5 +1,6 @@
 package com.fivefy.domain.track.service;
 
+import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.album.entity.Album;
@@ -12,6 +13,7 @@ import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.track.dto.request.FreeTrackApplicationCreateRequest;
 import com.fivefy.domain.track.dto.request.OfficialTrackApplicationCreateRequest;
 import com.fivefy.domain.track.dto.response.TrackApplicationDetailResponse;
+import com.fivefy.domain.track.dto.response.TrackApplicationListResponse;
 import com.fivefy.domain.track.dto.response.TrackApplicationResponse;
 import com.fivefy.domain.track.entity.TrackApplication;
 import com.fivefy.domain.track.enums.TrackApplicationErrorCode;
@@ -29,6 +31,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -723,12 +729,12 @@ class TrackServiceTest {
                 when(application1.getCreatedAt()).thenReturn(LocalDateTime.now());
                 when(application2.getCreatedAt()).thenReturn(LocalDateTime.now());
 
-                List<TrackApplicationResponse> result =
+                List<TrackApplicationResponse> response =
                         trackService.getMyTrackApplications(userId);
 
-                assertThat(result).hasSize(2);
-                assertThat(result.get(0).applicationId()).isEqualTo(1L);
-                assertThat(result.get(1).applicationId()).isEqualTo(2L);
+                assertThat(response).hasSize(2);
+                assertThat(response.get(0).applicationId()).isEqualTo(1L);
+                assertThat(response.get(1).applicationId()).isEqualTo(2L);
             }
 
             @Test
@@ -756,10 +762,10 @@ class TrackServiceTest {
                 when(trackApplicationRepository.searchMyTrackApplications(userId))
                         .thenReturn(List.of());
 
-                List<TrackApplicationResponse> result =
+                List<TrackApplicationResponse> response =
                         trackService.getMyTrackApplications(userId);
 
-                assertThat(result).isEmpty();
+                assertThat(response).isEmpty();
             }
         }
     }
@@ -919,6 +925,128 @@ class TrackServiceTest {
             assertThatThrownBy(() -> trackService.getTrackApplication(userId, applicationId))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_NOT_FOUND.getMessage());
+        }
+    }
+
+    @Nested
+    @DisplayName("트랙 등록 신청 목록 조회")
+    class GetTrackApplications {
+
+        @Test
+        @DisplayName("상태 조건 없이 오래된순 목록 조회 성공")
+        void getTrackApplications_success_withoutStatus() {
+            Pageable pageable = PageRequest.of(0, 10);
+
+            TrackApplication application1 = TrackApplication.create(
+                    1L,
+                    TrackType.FREE_CREATION,
+                    null,
+                    null,
+                    null,
+                    "첫 번째 신청",
+                    "가사1",
+                    "BALLAD",
+                    "https://example.com/audio1.mp3",
+                    210L,
+                    null,
+                    null
+            );
+            ReflectionTestUtils.setField(application1, "id", 1L);
+            ReflectionTestUtils.setField(
+                    application1,
+                    "createdAt",
+                    LocalDateTime.of(2026, 4, 14, 15, 0, 0)
+            );
+
+            TrackApplication application2 = TrackApplication.create(
+                    2L,
+                    TrackType.OFFICIAL_RELEASE,
+                    10L,
+                    100L,
+                    1L,
+                    "두 번째 신청",
+                    "가사2",
+                    "BALLAD",
+                    "https://example.com/audio2.mp3",
+                    230L,
+                    "feat. 10cm",
+                    3
+            );
+            ReflectionTestUtils.setField(application2, "id", 2L);
+            ReflectionTestUtils.setField(
+                    application2,
+                    "createdAt",
+                    LocalDateTime.of(2026, 4, 15, 15, 0, 0)
+            );
+
+            when(trackApplicationRepository.searchTrackApplications(null, pageable))
+                    .thenReturn(new PageImpl<>(List.of(application1, application2), pageable, 2));
+
+            PageResponse<TrackApplicationListResponse> response =
+                    trackService.getTrackApplications(null, pageable);
+
+            assertThat(response.content()).hasSize(2);
+            assertThat(response.content().get(0).applicationId()).isEqualTo(1L);
+            assertThat(response.content().get(0).requesterUserId()).isEqualTo(1L);
+            assertThat(response.content().get(0).title()).isEqualTo("첫 번째 신청");
+            assertThat(response.content().get(1).applicationId()).isEqualTo(2L);
+            assertThat(response.page()).isEqualTo(0);
+            assertThat(response.size()).isEqualTo(10);
+            assertThat(response.totalElements()).isEqualTo(2);
+            assertThat(response.totalPages()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("상태 조건으로 목록 조회 성공")
+        void getTrackApplications_success_withStatus() {
+            Pageable pageable = PageRequest.of(0, 10);
+
+            TrackApplication application = TrackApplication.create(
+                    1L,
+                    TrackType.FREE_CREATION,
+                    null,
+                    null,
+                    null,
+                    "승인 대기 신청",
+                    "가사",
+                    "BALLAD",
+                    "https://example.com/audio.mp3",
+                    210L,
+                    null,
+                    null
+            );
+            ReflectionTestUtils.setField(application, "id", 1L);
+            ReflectionTestUtils.setField(
+                    application,
+                    "createdAt",
+                    LocalDateTime.of(2026, 4, 14, 15, 0, 0)
+            );
+
+            when(trackApplicationRepository.searchTrackApplications(ApplicationStatus.PENDING, pageable))
+                    .thenReturn(new PageImpl<>(List.of(application), pageable, 1));
+
+            PageResponse<TrackApplicationListResponse> response =
+                    trackService.getTrackApplications(ApplicationStatus.PENDING, pageable);
+
+            assertThat(response.content()).hasSize(1);
+            assertThat(response.content().get(0).status()).isEqualTo(ApplicationStatus.PENDING);
+            assertThat(response.totalElements()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("조회 결과가 없으면 빈 페이지 조회 성공")
+        void getTrackApplications_success_whenEmpty() {
+            Pageable pageable = PageRequest.of(0, 10);
+
+            when(trackApplicationRepository.searchTrackApplications(ApplicationStatus.REJECTED, pageable))
+                    .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+
+            PageResponse<TrackApplicationListResponse> response =
+                    trackService.getTrackApplications(ApplicationStatus.REJECTED, pageable);
+
+            assertThat(response.content()).isEmpty();
+            assertThat(response.totalElements()).isZero();
+            assertThat(response.totalPages()).isZero();
         }
     }
 }
