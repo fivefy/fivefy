@@ -11,6 +11,7 @@ import com.fivefy.domain.artist.enums.ArtistType;
 import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.track.dto.request.FreeTrackApplicationCreateRequest;
 import com.fivefy.domain.track.dto.request.OfficialTrackApplicationCreateRequest;
+import com.fivefy.domain.track.dto.response.TrackApplicationDetailResponse;
 import com.fivefy.domain.track.dto.response.TrackApplicationResponse;
 import com.fivefy.domain.track.entity.TrackApplication;
 import com.fivefy.domain.track.enums.TrackApplicationErrorCode;
@@ -19,6 +20,7 @@ import com.fivefy.domain.track.repository.TrackApplicationRepository;
 import com.fivefy.domain.track.repository.TrackRepository;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
+import com.fivefy.domain.user.enums.UserRole;
 import com.fivefy.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -759,6 +761,164 @@ class TrackServiceTest {
 
                 assertThat(result).isEmpty();
             }
+        }
+    }
+
+    @Nested
+    @DisplayName("트랙 등록 신청 상세 조회")
+    class GetTrackApplication {
+
+        @Test
+        @DisplayName("신청자 본인이면 상세 조회 성공")
+        void getTrackApplication_success_whenRequester() {
+            Long userId = 1L;
+            Long applicationId = 100L;
+
+            User user = mock(User.class);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
+
+            TrackApplication application = TrackApplication.create(
+                    userId,
+                    TrackType.FREE_CREATION,
+                    null,
+                    null,
+                    null,
+                    "밤편지 AI 버전",
+                    "가사",
+                    "BALLAD",
+                    "https://example.com/audio.mp3",
+                    210L,
+                    null,
+                    null
+            );
+            ReflectionTestUtils.setField(application, "id", applicationId);
+            ReflectionTestUtils.setField(
+                    application,
+                    "createdAt",
+                    LocalDateTime.of(2026, 4, 19, 21, 0, 0)
+            );
+            ReflectionTestUtils.setField(
+                    application,
+                    "updatedAt",
+                    LocalDateTime.of(2026, 4, 19, 21, 0, 0)
+            );
+
+            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+
+            TrackApplicationDetailResponse response =
+                    trackService.getTrackApplication(userId, applicationId);
+
+            assertThat(response.applicationId()).isEqualTo(applicationId);
+            assertThat(response.requesterUserId()).isEqualTo(userId);
+            assertThat(response.trackType()).isEqualTo(TrackType.FREE_CREATION);
+            assertThat(response.artistId()).isNull();
+            assertThat(response.albumId()).isNull();
+            assertThat(response.trackNumber()).isNull();
+            assertThat(response.title()).isEqualTo("밤편지 AI 버전");
+            assertThat(response.genre()).isEqualTo("BALLAD");
+            assertThat(response.audioUrl()).isEqualTo("https://example.com/audio.mp3");
+            assertThat(response.durationSec()).isEqualTo(210L);
+            assertThat(response.publishDelayDays()).isNull();
+            assertThat(response.status()).isEqualTo(ApplicationStatus.PENDING);
+        }
+
+        @Test
+        @DisplayName("관리자면 상세 조회 성공")
+        void getTrackApplication_success_whenAdmin() {
+            Long userId = 99L;
+            Long applicationId = 100L;
+            Long requesterUserId = 1L;
+
+            User admin = mock(User.class);
+            when(admin.getRole()).thenReturn(UserRole.ADMIN);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(admin));
+
+            TrackApplication application = TrackApplication.create(
+                    requesterUserId,
+                    TrackType.OFFICIAL_RELEASE,
+                    10L,
+                    100L,
+                    1L,
+                    "밤편지",
+                    "가사",
+                    "BALLAD",
+                    "https://example.com/audio.mp3",
+                    230L,
+                    "feat. 10cm",
+                    3
+            );
+            ReflectionTestUtils.setField(application, "id", applicationId);
+            ReflectionTestUtils.setField(
+                    application,
+                    "createdAt",
+                    LocalDateTime.of(2026, 4, 19, 21, 0, 0)
+            );
+            ReflectionTestUtils.setField(
+                    application,
+                    "updatedAt",
+                    LocalDateTime.of(2026, 4, 19, 21, 0, 0)
+            );
+
+            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+
+            TrackApplicationDetailResponse response =
+                    trackService.getTrackApplication(userId, applicationId);
+
+            assertThat(response.applicationId()).isEqualTo(applicationId);
+            assertThat(response.requesterUserId()).isEqualTo(requesterUserId);
+            assertThat(response.trackType()).isEqualTo(TrackType.OFFICIAL_RELEASE);
+            assertThat(response.artistId()).isEqualTo(10L);
+            assertThat(response.albumId()).isEqualTo(100L);
+            assertThat(response.trackNumber()).isEqualTo(1L);
+            assertThat(response.title()).isEqualTo("밤편지");
+            assertThat(response.featuredArtistText()).isEqualTo("feat. 10cm");
+            assertThat(response.publishDelayDays()).isEqualTo(3);
+        }
+
+        @Test
+        @DisplayName("본인도 관리자도 아니면 상세 조회 실패")
+        void getTrackApplication_fail_whenForbidden() {
+            Long userId = 2L;
+            Long applicationId = 100L;
+
+            User user = mock(User.class);
+            when(user.getRole()).thenReturn(UserRole.USER);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
+
+            TrackApplication application = TrackApplication.create(
+                    1L,
+                    TrackType.FREE_CREATION,
+                    null,
+                    null,
+                    null,
+                    "밤편지 AI 버전",
+                    "가사",
+                    "BALLAD",
+                    "https://example.com/audio.mp3",
+                    210L,
+                    null,
+                    null
+            );
+            ReflectionTestUtils.setField(application, "id", applicationId);
+
+            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+
+            assertThatThrownBy(() -> trackService.getTrackApplication(userId, applicationId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_DETAIL_FORBIDDEN.getMessage());
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 신청이면 상세 조회 실패")
+        void getTrackApplication_fail_whenNotFound() {
+            Long userId = 1L;
+            Long applicationId = 100L;
+
+            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> trackService.getTrackApplication(userId, applicationId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_NOT_FOUND.getMessage());
         }
     }
 }
