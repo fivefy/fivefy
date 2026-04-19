@@ -3,6 +3,8 @@ package com.fivefy.domain.track.repository;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.domain.track.entity.QTrackApplication;
 import com.fivefy.domain.track.entity.TrackApplication;
+import com.fivefy.domain.track.enums.TrackType;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -10,6 +12,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+
+import static com.fivefy.domain.track.entity.QTrackApplication.trackApplication;
 
 /**
  * TrackApplication Querydsl 구현체
@@ -31,24 +35,46 @@ public class TrackApplicationQueryRepositoryImpl implements TrackApplicationQuer
     ) {
         Integer result = queryFactory
                 .selectOne()
-                .from(QTrackApplication.trackApplication)
+                .from(trackApplication)
                 .where(
-                        QTrackApplication.trackApplication.requesterUserId.eq(requesterUserId),
-                        QTrackApplication.trackApplication.status.eq(ApplicationStatus.PENDING),
-                        QTrackApplication.trackApplication.artistId.isNull(),
-                        QTrackApplication.trackApplication.albumId.isNull(),
-                        QTrackApplication.trackApplication.trackNumber.isNull(),
-                        QTrackApplication.trackApplication.title.eq(title),
-                        QTrackApplication.trackApplication.audioUrl.eq(audioUrl)
+                        trackApplication.requesterUserId.eq(requesterUserId),
+                        trackApplication.status.eq(ApplicationStatus.PENDING),
+                        trackApplication.artistId.isNull(),
+                        trackApplication.albumId.isNull(),
+                        trackApplication.trackNumber.isNull(),
+                        trackApplication.title.eq(title),
+                        trackApplication.audioUrl.eq(audioUrl)
                 )
                 .fetchFirst();
 
         return result != null;
     }
 
+    /**
+     * 정식 발매 PENDING 중복 신청 여부 조회
+     */
     @Override
-    public boolean existsPendingOfficialReleaseApplication(Long requesterUserId, Long artistId, Long albumId, Long trackNumber, String title) {
-        return false;
+    public boolean existsPendingOfficialReleaseApplication(
+            Long requesterUserId,
+            Long artistId,
+            Long albumId,
+            Long trackNumber,
+            String title
+    ) {
+        Integer result = queryFactory
+                .selectOne()
+                .from(trackApplication)
+                .where(
+                        trackApplication.requesterUserId.eq(requesterUserId),
+                        trackApplication.status.eq(ApplicationStatus.PENDING),
+                        trackApplication.trackType.eq(TrackType.OFFICIAL_RELEASE),
+                        trackApplication.artistId.eq(artistId),
+                        trackApplication.albumId.eq(albumId),
+                        officialReleaseDuplicateCondition(trackNumber, title)
+                )
+                .fetchFirst();
+
+        return result != null;
     }
 
     @Override
@@ -59,5 +85,16 @@ public class TrackApplicationQueryRepositoryImpl implements TrackApplicationQuer
     @Override
     public Page<TrackApplication> searchTrackApplications(ApplicationStatus status, Pageable pageable) {
         return null;
+    }
+
+    // 같은 앨범 내 동일 trackNumber 또는 동일 title 중복 조건
+    private BooleanExpression officialReleaseDuplicateCondition(
+            Long trackNumber,
+            String title
+    ) {
+        BooleanExpression sameTrackNumber = trackApplication.trackNumber.eq(trackNumber);
+        BooleanExpression sameTitle = trackApplication.title.eq(title);
+
+        return sameTrackNumber.or(sameTitle);
     }
 }

@@ -68,8 +68,8 @@ public class TrackApplication extends BaseEntity {
     @Column(name = "featured_artist_text", length = 255)
     private String featuredArtistText;
 
-    @Column(name = "scheduled_publish_at")
-    private LocalDateTime scheduledPublishAt;
+    @Column(name = "publish_delay_days")
+    private Integer publishDelayDays;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -103,15 +103,15 @@ public class TrackApplication extends BaseEntity {
             String audioUrl,
             Long durationSec,
             String featuredArtistText,
-            LocalDateTime scheduledPublishAt
+            Integer publishDelayDays
     ) {
         validateNonNull(requesterUserId, "requesterUserId");
         validateNonNull(trackType, "trackType");
         validateNonNull(title, "title");
         validateNonNull(genre, "genre");
         validateNonNull(audioUrl, "audioUrl");
-        validateNonNull(durationSec, "durationSec");
 
+        validatePublishDelayDays(publishDelayDays);
         validateDurationSec(durationSec);
 
         TrackApplication application = new TrackApplication();
@@ -127,7 +127,7 @@ public class TrackApplication extends BaseEntity {
         application.audioUrl = audioUrl;
         application.durationSec = durationSec;
         application.featuredArtistText = featuredArtistText;
-        application.scheduledPublishAt = scheduledPublishAt;
+        application.publishDelayDays = publishDelayDays;
         application.status = ApplicationStatus.PENDING;
 
         return application;
@@ -171,8 +171,17 @@ public class TrackApplication extends BaseEntity {
 
     // 재생 시간 검증
     private static void validateDurationSec(Long durationSec) {
+        validateNonNull(durationSec, "durationSec");
+
         if (durationSec <= 0L) {
             throw new BusinessException(TrackErrorCode.ERR_INVALID_DURATION_SEC);
+        }
+    }
+
+    // 공개 예약 옵션 검증
+    private static void validatePublishDelayDays(Integer publishDelayDays) {
+        if (publishDelayDays != null && (publishDelayDays < 0 || publishDelayDays > 7)) {
+            throw new BusinessException(TrackApplicationErrorCode.ERR_INVALID_PUBLISH_DELAY_DAYS);
         }
     }
 }

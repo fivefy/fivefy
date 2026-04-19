@@ -1,5 +1,6 @@
 package com.fivefy.domain.track.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.domain.track.entity.TrackApplication;
 import com.fivefy.domain.track.enums.TrackType;
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
  * - 자유 창작 / 정식 발매 공통으로 사용
  * - 자유 창작의 경우 artistId, albumId는 null
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record TrackApplicationResponse(
 
         Long applicationId,

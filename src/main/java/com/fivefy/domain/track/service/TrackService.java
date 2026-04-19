@@ -1,7 +1,15 @@
 package com.fivefy.domain.track.service;
 
 import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.album.entity.Album;
+import com.fivefy.domain.album.enums.AlbumErrorCode;
+import com.fivefy.domain.album.repository.AlbumRepository;
+import com.fivefy.domain.artist.entity.Artist;
+import com.fivefy.domain.artist.enums.ArtistErrorCode;
+import com.fivefy.domain.artist.enums.ArtistStatus;
+import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.track.dto.request.FreeTrackApplicationCreateRequest;
+import com.fivefy.domain.track.dto.request.OfficialTrackApplicationCreateRequest;
 import com.fivefy.domain.track.dto.response.TrackApplicationResponse;
 import com.fivefy.domain.track.entity.TrackApplication;
 import com.fivefy.domain.track.enums.TrackApplicationErrorCode;
@@ -23,6 +31,8 @@ public class TrackService {
 
     private final TrackApplicationRepository trackApplicationRepository;
     private final UserRepository userRepository;
+    private final AlbumRepository albumRepository;
+    private final ArtistRepository artistRepository;
 
     /**
      * 자유 창작 트랙 등록 신청
@@ -59,10 +69,143 @@ public class TrackService {
         return TrackApplicationResponse.from(savedApplication);
     }
 
+    /**
+     * 정식 발매 트랙 등록 신청
+     */
+    @Transactional
+    public TrackApplicationResponse createOfficialTrackApplication(
+            Long userId,
+            OfficialTrackApplicationCreateRequest request
+    ) {
+        // 신청 유저 존재 확인
+        findUser(userId);
+
+        // 아티스트 조회 및 삭제 여부 검증
+        Artist artist = findNotDeletedArtist(request.artistId());
+
+        // 소유자 검증
+        validateArtistOwner(userId, artist);
+
+        // 아티스트 상태 검증
+        validateArtistActive(artist);
+
+        // 앨범 조회 및 삭제 여부 검증
+        Album album = findNotDeletedAlbum(request.albumId());
+
+        // 앨범-아티스트 일치 검증
+        validateAlbumArtistMatch(album, request.artistId());
+
+        // 공개 예약 옵션 검증
+        validatePublishDelayDays(request.publishDelayDays());
+
+        // 정식 발매 중복 신청 검증
+        validateDuplicateOfficialReleaseApplication(
+                userId,
+                request.artistId(),
+                request.albumId(),
+                request.trackNumber(),
+                request.title()
+        );
+
+        // 등록 신청 생성 및 저장
+        TrackApplication savedApplication = trackApplicationRepository.save(
+                TrackApplication.create(
+                        userId,
+                        TrackType.OFFICIAL_RELEASE,
+                        request.artistId(),
+                        request.albumId(),
+                        request.trackNumber(),
+                        request.title(),
+                        request.lyrics(),
+                        request.genre(),
+                        request.audioUrl(),
+                        request.durationSec(),
+                        request.featuredArtistText(),
+                        request.publishDelayDays()
+                )
+        );
+
+        return TrackApplicationResponse.from(savedApplication);
+    }
+
+    // =========================
+    // 조회
+    // =========================
+
     // 유저 조회
     private User findUser(Long userId) {
         return userRepository.findByIdAndDeletedAtIsNull(userId)
                 .orElseThrow(() -> new BusinessException(UserErrorCode.ERR_USER_NOT_FOUND));
+    }
+
+    // 아티스트 조회
+    private Artist findArtist(Long artistId) {
+        return artistRepository.findById(artistId)
+                .orElseThrow(() -> new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND));
+    }
+
+    // 삭제되지 않은 아티스트 조회
+    private Artist findNotDeletedArtist(Long artistId) {
+        Artist artist = findArtist(artistId);
+
+        if (artist.isDeleted()) {
+            throw new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND);
+        }
+
+        return artist;
+    }
+
+    // 앨범 조회
+    private Album findAlbum(Long albumId) {
+        return albumRepository.findById(albumId)
+                .orElseThrow(() -> new BusinessException(AlbumErrorCode.ERR_ALBUM_NOT_FOUND));
+    }
+
+    // 삭제되지 않은 앨범 조회
+    private Album findNotDeletedAlbum(Long albumId) {
+        Album album = findAlbum(albumId);
+
+        if (album.getDeletedAt() != null) {
+            throw new BusinessException(AlbumErrorCode.ERR_ALBUM_NOT_FOUND);
+        }
+
+        return album;
+    }
+
+    // =========================
+    // 검증
+    // =========================
+
+    // 아티스트 소유자 검증
+    private void validateArtistOwner(Long userId, Artist artist) {
+        if (!artist.isOwnedBy(userId)) {
+            throw new BusinessException(ArtistErrorCode.ERR_FORBIDDEN_ARTIST_ACCESS);
+        }
+    }
+
+    // 아티스트 상태 검증
+    private void validateArtistActive(Artist artist) {
+        if (artist.getStatus() != ArtistStatus.ACTIVE) {
+            throw new BusinessException(
+                    TrackApplicationErrorCode.ERR_INACTIVE_ARTIST_CANNOT_REQUEST_OFFICIAL_RELEASE
+            );
+        }
+    }
+
+    // 앨범-아티스트 일치 검증
+    private void validateAlbumArtistMatch(Album album, Long artistId) {
+        if (!album.getArtistId().equals(artistId)) {
+            throw new BusinessException(TrackApplicationErrorCode.ERR_ALBUM_ARTIST_MISMATCH);
+        }
+    }
+
+    // 공개 예약 옵션 검증
+    private void validatePublishDelayDays(Integer publishDelayDays) {
+        if (publishDelayDays == null || publishDelayDays < 0 || publishDelayDays > 7) {
+            throw new BusinessException(
+                    TrackApplicationErrorCode.ERR_INVALID_PUBLISH_DELAY_DAYS
+            );
+        }
     }
 
     // 자유 창작 중복 신청 검증
@@ -75,6 +218,27 @@ public class TrackService {
                 requesterUserId,
                 title,
                 audioUrl
+        )) {
+            throw new BusinessException(
+                    TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS
+            );
+        }
+    }
+
+    // 정식 발매 중복 신청 검증
+    private void validateDuplicateOfficialReleaseApplication(
+            Long requesterUserId,
+            Long artistId,
+            Long albumId,
+            Long trackNumber,
+            String title
+    ) {
+        if (trackApplicationRepository.existsPendingOfficialReleaseApplication(
+                requesterUserId,
+                artistId,
+                albumId,
+                trackNumber,
+                title
         )) {
             throw new BusinessException(
                     TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS

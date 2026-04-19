@@ -2,6 +2,7 @@ package com.fivefy.domain.track.controller;
 
 import com.fivefy.common.dto.response.BaseResponse;
 import com.fivefy.domain.track.dto.request.FreeTrackApplicationCreateRequest;
+import com.fivefy.domain.track.dto.request.OfficialTrackApplicationCreateRequest;
 import com.fivefy.domain.track.dto.response.TrackApplicationResponse;
 import com.fivefy.domain.track.service.TrackService;
 import jakarta.validation.Valid;
@@ -37,6 +38,22 @@ public class TrackApplicationController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 BaseResponse.success(HttpStatus.CREATED, "자유 창작 트랙 등록 신청 성공", response)
+        );
+    }
+
+    /**
+     * 정식 발매 트랙 등록 신청 API
+     */
+    @PostMapping("/track-applications/official-releases")
+    public ResponseEntity<BaseResponse<TrackApplicationResponse>> createOfficialTrackApplication(
+            @AuthenticationPrincipal Long userId,
+            @Valid @RequestBody OfficialTrackApplicationCreateRequest request
+    ) {
+        TrackApplicationResponse response =
+                trackService.createOfficialTrackApplication(userId, request);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                BaseResponse.success(HttpStatus.CREATED, "정식 발매 트랙 등록 신청 성공", response)
         );
     }
 }
