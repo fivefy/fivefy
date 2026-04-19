@@ -4,6 +4,7 @@ import com.fivefy.common.entity.BaseEntity;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.track.enums.TrackApplicationErrorCode;
+import com.fivefy.domain.track.enums.TrackErrorCode;
 import com.fivefy.domain.track.enums.TrackType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -87,6 +88,9 @@ public class TrackApplication extends BaseEntity {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    /**
+     * 트랙 등록 신청 생성
+     */
     public static TrackApplication create(
             Long requesterUserId,
             TrackType trackType,
@@ -108,6 +112,8 @@ public class TrackApplication extends BaseEntity {
         validateNonNull(audioUrl, "audioUrl");
         validateNonNull(durationSec, "durationSec");
 
+        validateDurationSec(durationSec);
+
         TrackApplication application = new TrackApplication();
 
         application.requesterUserId = requesterUserId;
@@ -127,7 +133,9 @@ public class TrackApplication extends BaseEntity {
         return application;
     }
 
-
+    /**
+     * 트랙 등록 신청 승인
+     */
     public void approve(Long adminId) {
         validateNonNull(adminId, "adminId");
         validatePending();
@@ -138,6 +146,9 @@ public class TrackApplication extends BaseEntity {
         this.rejectionReason = null;
     }
 
+    /**
+     * 트랙 등록 신청 거절
+     */
     public void reject(Long adminId, String rejectionReason) {
         validateNonNull(adminId, "adminId");
         validateNonNull(rejectionReason, "rejectionReason");
@@ -149,9 +160,19 @@ public class TrackApplication extends BaseEntity {
         this.rejectionReason = rejectionReason;
     }
 
+    // 상태 검증 (PENDING만 처리 가능)
     private void validatePending() {
         if (this.status != ApplicationStatus.PENDING) {
-            throw new BusinessException(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_PROCESSED);
+            throw new BusinessException(
+                    TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_PROCESSED
+            );
+        }
+    }
+
+    // 재생 시간 검증
+    private static void validateDurationSec(Long durationSec) {
+        if (durationSec <= 0L) {
+            throw new BusinessException(TrackErrorCode.ERR_INVALID_DURATION_SEC);
         }
     }
 }
