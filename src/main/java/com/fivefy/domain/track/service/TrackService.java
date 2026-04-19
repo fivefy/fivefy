@@ -1,5 +1,7 @@
 package com.fivefy.domain.track.service;
 
+import com.fivefy.common.dto.response.PageResponse;
+import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.album.entity.Album;
 import com.fivefy.domain.album.enums.AlbumErrorCode;
@@ -11,6 +13,7 @@ import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.track.dto.request.FreeTrackApplicationCreateRequest;
 import com.fivefy.domain.track.dto.request.OfficialTrackApplicationCreateRequest;
 import com.fivefy.domain.track.dto.response.TrackApplicationDetailResponse;
+import com.fivefy.domain.track.dto.response.TrackApplicationListResponse;
 import com.fivefy.domain.track.dto.response.TrackApplicationResponse;
 import com.fivefy.domain.track.entity.TrackApplication;
 import com.fivefy.domain.track.enums.TrackApplicationErrorCode;
@@ -21,6 +24,8 @@ import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.enums.UserRole;
 import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -157,6 +162,22 @@ public class TrackService {
         validateTrackApplicationDetailAccess(userId, user, application);
 
         return TrackApplicationDetailResponse.from(application);
+    }
+
+    /**
+     * 트랙 등록 신청 목록 조회 (관리자)
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<TrackApplicationListResponse> getTrackApplications(
+            ApplicationStatus status,
+            Pageable pageable
+    ) {
+        Page<TrackApplication> page =
+                trackApplicationRepository.searchTrackApplications(status, pageable);
+
+        return PageResponse.from(
+                page.map(TrackApplicationListResponse::from)
+        );
     }
 
     // =========================
