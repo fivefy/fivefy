@@ -12,10 +12,7 @@ import com.fivefy.domain.artist.enums.ArtistType;
 import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.track.dto.request.FreeTrackApplicationCreateRequest;
 import com.fivefy.domain.track.dto.request.OfficialTrackApplicationCreateRequest;
-import com.fivefy.domain.track.dto.response.TrackApplicationApproveResponse;
-import com.fivefy.domain.track.dto.response.TrackApplicationDetailResponse;
-import com.fivefy.domain.track.dto.response.TrackApplicationListResponse;
-import com.fivefy.domain.track.dto.response.TrackApplicationResponse;
+import com.fivefy.domain.track.dto.response.*;
 import com.fivefy.domain.track.entity.Track;
 import com.fivefy.domain.track.entity.TrackApplication;
 import com.fivefy.domain.track.enums.TrackApplicationErrorCode;
@@ -1246,6 +1243,93 @@ class TrackServiceTest {
             assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED.name());
             assertThat(response.reviewedByAdminId()).isEqualTo(adminId);
             assertThat(response.reviewedAt()).isNotNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("트랙 등록 신청 거절")
+    class RejectTrackApplication {
+
+        @Test
+        @DisplayName("거절 성공")
+        void rejectTrackApplication_success() {
+            Long adminId = 1L;
+            Long applicationId = 10L;
+            String rejectionReason = "트랙 정보가 부족합니다";
+
+            TrackApplication application = TrackApplication.create(
+                    2L,
+                    TrackType.OFFICIAL_RELEASE,
+                    100L,
+                    200L,
+                    1L,
+                    "밤편지",
+                    "가사",
+                    "BALLAD",
+                    "https://example.com/audio.mp3",
+                    230L,
+                    "feat. 10cm",
+                    3
+            );
+            ReflectionTestUtils.setField(application, "id", applicationId);
+
+            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+
+            TrackApplicationRejectResponse response =
+                    trackService.rejectTrackApplication(adminId, applicationId, rejectionReason);
+
+            assertThat(response.applicationId()).isEqualTo(applicationId);
+            assertThat(response.status()).isEqualTo(ApplicationStatus.REJECTED);
+            assertThat(response.reviewedByAdminId()).isEqualTo(adminId);
+            assertThat(response.reviewedAt()).isNotNull();
+            assertThat(response.rejectionReason()).isEqualTo(rejectionReason);
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 신청이면 거절 실패")
+        void rejectTrackApplication_fail_whenNotFound() {
+            Long adminId = 1L;
+            Long applicationId = 10L;
+
+            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() ->
+                    trackService.rejectTrackApplication(adminId, applicationId, "사유")
+            )
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("이미 처리된 신청이면 거절 실패")
+        void rejectTrackApplication_fail_whenAlreadyProcessed() {
+            Long adminId = 1L;
+            Long applicationId = 10L;
+
+            TrackApplication application = TrackApplication.create(
+                    2L,
+                    TrackType.OFFICIAL_RELEASE,
+                    100L,
+                    200L,
+                    1L,
+                    "밤편지",
+                    "가사",
+                    "BALLAD",
+                    "https://example.com/audio.mp3",
+                    230L,
+                    "feat. 10cm",
+                    0
+            );
+            ReflectionTestUtils.setField(application, "id", applicationId);
+            application.approve(adminId);
+
+            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+
+            assertThatThrownBy(() ->
+                    trackService.rejectTrackApplication(adminId, applicationId, "사유")
+            )
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_PROCESSED.getMessage());
         }
     }
 }
