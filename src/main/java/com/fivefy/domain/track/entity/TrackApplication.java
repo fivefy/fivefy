@@ -3,7 +3,7 @@ package com.fivefy.domain.track.entity;
 import com.fivefy.common.entity.BaseEntity;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
-import com.fivefy.domain.track.enums.TrackApplicationErrorcode;
+import com.fivefy.domain.track.enums.TrackApplicationErrorCode;
 import com.fivefy.domain.track.enums.TrackType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -108,23 +108,23 @@ public class TrackApplication extends BaseEntity {
         validateNonNull(audioUrl, "audioUrl");
         validateNonNull(durationSec, "durationSec");
 
-        TrackApplication request = new TrackApplication();
+        TrackApplication application = new TrackApplication();
 
-        request.requesterUserId = requesterUserId;
-        request.trackType = trackType;
-        request.artistId = artistId;
-        request.albumId = albumId;
-        request.trackNumber = trackNumber;
-        request.title = title;
-        request.lyrics = lyrics;
-        request.genre = genre;
-        request.audioUrl = audioUrl;
-        request.durationSec = durationSec;
-        request.featuredArtistText = featuredArtistText;
-        request.scheduledPublishAt = scheduledPublishAt;
-        request.status = ApplicationStatus.PENDING;
+        application.requesterUserId = requesterUserId;
+        application.trackType = trackType;
+        application.artistId = artistId;
+        application.albumId = albumId;
+        application.trackNumber = trackNumber;
+        application.title = title;
+        application.lyrics = lyrics;
+        application.genre = genre;
+        application.audioUrl = audioUrl;
+        application.durationSec = durationSec;
+        application.featuredArtistText = featuredArtistText;
+        application.scheduledPublishAt = scheduledPublishAt;
+        application.status = ApplicationStatus.PENDING;
 
-        return request;
+        return application;
     }
 
 
@@ -151,7 +151,7 @@ public class TrackApplication extends BaseEntity {
 
     private void validatePending() {
         if (this.status != ApplicationStatus.PENDING) {
-            throw new BusinessException(TrackApplicationErrorcode.ERR_TRACK_APPLICATION_ALREADY_PROCESSED);
+            throw new BusinessException(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_PROCESSED);
         }
     }
 }
