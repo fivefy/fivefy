@@ -30,6 +30,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -687,6 +688,77 @@ class TrackServiceTest {
             assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS.getMessage());
+        }
+
+        @Nested
+        @DisplayName("내 트랙 등록 신청 목록 조회")
+        class GetMyTrackApplications {
+
+            @Test
+            @DisplayName("내 트랙 등록 신청 목록 조회 성공")
+            void getMyTrackApplications_success() {
+                Long userId = 1L;
+
+                User user = mock(User.class);
+                when(userRepository.findByIdAndDeletedAtIsNull(userId))
+                        .thenReturn(Optional.of(user));
+
+                TrackApplication application1 = mock(TrackApplication.class);
+                TrackApplication application2 = mock(TrackApplication.class);
+
+                when(trackApplicationRepository.searchMyTrackApplications(userId))
+                        .thenReturn(List.of(application1, application2));
+
+                when(application1.getId()).thenReturn(1L);
+                when(application2.getId()).thenReturn(2L);
+
+                when(application1.getTrackType()).thenReturn(TrackType.FREE_CREATION);
+                when(application2.getTrackType()).thenReturn(TrackType.OFFICIAL_RELEASE);
+
+                when(application1.getStatus()).thenReturn(ApplicationStatus.PENDING);
+                when(application2.getStatus()).thenReturn(ApplicationStatus.PENDING);
+
+                when(application1.getCreatedAt()).thenReturn(LocalDateTime.now());
+                when(application2.getCreatedAt()).thenReturn(LocalDateTime.now());
+
+                List<TrackApplicationResponse> result =
+                        trackService.getMyTrackApplications(userId);
+
+                assertThat(result).hasSize(2);
+                assertThat(result.get(0).applicationId()).isEqualTo(1L);
+                assertThat(result.get(1).applicationId()).isEqualTo(2L);
+            }
+
+            @Test
+            @DisplayName("존재하지 않는 유저면 목록 조회 실패")
+            void getMyTrackApplications_fail_whenUserNotFound() {
+                Long userId = 1L;
+
+                when(userRepository.findByIdAndDeletedAtIsNull(userId))
+                        .thenReturn(Optional.empty());
+
+                assertThatThrownBy(() -> trackService.getMyTrackApplications(userId))
+                        .isInstanceOf(BusinessException.class)
+                        .hasMessage(UserErrorCode.ERR_USER_NOT_FOUND.getMessage());
+            }
+
+            @Test
+            @DisplayName("등록 신청이 없으면 빈 리스트 반환")
+            void getMyTrackApplications_empty() {
+                Long userId = 1L;
+
+                User user = mock(User.class);
+                when(userRepository.findByIdAndDeletedAtIsNull(userId))
+                        .thenReturn(Optional.of(user));
+
+                when(trackApplicationRepository.searchMyTrackApplications(userId))
+                        .thenReturn(List.of());
+
+                List<TrackApplicationResponse> result =
+                        trackService.getMyTrackApplications(userId);
+
+                assertThat(result).isEmpty();
+            }
         }
     }
 }
