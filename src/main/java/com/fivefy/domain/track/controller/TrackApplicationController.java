@@ -5,6 +5,7 @@ import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.domain.track.dto.request.FreeTrackApplicationCreateRequest;
 import com.fivefy.domain.track.dto.request.OfficialTrackApplicationCreateRequest;
+import com.fivefy.domain.track.dto.response.TrackApplicationApproveResponse;
 import com.fivefy.domain.track.dto.response.TrackApplicationDetailResponse;
 import com.fivefy.domain.track.dto.response.TrackApplicationListResponse;
 import com.fivefy.domain.track.dto.response.TrackApplicationResponse;
@@ -111,6 +112,22 @@ public class TrackApplicationController {
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 BaseResponse.success(HttpStatus.OK, "트랙 등록 신청 목록 조회 성공", response)
+        );
+    }
+
+    /**
+     * 트랙 등록 신청 승인 API (관리자)
+     */
+    @PostMapping("/admin/track-applications/{applicationId}/approve")
+    public ResponseEntity<BaseResponse<TrackApplicationApproveResponse>> approveTrackApplication(
+            @AuthenticationPrincipal Long adminId,
+            @PathVariable Long applicationId
+    ) {
+        TrackApplicationApproveResponse response =
+                trackService.approveTrackApplication(adminId, applicationId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                BaseResponse.success(HttpStatus.OK, "트랙 등록 신청 승인 성공", response)
         );
     }
 }

@@ -12,13 +12,16 @@ import com.fivefy.domain.artist.enums.ArtistStatus;
 import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.track.dto.request.FreeTrackApplicationCreateRequest;
 import com.fivefy.domain.track.dto.request.OfficialTrackApplicationCreateRequest;
+import com.fivefy.domain.track.dto.response.TrackApplicationApproveResponse;
 import com.fivefy.domain.track.dto.response.TrackApplicationDetailResponse;
 import com.fivefy.domain.track.dto.response.TrackApplicationListResponse;
 import com.fivefy.domain.track.dto.response.TrackApplicationResponse;
+import com.fivefy.domain.track.entity.Track;
 import com.fivefy.domain.track.entity.TrackApplication;
 import com.fivefy.domain.track.enums.TrackApplicationErrorCode;
 import com.fivefy.domain.track.enums.TrackType;
 import com.fivefy.domain.track.repository.TrackApplicationRepository;
+import com.fivefy.domain.track.repository.TrackRepository;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.enums.UserRole;
@@ -29,6 +32,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -42,6 +46,7 @@ public class TrackService {
     private final UserRepository userRepository;
     private final AlbumRepository albumRepository;
     private final ArtistRepository artistRepository;
+    private final TrackRepository trackRepository;
 
     /**
      * 자유 창작 트랙 등록 신청
@@ -178,6 +183,22 @@ public class TrackService {
         return PageResponse.from(
                 page.map(TrackApplicationListResponse::from)
         );
+    }
+
+    /**
+     * 트랙 등록 신청 승인 (관리자)
+     */
+    @Transactional
+    public TrackApplicationApproveResponse approveTrackApplication(Long adminId, Long applicationId) {
+        TrackApplication application = findTrackApplication(applicationId);
+
+        // 상태 전이는 엔티티에 위임
+        application.approve(adminId);
+
+        // 승인된 신청 기반 트랙 생성
+        Track savedTrack = trackRepository.save(createTrack(application));
+
+        return TrackApplicationApproveResponse.from(application, savedTrack.getId());
     }
 
     // =========================
@@ -319,5 +340,56 @@ public class TrackService {
                     TrackApplicationErrorCode.ERR_TRACK_APPLICATION_DETAIL_FORBIDDEN
             );
         }
+    }
+
+    // =========================
+// 생성 / 후처리
+// =========================
+
+    // 승인된 신청 기반 트랙 생성
+    private Track createTrack(TrackApplication application) {
+        if (application.getTrackType() == TrackType.FREE_CREATION) {
+            return Track.createFreeCreation(
+                    application.getRequesterUserId(),
+                    application.getTitle(),
+                    application.getLyrics(),
+                    application.getGenre(),
+                    application.getAudioUrl(),
+                    application.getDurationSec()
+            );
+        }
+
+        LocalDateTime scheduledPublishAt =
+                calculateScheduledPublishAt(application.getPublishDelayDays());
+
+        Track track = Track.createOfficialRelease(
+                application.getRequesterUserId(),
+                application.getArtistId(),
+                application.getAlbumId(),
+                application.getTrackNumber(),
+                application.getTitle(),
+                application.getLyrics(),
+                application.getGenre(),
+                application.getAudioUrl(),
+                application.getDurationSec(),
+                application.getFeaturedArtistText(),
+                scheduledPublishAt
+        );
+
+        // 즉시 공개
+        if (application.getPublishDelayDays() == 0) {
+            track.publish();
+        }
+
+        return track;
+    }
+
+    // 공개 예약 시각 계산
+    private LocalDateTime calculateScheduledPublishAt(Integer publishDelayDays) {
+        if (publishDelayDays == null || publishDelayDays == 0) {
+            return null;
+        }
+
+        return LocalDateTime.now().plusDays(publishDelayDays);
     }
 }
