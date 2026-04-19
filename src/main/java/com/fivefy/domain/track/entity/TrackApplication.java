@@ -3,7 +3,7 @@ package com.fivefy.domain.track.entity;
 import com.fivefy.common.entity.BaseEntity;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
-import com.fivefy.domain.track.enums.TrackReleaseErrorCode;
+import com.fivefy.domain.track.enums.TrackApplicationErrorcode;
 import com.fivefy.domain.track.enums.TrackType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -18,16 +18,16 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 @Getter
 @Entity
 @Table(
-        name = "track_release_requests",
+        name = "track_applications",
         indexes = {
-                @Index(name = "idx_track_release_request_requester_user_id", columnList = "requester_user_id"),
-                @Index(name = "idx_track_release_request_artist_id", columnList = "artist_id"),
-                @Index(name = "idx_track_release_request_album_id", columnList = "album_id"),
-                @Index(name = "idx_track_release_request_status", columnList = "status")
+                @Index(name = "idx_track_application_requester_user_id", columnList = "requester_user_id"),
+                @Index(name = "idx_track_application_artist_id", columnList = "artist_id"),
+                @Index(name = "idx_track_application_album_id", columnList = "album_id"),
+                @Index(name = "idx_track_application_status", columnList = "status")
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class TrackReleaseRequest extends BaseEntity {
+public class TrackApplication extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -87,7 +87,7 @@ public class TrackReleaseRequest extends BaseEntity {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public static TrackReleaseRequest create(
+    public static TrackApplication create(
             Long requesterUserId,
             TrackType trackType,
             Long artistId,
@@ -108,7 +108,7 @@ public class TrackReleaseRequest extends BaseEntity {
         validateNonNull(audioUrl, "audioUrl");
         validateNonNull(durationSec, "durationSec");
 
-        TrackReleaseRequest request = new TrackReleaseRequest();
+        TrackApplication request = new TrackApplication();
 
         request.requesterUserId = requesterUserId;
         request.trackType = trackType;
@@ -151,7 +151,7 @@ public class TrackReleaseRequest extends BaseEntity {
 
     private void validatePending() {
         if (this.status != ApplicationStatus.PENDING) {
-            throw new BusinessException(TrackReleaseErrorCode.ERR_TRACK_RELEASE_ALREADY_PROCESSED);
+            throw new BusinessException(TrackApplicationErrorcode.ERR_TRACK_APPLICATION_ALREADY_PROCESSED);
         }
     }
 }
