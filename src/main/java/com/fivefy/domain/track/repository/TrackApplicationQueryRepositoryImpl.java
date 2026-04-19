@@ -77,9 +77,16 @@ public class TrackApplicationQueryRepositoryImpl implements TrackApplicationQuer
         return result != null;
     }
 
+    /**
+     * 내 트랙 등록 신청 목록 조회
+     */
     @Override
     public List<TrackApplication> searchMyTrackApplications(Long requesterUserId) {
-        return List.of();
+        return queryFactory
+                .selectFrom(trackApplication)
+                .where(trackApplication.requesterUserId.eq(requesterUserId))
+                .orderBy(trackApplication.createdAt.desc())
+                .fetch();
     }
 
     @Override

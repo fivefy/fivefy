@@ -22,6 +22,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 /**
  * 트랙 도메인 서비스
  */
@@ -126,6 +128,19 @@ public class TrackService {
         );
 
         return TrackApplicationResponse.from(savedApplication);
+    }
+
+    /**
+     * 내 트랙 등록 신청 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public List<TrackApplicationResponse> getMyTrackApplications(Long userId) {
+        findUser(userId);
+
+        return trackApplicationRepository.searchMyTrackApplications(userId)
+                .stream()
+                .map(TrackApplicationResponse::from)
+                .toList();
     }
 
     // =========================
