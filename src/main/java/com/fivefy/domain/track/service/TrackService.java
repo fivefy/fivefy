@@ -16,8 +16,11 @@ import com.fivefy.domain.track.dto.response.*;
 import com.fivefy.domain.track.entity.Track;
 import com.fivefy.domain.track.entity.TrackApplication;
 import com.fivefy.domain.track.enums.TrackApplicationErrorCode;
+import com.fivefy.domain.track.enums.TrackErrorCode;
+import com.fivefy.domain.track.enums.TrackStatus;
 import com.fivefy.domain.track.enums.TrackType;
 import com.fivefy.domain.track.repository.TrackApplicationRepository;
+import com.fivefy.domain.track.repository.TrackDetailProjection;
 import com.fivefy.domain.track.repository.TrackRepository;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
@@ -224,6 +227,20 @@ public class TrackService {
         return TrackApplicationRejectResponse.from(application);
     }
 
+    /**
+     * 트랙 상세 조회
+     */
+    @Transactional(readOnly = true)
+    public TrackDetailResponse getTrack(Long trackId) {
+        Track track = findPublishedTrack(trackId);
+        TrackDetailProjection projection = trackRepository.findTrackDetailById(trackId);
+
+        String artistName = projection == null ? null : projection.artistName();
+        String albumTitle = projection == null ? null : projection.albumTitle();
+
+        return TrackDetailResponse.of(track, artistName, albumTitle);
+    }
+
     // =========================
     // 조회
     // =========================
@@ -273,6 +290,23 @@ public class TrackService {
         return trackApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new BusinessException(
                         TrackApplicationErrorCode.ERR_TRACK_APPLICATION_NOT_FOUND));
+    }
+
+    // 트랙 조회
+    private Track findTrack(Long trackId) {
+        return trackRepository.findById(trackId)
+                .orElseThrow(() -> new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND));
+    }
+
+    // 공개 가능한 트랙 조회
+    private Track findPublishedTrack(Long trackId) {
+        Track track = findTrack(trackId);
+
+        if (track.getDeletedAt() != null || track.getStatus() != TrackStatus.PUBLISHED) {
+            throw new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND);
+        }
+
+        return track;
     }
 
     // =========================
@@ -366,8 +400,8 @@ public class TrackService {
     }
 
     // =========================
-// 생성 / 후처리
-// =========================
+    // 생성 / 후처리
+    // =========================
 
     // 승인된 신청 기반 트랙 생성
     private Track createTrack(TrackApplication application) {
