@@ -118,7 +118,7 @@ public class CashOrderService {
         payment.refund(request.reason());   // Payment.status: COMPLETED → REFUNDED, 환불이유/환불시간(refundReason/refundedAt) 기록
 
         // 지갑의 포인트 차감
-        // (2026-04-17)수정 필요 : 포인트를 이미 사용한 경우 useBalance()에서 잔액 부족 예외 발생 가능
+        // 포인트를 이미 사용한 경우 useBalance()에서 잔액 부족 예외 발생 가능
         //   → 스케줄러 도입 시 음수 잔액 허용 또는 별도 정책 필요
         Wallet wallet = walletRepository.findByUserId(cashOrder.getUserId())
                 .orElseThrow(() -> new IllegalArgumentException("지갑 없음"));

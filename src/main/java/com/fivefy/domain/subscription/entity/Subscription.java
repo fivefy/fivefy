@@ -36,7 +36,7 @@ public class Subscription extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private SubscriptionStatus status;
+    private SubscriptionStatus status; // ACTIVE / INACTIVE / CANCELED / EXPIRE
 
     @Column(nullable = false)
     private LocalDateTime startDate;
@@ -45,7 +45,7 @@ public class Subscription extends BaseEntity {
     private LocalDateTime expiryDate;
 
     // 구독 취소 시 null
-    private LocalDateTime nextBillingDate;
+    private LocalDateTime nextBillingDate;  // null이면 구독 취소 또는 정기구독이 아님
 
     /**
      * 구독
@@ -61,7 +61,7 @@ public class Subscription extends BaseEntity {
     public static Subscription create(Long userId, Long pointOrderId, SubscriptionPlanType planType, LocalDateTime startDate,
                                       LocalDateTime expiryDate, LocalDateTime nextBillingDate) {
         validateNonNull(userId, "userId");
-        // 테스트 : validateNonNull(pointOrderId, "pointOrderId");
+        validateNonNull(pointOrderId, "pointOrderId");
         validateNonNull(planType, "planType");
         validateNonNull(startDate, "startDate");
         validateNonNull(expiryDate, "expiryDate");
@@ -70,23 +70,20 @@ public class Subscription extends BaseEntity {
             subscription.userId = userId;
             subscription.pointOrderId = pointOrderId;
             subscription.planType = planType;
-            subscription.status = SubscriptionStatus.TRIAL;
+            subscription.status = (planType == SubscriptionPlanType.FREE)
+                            ? SubscriptionStatus.ACTIVE     // 체험이면 바로 활성화
+                            : SubscriptionStatus.INACTIVE;  // 아니면 비활성화
             subscription.startDate = startDate;
             subscription.expiryDate = expiryDate;
             subscription.nextBillingDate = nextBillingDate;
-
-        // 구독 시, FREE는 바로 활성화, 나머지는 비활성화
-        if (planType == SubscriptionPlanType.FREE) {
-            subscription.status = SubscriptionStatus.ACTIVE;
-        } else {
-            subscription.status = SubscriptionStatus.INACTIVE;
-        }
 
         return subscription;
     }
 
     /**
-     * 구독 환불 - 포인트 반환 대상(비활성 구독)
+     * 구독 환불 (INACTIVE → CANCELED)
+     * 비활성(INACTIVE) 상태만 환불 가능
+     * 포인트 반환은 PointOrderService.refund()에서 처리
      */
     public void refund() {
         // 활성화 거르기
@@ -95,11 +92,14 @@ public class Subscription extends BaseEntity {
         }
         // 환불 시 타입 변경
         this.status = SubscriptionStatus.CANCELED;
+        // 환불 시 다음 갱신일 null(자동결제차단)
         this.nextBillingDate = null;
     }
 
     /**
      * 구독 취소 - 다음 결제 중단, 만료일까지는 이용 가능
+     * FREE 취소 불가
+     * 포인트 반환 없음, nextBillingDate만 null → 만료일까지 이용 가능
      */
     public void cancel() {
         if (this.planType == SubscriptionPlanType.FREE) {
@@ -114,7 +114,7 @@ public class Subscription extends BaseEntity {
     }
 
     /**
-     * 만료 처리(쓸 예정은 없음)
+     * 만료 처리 (스케줄러 또는 정기 결제 실패 시 호출)
      */
     public void expire() {
         this.status = SubscriptionStatus.EXPIRE;
@@ -122,7 +122,21 @@ public class Subscription extends BaseEntity {
     }
 
     /**
-     * 활성화
+     * 정기 구독 갱신 (RECURRING 전용)
+     * nextBillingDate + 1개월, expiryDate + 1개월
+     * 구독 갱신은 PointOrderService에서 사용함
+     */
+    public void renew() {
+        if (this.planType != SubscriptionPlanType.RECURRING) {
+            throw new IllegalStateException("RECURRING 플랜만 갱신할 수 있습니다.");
+        }
+        this.nextBillingDate = this.nextBillingDate.plusMonths(1);
+        this.expiryDate      = this.expiryDate.plusMonths(1);
+        this.status          = SubscriptionStatus.ACTIVE;
+    }
+
+    /**
+     * 구독 활성화
      * @return
      */
     public boolean isActive() {
@@ -145,6 +159,7 @@ public class Subscription extends BaseEntity {
 
     /**
      * 플랜별 다음 결제일 계산 (정기 구독만 해당)
+     * RECURRING만 +1개월, 나머지 null
      */
     public static LocalDateTime calculateNextBillingDate(
             SubscriptionPlanType planType,
