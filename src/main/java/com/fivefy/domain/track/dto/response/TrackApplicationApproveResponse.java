@@ -1,5 +1,6 @@
 package com.fivefy.domain.track.dto.response;
 
+import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.domain.track.entity.TrackApplication;
 
 import java.time.LocalDateTime;
@@ -10,7 +11,7 @@ import java.time.LocalDateTime;
 public record TrackApplicationApproveResponse(
         Long applicationId,
         Long trackId,
-        String status,
+        ApplicationStatus status,
         Long reviewedByAdminId,
         LocalDateTime reviewedAt
 ) {
@@ -21,7 +22,7 @@ public record TrackApplicationApproveResponse(
         return new TrackApplicationApproveResponse(
                 application.getId(),
                 trackId,
-                application.getStatus().name(),
+                application.getStatus(),
                 application.getReviewedByAdminId(),
                 application.getReviewedAt()
         );

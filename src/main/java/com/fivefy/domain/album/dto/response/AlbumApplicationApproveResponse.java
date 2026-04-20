@@ -1,5 +1,6 @@
 package com.fivefy.domain.album.dto.response;
 
+import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.domain.album.entity.AlbumApplication;
 
 import java.time.LocalDateTime;
@@ -10,7 +11,7 @@ import java.time.LocalDateTime;
 public record AlbumApplicationApproveResponse(
         Long applicationId,
         Long albumId,
-        String status,
+        ApplicationStatus status,
         Long reviewedByAdminId,
         LocalDateTime reviewedAt
 ) {
@@ -21,7 +22,7 @@ public record AlbumApplicationApproveResponse(
         return new AlbumApplicationApproveResponse(
                 application.getId(),
                 albumId,
-                application.getStatus().name(),
+                application.getStatus(),
                 application.getReviewedByAdminId(),
                 application.getReviewedAt()
         );

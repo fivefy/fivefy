@@ -4,6 +4,9 @@ import com.fivefy.domain.album.entity.Album;
 
 import java.time.LocalDateTime;
 
+/**
+ * 앨범 상세 조회 응답 DTO
+ */
 public record AlbumDetailResponse(
         Long albumId,
         Long artistId,
