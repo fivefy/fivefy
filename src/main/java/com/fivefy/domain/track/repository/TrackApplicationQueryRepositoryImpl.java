@@ -7,6 +7,7 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
@@ -88,9 +89,29 @@ public class TrackApplicationQueryRepositoryImpl implements TrackApplicationQuer
                 .fetch();
     }
 
+    /**
+     * 트랙 등록 신청 목록 조회
+     */
     @Override
-    public Page<TrackApplication> searchTrackApplications(ApplicationStatus status, Pageable pageable) {
-        return null;
+    public Page<TrackApplication> searchTrackApplications(
+            ApplicationStatus status,
+            Pageable pageable
+    ) {
+        List<TrackApplication> content = queryFactory
+                .selectFrom(trackApplication)
+                .where(statusEq(status))
+                .orderBy(trackApplication.createdAt.asc())
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .fetch();
+
+        Long total = queryFactory
+                .select(trackApplication.count())
+                .from(trackApplication)
+                .where(statusEq(status))
+                .fetchOne();
+
+        return new PageImpl<>(content, pageable, total == null ? 0L : total);
     }
 
     // 같은 앨범 내 동일 trackNumber 또는 동일 title 중복 조건
@@ -102,5 +123,10 @@ public class TrackApplicationQueryRepositoryImpl implements TrackApplicationQuer
         BooleanExpression sameTitle = trackApplication.title.eq(title);
 
         return sameTrackNumber.or(sameTitle);
+    }
+
+    // 상태 필터 조건
+    private BooleanExpression statusEq(ApplicationStatus status) {
+        return status == null ? null : trackApplication.status.eq(status);
     }
 }
