@@ -1639,6 +1639,27 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(track, "playCount", 1200L);
 
             when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
+            Album album = Album.create(
+                    artistId,
+                    "Palette",
+                    "정규 앨범",
+                    "https://example.com/cover.jpg",
+                    null
+            );
+            album.publish();
+            ReflectionTestUtils.setField(album, "id", albumId);
+
+            Artist artist = Artist.create(
+                    1L,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/artist.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+
+            when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
+            when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
             when(trackRepository.findTrackDetailById(trackId))
                     .thenReturn(new TrackDetailProjection("아이유", "Palette"));
 
@@ -1659,6 +1680,46 @@ class TrackServiceTest {
             assertThat(response.featuredArtistText()).isEqualTo("feat. 10cm");
             assertThat(response.playCount()).isEqualTo(1200L);
             assertThat(response.publishedAt()).isEqualTo(LocalDateTime.of(2026, 5, 1, 18, 0, 0));
+        }
+
+        @Test
+        @DisplayName("자유 창작 트랙 상세 조회 성공")
+        void getTrack_success_whenFreeCreation() {
+            Long trackId = 2L;
+
+            Track track = Track.createFreeCreation(
+                    1L,
+                    "밤편지 AI 버전",
+                    "가사",
+                    "BALLAD",
+                    "https://example.com/audio-free.mp3",
+                    210L
+            );
+            ReflectionTestUtils.setField(track, "id", trackId);
+            ReflectionTestUtils.setField(
+                    track,
+                    "publishedAt",
+                    LocalDateTime.of(2026, 5, 2, 12, 0, 0)
+            );
+            ReflectionTestUtils.setField(track, "playCount", 300L);
+
+            when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
+            when(trackRepository.findTrackDetailById(trackId)).thenReturn(null);
+
+            TrackDetailResponse response = trackService.getTrack(trackId);
+
+            assertThat(response.trackId()).isEqualTo(trackId);
+            assertThat(response.trackType()).isEqualTo(TrackType.FREE_CREATION);
+            assertThat(response.artistId()).isNull();
+            assertThat(response.artistName()).isNull();
+            assertThat(response.albumId()).isNull();
+            assertThat(response.albumTitle()).isNull();
+            assertThat(response.trackNumber()).isNull();
+            assertThat(response.title()).isEqualTo("밤편지 AI 버전");
+            assertThat(response.audioUrl()).isEqualTo("https://example.com/audio-free.mp3");
+            assertThat(response.durationSec()).isEqualTo(210L);
+            assertThat(response.playCount()).isEqualTo(300L);
+            assertThat(response.publishedAt()).isEqualTo(LocalDateTime.of(2026, 5, 2, 12, 0, 0));
         }
 
         @Test
@@ -1721,6 +1782,147 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(track, "id", trackId);
 
             when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
+
+            assertThatThrownBy(() -> trackService.getTrack(trackId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackErrorCode.ERR_TRACK_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("정식 발매 트랙 상세 조회 시 삭제된 앨범이면 실패")
+        void getTrack_fail_whenOfficialTrackAlbumDeleted() {
+            Long trackId = 1L;
+            Long artistId = 10L;
+            Long albumId = 100L;
+
+            Track track = Track.createOfficialRelease(
+                    1L,
+                    artistId,
+                    albumId,
+                    1L,
+                    "밤편지",
+                    "가사",
+                    "BALLAD",
+                    "https://example.com/audio.mp3",
+                    230L,
+                    "feat. 10cm",
+                    null
+            );
+            track.publish();
+            ReflectionTestUtils.setField(track, "id", trackId);
+
+            Album album = Album.create(
+                    artistId,
+                    "Palette",
+                    "정규 앨범",
+                    "https://example.com/cover.jpg",
+                    null
+            );
+            ReflectionTestUtils.setField(album, "id", albumId);
+            ReflectionTestUtils.setField(
+                    album,
+                    "deletedAt",
+                    LocalDateTime.of(2026, 5, 2, 12, 0, 0)
+            );
+
+            when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
+            when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
+
+            assertThatThrownBy(() -> trackService.getTrack(trackId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackErrorCode.ERR_TRACK_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("정식 발매 트랙 상세 조회 시 미공개 앨범이면 실패")
+        void getTrack_fail_whenOfficialTrackAlbumNotPublished() {
+            Long trackId = 1L;
+            Long artistId = 10L;
+            Long albumId = 100L;
+
+            Track track = Track.createOfficialRelease(
+                    1L,
+                    artistId,
+                    albumId,
+                    1L,
+                    "밤편지",
+                    "가사",
+                    "BALLAD",
+                    "https://example.com/audio.mp3",
+                    230L,
+                    "feat. 10cm",
+                    null
+            );
+            track.publish();
+            ReflectionTestUtils.setField(track, "id", trackId);
+
+            Album album = Album.create(
+                    artistId,
+                    "Palette",
+                    "정규 앨범",
+                    "https://example.com/cover.jpg",
+                    null
+            );
+            ReflectionTestUtils.setField(album, "id", albumId);
+
+            when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
+            when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
+
+            assertThatThrownBy(() -> trackService.getTrack(trackId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackErrorCode.ERR_TRACK_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("정식 발매 트랙 상세 조회 시 삭제된 아티스트면 실패")
+        void getTrack_fail_whenOfficialTrackArtistDeleted() {
+            Long trackId = 1L;
+            Long artistId = 10L;
+            Long albumId = 100L;
+
+            Track track = Track.createOfficialRelease(
+                    1L,
+                    artistId,
+                    albumId,
+                    1L,
+                    "밤편지",
+                    "가사",
+                    "BALLAD",
+                    "https://example.com/audio.mp3",
+                    230L,
+                    "feat. 10cm",
+                    null
+            );
+            track.publish();
+            ReflectionTestUtils.setField(track, "id", trackId);
+
+            Album album = Album.create(
+                    artistId,
+                    "Palette",
+                    "정규 앨범",
+                    "https://example.com/cover.jpg",
+                    null
+            );
+            album.publish();
+            ReflectionTestUtils.setField(album, "id", albumId);
+
+            Artist artist = Artist.create(
+                    1L,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/artist.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+            ReflectionTestUtils.setField(
+                    artist,
+                    "deletedAt",
+                    LocalDateTime.of(2026, 5, 2, 12, 0, 0)
+            );
+
+            when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
+            when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
+            when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
 
             assertThatThrownBy(() -> trackService.getTrack(trackId))
                     .isInstanceOf(BusinessException.class)
