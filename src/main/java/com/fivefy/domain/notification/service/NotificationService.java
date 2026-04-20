@@ -81,10 +81,10 @@ public class NotificationService {
 
         sseEmitterRepository.findByUserId(userId).ifPresent(sseEmitter -> {
             try {
+                notification.markAsSent();
                 sseEmitter.send(SseEmitter.event()
                         .name(SSE_EVENT_NOTIFICATION)
                         .data(NotificationGetResponse.from(notification)));
-                notification.markAsSent();
             } catch (IOException e) {
                 log.warn("SSE 전송 실패: userId={}, type={}", userId, type);
                 notification.markAsFailed();
