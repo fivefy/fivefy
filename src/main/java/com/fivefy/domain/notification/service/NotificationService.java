@@ -125,6 +125,23 @@ public class NotificationService {
         notificationRepository.markAllAsRead(userId);
     }
 
+    @Transactional
+    public void deleteNotification(Long userId, Long notificationId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new BusinessException(NotificationErrorCode.ERR_NOTIFICATION_NOT_FOUND));
+
+        if (!notification.getUserId().equals(userId)) {
+            throw new BusinessException(NotificationErrorCode.ERR_NOTIFICATION_UNAUTHORIZED);
+        }
+
+        notificationRepository.delete(notification);
+    }
+
+    @Transactional
+    public void deleteAllNotifications(Long userId) {
+        notificationRepository.deleteAllByUserId(userId);
+    }
+
     private User getUser(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(UserErrorCode.ERR_USER_NOT_FOUND));

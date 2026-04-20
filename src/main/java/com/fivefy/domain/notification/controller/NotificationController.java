@@ -66,4 +66,23 @@ public class NotificationController {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(BaseResponse.success(HttpStatus.OK, "전체 알림 읽음 처리 성공", null));
     }
+
+    @DeleteMapping("/notifications/{notificationId}")
+    public ResponseEntity<BaseResponse<Void>> deleteNotification(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long notificationId) {
+        notificationService.deleteNotification(userId, notificationId);
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(BaseResponse.success(HttpStatus.OK, "알림 삭제 성공", null));
+    }
+
+    @DeleteMapping("/notifications")
+    public ResponseEntity<BaseResponse<Void>> deleteAllNotifications(
+            @AuthenticationPrincipal Long userId) {
+        notificationService.deleteAllNotifications(userId);
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(BaseResponse.success(HttpStatus.OK, "전체 알림 삭제 성공", null));
+    }
 }
