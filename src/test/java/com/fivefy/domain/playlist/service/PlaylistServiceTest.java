@@ -9,6 +9,8 @@ import com.fivefy.domain.playlist.dto.response.PlaylistResponse;
 import com.fivefy.domain.playlist.entity.Playlist;
 import com.fivefy.domain.playlist.enums.PlaylistErrorCode;
 import com.fivefy.domain.playlist.repository.PlaylistRepository;
+import com.fivefy.domain.subscription.enums.SubscriptionStatus;
+import com.fivefy.domain.subscription.repository.SubscriptionRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -38,6 +40,7 @@ class PlaylistServiceTest {
     private PlaylistService playlistService;
 
     @Mock private PlaylistRepository playlistRepository;
+    @Mock private SubscriptionRepository subscriptionRepository;
 
     @Nested
     @DisplayName("플레이리스트 생성")
@@ -49,6 +52,11 @@ class PlaylistServiceTest {
             // given
             Long userId = 1L;
             PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
+
+            given(subscriptionRepository.existsByUserIdAndStatusIn(
+                    userId,
+                    List.of(SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE)
+            )).willReturn(true);
 
             Playlist playlist = Playlist.create(userId, request.title(), request.description());
             ReflectionTestUtils.setField(playlist, "id", 1L);
@@ -78,6 +86,11 @@ class PlaylistServiceTest {
             Long userId = 1L;
             PlaylistCreateRequest request = new PlaylistCreateRequest("중복 제목", "설명");
 
+            given(subscriptionRepository.existsByUserIdAndStatusIn(
+                    userId,
+                    List.of(SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE)
+            )).willReturn(true);
+
             given(playlistRepository.existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title()))
                     .willReturn(true);
 
@@ -86,6 +99,28 @@ class PlaylistServiceTest {
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME.getMessage());
 
+            verify(playlistRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("유효한 구독이 없으면 플레이리스트 생성 시 예외 발생")
+        void createPlaylistWithoutValidSubscription() {
+            // given
+            Long userId = 1L;
+            PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
+
+            given(subscriptionRepository.existsByUserIdAndStatusIn(
+                    userId,
+                    List.of(SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE)
+            )).willReturn(false);
+
+            // when & then
+            assertThatThrownBy(() -> playlistService.createPlaylist(userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(PlaylistErrorCode.PLAYLIST_CREATION_SUBSCRIPTION_REQUIRED.getMessage());
+
+            verify(playlistRepository, never())
+                    .existsByUserIdAndTitleAndDeletedAtIsNull(anyLong(), anyString());
             verify(playlistRepository, never()).save(any());
         }
     }
