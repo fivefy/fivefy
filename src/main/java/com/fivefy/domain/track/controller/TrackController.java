@@ -1,9 +1,14 @@
 package com.fivefy.domain.track.controller;
 
 import com.fivefy.common.dto.response.BaseResponse;
+import com.fivefy.common.dto.response.PageResponse;
+import com.fivefy.domain.track.dto.response.PublicTrackListResponse;
 import com.fivefy.domain.track.dto.response.TrackDetailResponse;
 import com.fivefy.domain.track.service.TrackService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,5 +34,25 @@ public class TrackController {
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(BaseResponse.success(HttpStatus.OK, "트랙 상세 조회 성공", response));
+    }
+
+    /**
+     * 공개 트랙 목록 조회 API
+     */
+    @GetMapping("/tracks")
+    public ResponseEntity<BaseResponse<PageResponse<PublicTrackListResponse>>> getPublicTracks(
+            @PageableDefault(
+                    size = 20,
+                    sort = "publishedAt",
+                    direction = Sort.Direction.DESC
+            ) Pageable pageable
+    ) {
+
+        // 공개 트랙 목록 조회
+        PageResponse<PublicTrackListResponse> response =
+                trackService.getPublicTracks(pageable);
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(BaseResponse.success(HttpStatus.OK, "공개 트랙 목록 조회 성공", response));
     }
 }

@@ -52,7 +52,8 @@ public class SecurityConfig {
                                 HttpMethod.GET,
                                 "/api/albums/{albumId}",
                                 "/api/artists/{artistId}/albums",
-                                "/api/tracks/{trackId}"
+                                "/api/tracks/{trackId}",
+                                "/api/tracks"
                         ).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())

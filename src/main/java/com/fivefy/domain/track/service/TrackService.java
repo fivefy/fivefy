@@ -19,6 +19,7 @@ import com.fivefy.domain.track.enums.TrackApplicationErrorCode;
 import com.fivefy.domain.track.enums.TrackErrorCode;
 import com.fivefy.domain.track.enums.TrackStatus;
 import com.fivefy.domain.track.enums.TrackType;
+import com.fivefy.domain.track.repository.PublicTrackListProjection;
 import com.fivefy.domain.track.repository.TrackApplicationRepository;
 import com.fivefy.domain.track.repository.TrackDetailProjection;
 import com.fivefy.domain.track.repository.TrackRepository;
@@ -239,6 +240,33 @@ public class TrackService {
         String albumTitle = projection == null ? null : projection.albumTitle();
 
         return TrackDetailResponse.of(track, artistName, albumTitle);
+    }
+
+    /**
+     * 공개 트랙 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<PublicTrackListResponse> getPublicTracks(Pageable pageable) {
+
+        // 공개 트랙 목록 조회 (Querydsl)
+        Page<PublicTrackListProjection> page =
+                trackRepository.searchPublicTracks(pageable);
+
+        // Projection → 응답 DTO 변환
+        return PageResponse.from(
+                page.map(projection -> PublicTrackListResponse.of(
+                        projection.trackId(),
+                        projection.trackType(),
+                        projection.title(),
+                        projection.artistId(),
+                        projection.artistName(),
+                        projection.albumId(),
+                        projection.albumTitle(),
+                        projection.durationSec(),
+                        projection.playCount(),
+                        projection.publishedAt()
+                ))
+        );
     }
 
     // =========================
