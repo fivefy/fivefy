@@ -850,8 +850,6 @@ class TrackApplicationControllerTest extends RestDocsSupport {
         return new FieldDescriptor[]{
                 fieldWithPath("data.applicationId").type(NUMBER).description("신청 ID"),
                 fieldWithPath("data.trackType").type(STRING).description("트랙 유형"),
-                fieldWithPath("data.artistId").type(NULL).optional().description("아티스트 ID (자유 창작은 없음)"),
-                fieldWithPath("data.albumId").type(NULL).optional().description("앨범 ID (자유 창작은 없음)"),
                 fieldWithPath("data.title").type(STRING).description("트랙 제목"),
                 fieldWithPath("data.status").type(STRING).description("신청 상태"),
                 fieldWithPath("data.createdAt").type(STRING).description("신청 생성 시각")
