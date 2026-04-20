@@ -58,4 +58,12 @@ public class Notification extends BaseEntity {
 
         return notification;
     }
+
+    public void markAsSent() {
+        this.status = NotificationStatus.SENT;
+    }
+
+    public void markAsFailed() {
+        this.status = NotificationStatus.FAILED;
+    }
 }
