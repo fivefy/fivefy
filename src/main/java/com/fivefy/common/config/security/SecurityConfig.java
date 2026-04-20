@@ -53,7 +53,8 @@ public class SecurityConfig {
                                 "/api/albums/{albumId}",
                                 "/api/artists/{artistId}/albums",
                                 "/api/tracks/{trackId}",
-                                "/api/tracks"
+                                "/api/tracks",
+                                "/api/artists/{artistId}/free-creations"
                         ).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())

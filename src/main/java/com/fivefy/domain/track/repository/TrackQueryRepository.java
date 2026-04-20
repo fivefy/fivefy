@@ -1,5 +1,6 @@
 package com.fivefy.domain.track.repository;
 
+import com.fivefy.domain.track.entity.Track;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -17,4 +18,9 @@ public interface TrackQueryRepository {
      * 공개 트랙 목록 조회
      */
     Page<PublicTrackListProjection> searchPublicTracks(Pageable pageable);
+
+    /**
+     * 아티스트별 자유 창작 트랙 목록 조회
+     */
+    Page<Track> searchArtistFreeCreations(Long ownerUserId, Pageable pageable);
 }

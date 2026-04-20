@@ -269,6 +269,28 @@ public class TrackService {
         );
     }
 
+    /**
+     * 아티스트별 자유 창작 트랙 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<ArtistFreeCreationTrackResponse> getArtistFreeCreations(
+            Long artistId,
+            Pageable pageable
+    ) {
+
+        // 삭제되지 않은 아티스트 확인
+        Artist artist = findNotDeletedArtist(artistId);
+
+        // 아티스트 소유 유저의 공개 자유 창작 트랙 목록 조회
+        Page<Track> page =
+                trackRepository.searchArtistFreeCreations(artist.getOwnerUserId(), pageable);
+
+        // 엔티티 → 응답 DTO 변환
+        return PageResponse.from(
+                page.map(ArtistFreeCreationTrackResponse::from)
+        );
+    }
+
     // =========================
     // 조회
     // =========================

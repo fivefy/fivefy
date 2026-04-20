@@ -2,6 +2,7 @@ package com.fivefy.domain.track.controller;
 
 import com.fivefy.common.dto.response.BaseResponse;
 import com.fivefy.common.dto.response.PageResponse;
+import com.fivefy.domain.track.dto.response.ArtistFreeCreationTrackResponse;
 import com.fivefy.domain.track.dto.response.PublicTrackListResponse;
 import com.fivefy.domain.track.dto.response.TrackDetailResponse;
 import com.fivefy.domain.track.service.TrackService;
@@ -54,5 +55,26 @@ public class TrackController {
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(BaseResponse.success(HttpStatus.OK, "공개 트랙 목록 조회 성공", response));
+    }
+
+    /**
+     * 아티스트별 자유 창작 트랙 목록 조회 API
+     */
+    @GetMapping("/artists/{artistId}/free-creations")
+    public ResponseEntity<BaseResponse<PageResponse<ArtistFreeCreationTrackResponse>>> getArtistFreeCreations(
+            @PathVariable Long artistId,
+            @PageableDefault(
+                    size = 20,
+                    sort = "publishedAt",
+                    direction = Sort.Direction.DESC
+            ) Pageable pageable
+    ) {
+
+        // 아티스트별 자유 창작 트랙 목록 조회
+        PageResponse<ArtistFreeCreationTrackResponse> response =
+                trackService.getArtistFreeCreations(artistId, pageable);
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(BaseResponse.success(HttpStatus.OK, "아티스트별 자유 창작 트랙 목록 조회 성공", response));
     }
 }
