@@ -3,6 +3,7 @@ package com.fivefy.domain.album.controller;
 import com.fivefy.common.config.security.*;
 import com.fivefy.common.filter.LastActiveAtFilter;
 import com.fivefy.domain.album.dto.response.AlbumDetailResponse;
+import com.fivefy.domain.album.dto.response.AlbumTrackResponse;
 import com.fivefy.domain.album.dto.response.ArtistAlbumListResponse;
 import com.fivefy.domain.album.service.AlbumService;
 import org.junit.jupiter.api.DisplayName;
@@ -57,7 +58,11 @@ class AlbumSecurityTest {
                             "https://example.com/album.jpg",
                             10L,
                             2100L,
-                            LocalDateTime.of(2026, 5, 1, 18, 0, 0)
+                            LocalDateTime.of(2026, 5, 1, 18, 0, 0),
+                            List.of(
+                                    new AlbumTrackResponse(1000L, 1L, "이름에게", 245L),
+                                    new AlbumTrackResponse(1001L, 2L, "밤편지", 230L)
+                            )
                     )
             );
 

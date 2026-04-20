@@ -16,6 +16,8 @@ import com.fivefy.domain.artist.entity.Artist;
 import com.fivefy.domain.artist.enums.ArtistErrorCode;
 import com.fivefy.domain.artist.enums.ArtistType;
 import com.fivefy.domain.artist.repository.ArtistRepository;
+import com.fivefy.domain.track.entity.Track;
+import com.fivefy.domain.track.repository.TrackRepository;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.enums.UserRole;
@@ -69,6 +71,9 @@ class AlbumServiceTest {
 
     @Mock
     private AlbumRepository albumRepository;
+
+    @Mock
+    private TrackRepository trackRepository;
 
     @InjectMocks
     private AlbumService albumService;
@@ -842,10 +847,34 @@ class AlbumServiceTest {
             when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
             when(artistRepository.findById(10L)).thenReturn(Optional.of(artist));
 
+            Track track1 = mock(Track.class);
+            when(track1.getId()).thenReturn(100L);
+            when(track1.getTrackNumber()).thenReturn(1L);
+            when(track1.getTitle()).thenReturn("이름에게");
+            when(track1.getDurationSec()).thenReturn(245L);
+
+            Track track2 = mock(Track.class);
+            when(track2.getId()).thenReturn(101L);
+            when(track2.getTrackNumber()).thenReturn(2L);
+            when(track2.getTitle()).thenReturn("밤편지");
+            when(track2.getDurationSec()).thenReturn(230L);
+
+            when(trackRepository.searchAlbumTracks(albumId))
+                    .thenReturn(List.of(track1, track2));
+
             AlbumDetailResponse response = albumService.getAlbum(albumId);
 
             assertThat(response.albumId()).isEqualTo(albumId);
             assertThat(response.artistName()).isEqualTo("아이유");
+            assertThat(response.tracks()).hasSize(2);
+            assertThat(response.tracks().get(0).trackId()).isEqualTo(100L);
+            assertThat(response.tracks().get(0).trackNumber()).isEqualTo(1L);
+            assertThat(response.tracks().get(0).title()).isEqualTo("이름에게");
+            assertThat(response.tracks().get(0).durationSec()).isEqualTo(245L);
+            assertThat(response.tracks().get(1).trackId()).isEqualTo(101L);
+            assertThat(response.tracks().get(1).trackNumber()).isEqualTo(2L);
+            assertThat(response.tracks().get(1).title()).isEqualTo("밤편지");
+            assertThat(response.tracks().get(1).durationSec()).isEqualTo(230L);
         }
 
         @Test
@@ -934,6 +963,35 @@ class AlbumServiceTest {
             assertThatThrownBy(() -> albumService.getAlbum(albumId))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("수록곡이 없어도 앨범 상세 조회 성공")
+        void getAlbum_success_whenTracksEmpty() {
+            Long albumId = 1L;
+
+            Album album = Album.create(
+                    10L,
+                    "Palette",
+                    "정규 앨범",
+                    "url",
+                    null
+            );
+            album.publish();
+            ReflectionTestUtils.setField(album, "id", albumId);
+
+            Artist artist = mock(Artist.class);
+            when(artist.getName()).thenReturn("아이유");
+
+            when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
+            when(artistRepository.findById(10L)).thenReturn(Optional.of(artist));
+            when(trackRepository.searchAlbumTracks(albumId)).thenReturn(List.of());
+
+            AlbumDetailResponse response = albumService.getAlbum(albumId);
+
+            assertThat(response.albumId()).isEqualTo(albumId);
+            assertThat(response.artistName()).isEqualTo("아이유");
+            assertThat(response.tracks()).isEmpty();
         }
     }
 
