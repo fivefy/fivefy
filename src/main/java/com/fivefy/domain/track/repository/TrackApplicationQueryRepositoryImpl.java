@@ -3,6 +3,8 @@ package com.fivefy.domain.track.repository;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.domain.track.entity.TrackApplication;
 import com.fivefy.domain.track.enums.TrackType;
+import com.querydsl.core.types.Order;
+import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
@@ -100,7 +102,7 @@ public class TrackApplicationQueryRepositoryImpl implements TrackApplicationQuer
         List<TrackApplication> content = queryFactory
                 .selectFrom(trackApplication)
                 .where(statusEq(status))
-                .orderBy(trackApplication.createdAt.asc())
+                .orderBy(getOrderSpecifiers(pageable))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
@@ -123,6 +125,26 @@ public class TrackApplicationQueryRepositoryImpl implements TrackApplicationQuer
         BooleanExpression sameTitle = trackApplication.title.eq(title);
 
         return sameTrackNumber.or(sameTitle);
+    }
+
+    /**
+     * Pageable 정렬 조건을 Querydsl OrderSpecifier로 변환
+     */
+    private OrderSpecifier<?>[] getOrderSpecifiers(Pageable pageable) {
+        return pageable.getSort().stream()
+                .map(order -> {
+                    // Spring Sort -> Querydsl 정렬 방향으로 변환
+                    Order direction = order.isAscending() ? Order.ASC : Order.DESC;
+
+                    // 정렬 대상 필드에 맞는 OrderSpecifier 생성
+                    return switch (order.getProperty()) {
+                        case "createdAt" -> new OrderSpecifier<>(direction, trackApplication.createdAt);
+                        case "status" -> new OrderSpecifier<>(direction, trackApplication.status);
+                        // 지원하지 않는 정렬 조건이면 createdAt 기준으로 fallback
+                        default -> new OrderSpecifier<>(Order.DESC, trackApplication.createdAt);
+                    };
+                })
+                .toArray(OrderSpecifier[]::new);
     }
 
     // 상태 필터 조건
