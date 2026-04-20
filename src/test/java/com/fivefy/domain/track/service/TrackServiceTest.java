@@ -34,6 +34,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -1845,6 +1846,91 @@ class TrackServiceTest {
             assertThat(response.size()).isEqualTo(20);
             assertThat(response.totalElements()).isZero();
             assertThat(response.totalPages()).isZero();
+        }
+    }
+
+    @Nested
+    @DisplayName("아티스트별 자유 창작 트랙 목록 조회")
+    class GetArtistFreeCreations {
+
+        @Test
+        @DisplayName("아티스트의 자유 창작 트랙 목록을 조회한다")
+        void getArtistFreeCreations_success() {
+
+            // given
+            Long artistId = 1L;
+            Long ownerUserId = 10L;
+
+            Pageable pageable = PageRequest.of(0, 20);
+
+            Artist artist = mock(Artist.class);
+            when(artist.getOwnerUserId()).thenReturn(ownerUserId);
+
+            Track track = mock(Track.class);
+            ReflectionTestUtils.setField(track, "id", 100L);
+            when(track.getTitle()).thenReturn("자유 창작 트랙");
+            when(track.getDurationSec()).thenReturn(200L);
+            when(track.getPublishedAt()).thenReturn(LocalDateTime.now());
+
+            Page<Track> page = new PageImpl<>(List.of(track));
+
+            when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
+            when(trackRepository.searchArtistFreeCreations(ownerUserId, pageable)).thenReturn(page);
+
+            // when
+            PageResponse<ArtistFreeCreationTrackResponse> response =
+                    trackService.getArtistFreeCreations(artistId, pageable);
+
+            // then
+            assertThat(response.content()).hasSize(1);
+            assertThat(response.content().get(0).title()).isEqualTo("자유 창작 트랙");
+        }
+
+        @Test
+        @DisplayName("아티스트가 존재하지 않으면 예외가 발생한다")
+        void getArtistFreeCreations_artist_not_found() {
+
+            // given
+            Long artistId = 1L;
+            Pageable pageable = PageRequest.of(0, 20);
+
+            when(artistRepository.findById(artistId)).thenReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() ->
+                    trackService.getArtistFreeCreations(artistId, pageable)
+            )
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("삭제된 아티스트면 예외가 발생한다")
+        void getArtistFreeCreations_fail_whenArtistDeleted() {
+            Long artistId = 1L;
+            Pageable pageable = PageRequest.of(0, 20);
+
+            Artist artist = Artist.create(
+                    10L,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/artist.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+            ReflectionTestUtils.setField(
+                    artist,
+                    "deletedAt",
+                    LocalDateTime.of(2026, 5, 1, 10, 0, 0)
+            );
+
+            when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
+
+            assertThatThrownBy(() ->
+                    trackService.getArtistFreeCreations(artistId, pageable)
+            )
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
         }
     }
 }
