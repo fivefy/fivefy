@@ -78,7 +78,8 @@ class NotificationControllerTest {
             // when & then
             mockMvc.perform(get("/api/notifications/subscribe")
                             .accept(MediaType.TEXT_EVENT_STREAM))
-                    .andExpect(status().isOk());
+                            .andExpect(status().isOk())
+                            .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM));
         }
     }
 

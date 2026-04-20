@@ -73,6 +73,7 @@ class NotificationServiceTest {
             // then
             assertThat(emitter).isNotNull();
             verify(sseEmitterRepository).save(eq(USER_ID), any(SseEmitter.class));
+            verify(notificationRepository).countByUserIdAndReadAtIsNull(USER_ID);
         }
     }
 
