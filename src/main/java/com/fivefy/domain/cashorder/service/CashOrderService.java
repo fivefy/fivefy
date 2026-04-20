@@ -1,5 +1,6 @@
 package com.fivefy.domain.cashorder.service;
 
+import com.fivefy.common.lock.annotation.RedissonLock;
 import com.fivefy.common.portone.PortoneWebhookVerifier;
 import com.fivefy.common.portone.client.PortoneClient;
 import com.fivefy.common.portone.dto.PortoneCancelResponse;
@@ -56,6 +57,8 @@ public class CashOrderService {
      * @param request
      * @return
      */
+    // CashOrder와 PointOrder 모두 wallet와  같은 Wallet ID 수정
+    @RedissonLock(key = "'wallet:' + #userId")
     @Transactional
     public CashOrderPurchaseResponse purchase(Long userId, CashOrderVerifyRequest request) {
 
@@ -85,6 +88,8 @@ public class CashOrderService {
      * @param request
      * @return
      */
+    // CashOrder와 PointOrder 모두 wallet와  같은 Wallet ID 수정
+    @RedissonLock(key = "'wallet:' + #userId")
     @Transactional
     public CashOrderResponse refund(Long userId, CashOrderRefundRequest request) {
 
@@ -101,7 +106,7 @@ public class CashOrderService {
         Payment payment = paymentRepository.findByOrderNumber(request.orderNumber())
              .orElseThrow(() -> new EntityNotFoundException("결제 내역 없음"));
 
-        // 포트원에 취소 요청 (참고 코드의 cancelPaymentByImpUid에 해당)
+        // 포트원에 취소 요청(외부 API 호출) (참고 코드의 cancelPaymentByImpUid에 해당)
         PortoneCancelResponse cancelResponse = portoneClient.cancelPayment(
             payment.getPgTransactionId(),
             cashOrder.getCashAmount(),
@@ -113,24 +118,38 @@ public class CashOrderService {
             throw new IllegalStateException("포트원 결제 취소 실패: " + cancelResponse.status());
         }
 
+        // 3. DB 상태 변경만 트랜잭션으로 처리
+        return saveRefundResult(cashOrder, payment, request.reason());
+    }
+
+    /**
+     * 토끼 : 외부 취소 호출과 DB 상태 변경 구간은 분리하는 편이 안전
+     * DB 작업만 별도 메서드로 분리 — AopForTransaction이 이 메서드에 트랜잭션 적용
+     * @param cashOrder
+     * @param payment
+     * @param reason
+     * @return
+     */
+    @Transactional
+    public CashOrderResponse saveRefundResult(CashOrder cashOrder, Payment payment, String reason) {
         // DB 상태 변경
-        cashOrder.refund();                 // CashOrder.status: SUCCESS → REFUNDED
-        payment.refund(request.reason());   // Payment.status: COMPLETED → REFUNDED, 환불이유/환불시간(refundReason/refundedAt) 기록
+        cashOrder.refund();         // CashOrder.status: SUCCESS → REFUNDED
+        payment.refund(reason);     // Payment.status: COMPLETED → REFUNDED, 환불이유/환불시간(refundReason/refundedAt) 기록
 
         // 지갑의 포인트 차감
         // 포인트를 이미 사용한 경우 useBalance()에서 잔액 부족 예외 발생 가능
         //   → 스케줄러 도입 시 음수 잔액 허용 또는 별도 정책 필요
         Wallet wallet = walletRepository.findByUserId(cashOrder.getUserId())
                 .orElseThrow(() -> new IllegalArgumentException("지갑 없음"));
-        wallet.useBalance(cashOrder.getPointAmount());
-        // 지갑 내역(PointHistory)
+        wallet.refundBalance(cashOrder.getPointAmount());
+
         pointHistoryRepository.save(PointHistory.create(
                 wallet.getId(),
                 PointType.PAID,
                 PointHistoryType.REFUND,
                 cashOrder.getPointAmount(),
-                wallet.getBalance(),    // 잔액 스냅샷
-                "포인트 환불 (" + request.reason() + ")"
+                wallet.getBalance(),
+                "포인트 환불 (" + reason + ")"
         ));
 
         return CashOrderResponse.from(cashOrder);

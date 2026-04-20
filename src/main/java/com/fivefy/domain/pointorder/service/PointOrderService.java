@@ -1,5 +1,6 @@
 package com.fivefy.domain.pointorder.service;
 
+import com.fivefy.common.lock.annotation.RedissonLock;
 import com.fivefy.domain.pointorder.dto.PointOrderPurchaseRequest;
 import com.fivefy.domain.pointorder.dto.PointOrderRefundRequest;
 import com.fivefy.domain.pointorder.entity.PointOrder;
@@ -44,6 +45,8 @@ public class PointOrderService {
      * 4. PointHistory(USE) 기록
      * 5. Subscription 생성 (FREE→ACTIVE / 유료→INACTIVE)
      */
+    // CashOrder와 PointOrder 모두 wallet와  같은 Wallet ID 수정
+    @RedissonLock(key = "'wallet:' + #userId")
     @Transactional
     public SubscriptionResponse purchase(Long userId, PointOrderPurchaseRequest request) {
         SubscriptionPlanType planType = request.planType();
@@ -113,6 +116,8 @@ public class PointOrderService {
      * @param request
      * @return
      */
+    // CashOrder와 PointOrder 모두 wallet와  같은 Wallet ID 수정
+    @RedissonLock(key = "'wallet:' + #userId")
     @Transactional
     public SubscriptionResponse refund(Long userId, PointOrderRefundRequest request) {
         // 1. 구독 조회 및 검증

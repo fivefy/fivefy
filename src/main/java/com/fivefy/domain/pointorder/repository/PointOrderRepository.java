@@ -15,4 +15,7 @@ public interface PointOrderRepository extends JpaRepository<PointOrder, Long> {
 
     // FREE 플랜 중복 사용 방지 체크용
     boolean existsByUserIdAndPlanType(Long userId, SubscriptionPlanType planType);
+
+    // 테스트 정리 코드
+    void deleteAllByUserId(Long userId);
 }

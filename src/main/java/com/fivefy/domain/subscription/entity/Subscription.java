@@ -130,6 +130,9 @@ public class Subscription extends BaseEntity {
         if (this.planType != SubscriptionPlanType.RECURRING) {
             throw new IllegalStateException("RECURRING 플랜만 갱신할 수 있습니다.");
         }
+        if (this.nextBillingDate == null) {
+            throw new IllegalStateException("취소된 구독은 갱신할 수 없습니다.");
+        }
         this.nextBillingDate = this.nextBillingDate.plusMonths(1);
         this.expiryDate      = this.expiryDate.plusMonths(1);
         this.status          = SubscriptionStatus.ACTIVE;

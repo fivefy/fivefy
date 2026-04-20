@@ -8,4 +8,7 @@ import java.util.List;
 public interface PointHistoryRepository extends JpaRepository<PointHistory, Long> {
 
     List<PointHistory> findByWalletIdOrderByCreatedAtDesc(Long walletId);
+
+    // 테스트 정리 코드
+    void deleteAllByWalletId(Long walletId);
 }
