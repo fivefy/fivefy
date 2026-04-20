@@ -15,8 +15,8 @@ public @interface RedissonLock {
     // 락 획득 최대 대기 시간
     long retryDelaySeconds() default 10;
 
-    // 락 TTL
-    long lockTimeoutSeconds() default 5;
+    // 락 TTL,  (워치독 방식)
+    long lockTimeoutSeconds() default -1;
 
     // 시간 단위 기본: 초
     TimeUnit timeUnit() default TimeUnit.SECONDS;

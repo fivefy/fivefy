@@ -41,8 +41,26 @@ public class RedissonLockAspect {
 
         log.info("[RedissonLockAspect] 락 획득 시도 - key: {}", lockKey);
 
-        // 락 획득 시도
-        boolean acquired = lock.tryLock(redissonLock.retryDelaySeconds(), redissonLock.lockTimeoutSeconds(), redissonLock.timeUnit());
+        /**
+         * Redisson이 30초마다 락을 자동 연장
+         * 서버 다운 시 30초 후 자동 해제 (안전)
+         * 메서드 실행 시간에 관계없이 정상 동작
+         */
+        boolean acquired;
+        if (redissonLock.lockTimeoutSeconds() == -1) {
+            // 워치독 모드 — leaseTime 없이 획득
+            acquired = lock.tryLock(
+                redissonLock.retryDelaySeconds(),
+                redissonLock.timeUnit()
+            );
+        } else {
+            // 고정 TTL 모드
+            acquired = lock.tryLock(
+                redissonLock.retryDelaySeconds(),
+                redissonLock.lockTimeoutSeconds(),
+                redissonLock.timeUnit()
+            );
+        }
 
         if (!acquired) {
             // retryDelaySeconds 안에 락을 획득하지 못한 경우
