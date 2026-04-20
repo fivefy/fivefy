@@ -4,6 +4,8 @@ import com.fivefy.domain.track.entity.Track;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.List;
+
 /**
  * Track Querydsl 전용 Repository
  */
@@ -23,4 +25,9 @@ public interface TrackQueryRepository {
      * 아티스트별 자유 창작 트랙 목록 조회
      */
     Page<Track> searchArtistFreeCreations(Long ownerUserId, Pageable pageable);
+
+    /**
+     * 앨범 수록곡 목록 조회
+     */
+    List<Track> searchAlbumTracks(Long albumId);
 }

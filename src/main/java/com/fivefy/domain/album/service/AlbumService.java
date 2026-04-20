@@ -16,6 +16,7 @@ import com.fivefy.domain.artist.entity.Artist;
 import com.fivefy.domain.artist.enums.ArtistErrorCode;
 import com.fivefy.domain.artist.enums.ArtistStatus;
 import com.fivefy.domain.artist.repository.ArtistRepository;
+import com.fivefy.domain.track.repository.TrackRepository;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.enums.UserRole;
@@ -40,6 +41,7 @@ public class AlbumService {
     private final AlbumRepository albumRepository;
     private final ArtistRepository artistRepository;
     private final UserRepository userRepository;
+    private final TrackRepository trackRepository;
 
     /**
      * 앨범 등록 신청 생성
@@ -168,7 +170,12 @@ public class AlbumService {
         // 공개 상세 조회에서는 삭제된 아티스트도 노출되면 안 되니까
         Artist artist = findNotDeletedArtist(album.getArtistId());
 
-        return AlbumDetailResponse.of(album, artist.getName());
+        // 앨범에 속한 공개 정식 발매 트랙 목록 조회
+        List<AlbumTrackResponse> tracks = trackRepository.searchAlbumTracks(albumId).stream()
+                .map(AlbumTrackResponse::from)
+                .toList();
+
+        return AlbumDetailResponse.of(album, artist.getName(), tracks);
     }
 
     /**

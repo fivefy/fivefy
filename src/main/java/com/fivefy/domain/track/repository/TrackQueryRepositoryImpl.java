@@ -130,4 +130,24 @@ public class TrackQueryRepositoryImpl implements TrackQueryRepository {
 
         return new PageImpl<>(content, pageable, total == null ? 0 : total);
     }
+
+    /**
+     * 앨범 수록곡 목록 조회
+     */
+    @Override
+    public List<Track> searchAlbumTracks(Long albumId) {
+
+        // 해당 앨범에 속한 공개 정식 발매 트랙만 조회
+        return queryFactory
+                .selectFrom(track)
+                .where(
+                        track.albumId.eq(albumId),
+                        track.trackType.eq(TrackType.OFFICIAL_RELEASE),
+                        track.status.eq(TrackStatus.PUBLISHED),
+                        track.deletedAt.isNull()
+                )
+                // 앨범 수록 순서대로 정렬
+                .orderBy(track.trackNumber.asc())
+                .fetch();
+    }
 }
