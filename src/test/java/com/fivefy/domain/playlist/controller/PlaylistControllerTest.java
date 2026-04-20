@@ -143,6 +143,36 @@ class PlaylistControllerTest extends RestDocsSupport {
         }
 
         @Test
+        @DisplayName("유효한 구독이 없으면 403 반환")
+        void createPlaylistWithoutValidSubscription() throws Exception {
+            // given
+            PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
+
+            given(playlistService.createPlaylist(any(), any(PlaylistCreateRequest.class)))
+                    .willThrow(new BusinessException(PlaylistErrorCode.PLAYLIST_CREATION_SUBSCRIPTION_REQUIRED));
+
+            // when & then
+            mockMvc.perform(post("/api/playlists")
+                            .with(csrf().asHeader())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.message")
+                            .value(PlaylistErrorCode.PLAYLIST_CREATION_SUBSCRIPTION_REQUIRED.getMessage()))
+                    .andDo(document("playlist-create-subscription-required",
+                            requestFields(
+                                    fieldWithPath("title").type(STRING).description("플레이리스트 제목"),
+                                    fieldWithPath("description").type(STRING).description("플레이리스트 설명")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
+        }
+
+        @Test
         @DisplayName("중복 제목으로 생성 시 409 반환")
         void createPlaylistWithDuplicateName() throws Exception {
             // given

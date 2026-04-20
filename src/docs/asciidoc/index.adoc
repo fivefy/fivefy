@@ -588,6 +588,13 @@ include::{snippets}/playlist-create-invalid/request-fields.adoc[]
 include::{snippets}/playlist-create-invalid/http-response.adoc[]
 include::{snippets}/playlist-create-invalid/response-fields.adoc[]
 
+==== 에러 케이스 — 유효한 구독 없음
+
+include::{snippets}/playlist-create-subscription-required/http-request.adoc[]
+include::{snippets}/playlist-create-subscription-required/request-fields.adoc[]
+include::{snippets}/playlist-create-subscription-required/http-response.adoc[]
+include::{snippets}/playlist-create-subscription-required/response-fields.adoc[]
+
 ==== 에러 케이스 - 중복 제목
 
 include::{snippets}/playlist-create-duplicate/http-request.adoc[]

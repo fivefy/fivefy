@@ -16,6 +16,7 @@ public enum PlaylistErrorCode implements ErrorCode {
     PLAYLIST_UPDATE_FORBIDDEN(HttpStatus.FORBIDDEN, "플레이리스트 수정 권한이 없습니다"),
     PLAYLIST_DELETE_FORBIDDEN(HttpStatus.FORBIDDEN, "플레이리스트 삭제 권한이 없습니다"),
     ALREADY_DELETED_PLAYLIST(HttpStatus.BAD_REQUEST, "이미 삭제된 플레이리스트입니다"),
+    PLAYLIST_CREATION_SUBSCRIPTION_REQUIRED(HttpStatus.FORBIDDEN, "플레이리스트 생성은 구독 회원만 가능합니다"),
 
     // PlaylistTrack
     PLAYLIST_ACCESS_FORBIDDEN(HttpStatus.FORBIDDEN, "플레이리스트에 대한 권한이 없습니다"),

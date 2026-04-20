@@ -15,4 +15,7 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
     List<Subscription> findAllByPointOrderIdIn(List<Long> pointOrderIds);
 
     Optional<Subscription> findByUserIdAndPlanType(Long userId, SubscriptionPlanType planType);
+
+    // 사용자 구독 상태가 TRIAL 또는 ACTIVE인지 확인하기 위한 존재 여부 조회
+    boolean existsByUserIdAndStatusIn(Long userId, List<SubscriptionStatus> statuses);
 }
