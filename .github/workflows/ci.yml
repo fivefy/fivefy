@@ -19,6 +19,18 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
+      mysql:
+        image: mysql:8.4
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_ROOT_PASSWORD: 1234
+          MYSQL_DATABASE: fivefy_test
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -p1234"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
       - name: Checkout
@@ -43,12 +55,15 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build & Test
-        run: ./gradlew build --no-daemon -x test -x asciidoctor
+        run: ./gradlew build --no-daemon # -x test test 건너뛰기 # -x asciidoctor API 자동화문서 건너뛰기
         env:
           SPRING_PROFILES_ACTIVE: test
           SPRING_DATA_REDIS_HOST: localhost
           SPRING_DATA_REDIS_PORT: 6379
           JWT_SECRET: ${{ secrets.JWT_SECRET_TEST }}
+          SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/fivefy_test?serverTimezone=Asia/Seoul 
+          SPRING_DATASOURCE_USERNAME: root
+          SPRING_DATASOURCE_PASSWORD: 1234
 
       - name: Upload test results
         if: always()
