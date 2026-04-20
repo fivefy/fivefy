@@ -44,7 +44,8 @@ public class PointOrderService {
      * 4. PointHistory(USE) 기록
      * 5. Subscription 생성 (FREE→ACTIVE / 유료→INACTIVE)
      */
-    @RedissonLock(key = "'pointOrder:' + #userId")
+    // CashOrder와 PointOrder 모두 wallet와  같은 Wallet ID 수정
+    @RedissonLock(key = "'wallet:' + #userId")
     public SubscriptionResponse purchase(Long userId, PointOrderPurchaseRequest request) {
         SubscriptionPlanType planType = request.planType();
         Long price = planType.getPrice();
@@ -113,7 +114,8 @@ public class PointOrderService {
      * @param request
      * @return
      */
-    @RedissonLock(key = "'pointOrder:' + #userId")
+    // CashOrder와 PointOrder 모두 wallet와  같은 Wallet ID 수정
+    @RedissonLock(key = "'wallet:' + #userId")
     public SubscriptionResponse refund(Long userId, PointOrderRefundRequest request) {
         // 1. 구독 조회 및 검증
         Subscription subscription = subscriptionRepository.findById(request.subscriptionId())

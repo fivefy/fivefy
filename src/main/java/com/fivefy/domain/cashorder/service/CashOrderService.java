@@ -57,7 +57,8 @@ public class CashOrderService {
      * @param request
      * @return
      */
-    @RedissonLock(key = "'cashOrder:' + #userId")
+    // CashOrder와 PointOrder 모두 wallet와  같은 Wallet ID 수정
+    @RedissonLock(key = "'wallet:' + #userId")
     public CashOrderPurchaseResponse purchase(Long userId, CashOrderVerifyRequest request) {
 
         CashProductType productType = request.productType();
@@ -86,7 +87,8 @@ public class CashOrderService {
      * @param request
      * @return
      */
-    @RedissonLock(key = "'cashOrder:' + #userId")
+    // CashOrder와 PointOrder 모두 wallet와  같은 Wallet ID 수정
+    @RedissonLock(key = "'wallet:' + #userId")
     public CashOrderResponse refund(Long userId, CashOrderRefundRequest request) {
 
         // 주문 조회
