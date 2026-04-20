@@ -19,6 +19,7 @@ import com.fivefy.domain.track.enums.TrackApplicationErrorCode;
 import com.fivefy.domain.track.enums.TrackErrorCode;
 import com.fivefy.domain.track.enums.TrackStatus;
 import com.fivefy.domain.track.enums.TrackType;
+import com.fivefy.domain.track.repository.PublicTrackListProjection;
 import com.fivefy.domain.track.repository.TrackApplicationRepository;
 import com.fivefy.domain.track.repository.TrackDetailProjection;
 import com.fivefy.domain.track.repository.TrackRepository;
@@ -1723,6 +1724,127 @@ class TrackServiceTest {
             assertThatThrownBy(() -> trackService.getTrack(trackId))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackErrorCode.ERR_TRACK_NOT_FOUND.getMessage());
+        }
+    }
+
+    @Nested
+    @DisplayName("공개 트랙 목록 조회")
+    class GetPublicTracks {
+
+        @Test
+        @DisplayName("공개 트랙 목록 조회 성공")
+        void getPublicTracks_success() {
+            Pageable pageable = PageRequest.of(0, 20);
+
+            PublicTrackListProjection projection1 = new PublicTrackListProjection(
+                    1L,
+                    TrackType.OFFICIAL_RELEASE,
+                    "밤편지",
+                    10L,
+                    "아이유",
+                    100L,
+                    "Palette",
+                    230L,
+                    1200L,
+                    LocalDateTime.of(2026, 5, 1, 18, 0, 0)
+            );
+
+            PublicTrackListProjection projection2 = new PublicTrackListProjection(
+                    2L,
+                    TrackType.OFFICIAL_RELEASE,
+                    "이름에게",
+                    10L,
+                    "아이유",
+                    101L,
+                    "Love poem",
+                    245L,
+                    980L,
+                    LocalDateTime.of(2026, 4, 30, 18, 0, 0)
+            );
+
+            when(trackRepository.searchPublicTracks(pageable))
+                    .thenReturn(new PageImpl<>(List.of(projection1, projection2), pageable, 2));
+
+            PageResponse<PublicTrackListResponse> response =
+                    trackService.getPublicTracks(pageable);
+
+            assertThat(response.content()).hasSize(2);
+
+            assertThat(response.content().get(0).trackId()).isEqualTo(1L);
+            assertThat(response.content().get(0).trackType()).isEqualTo(TrackType.OFFICIAL_RELEASE);
+            assertThat(response.content().get(0).title()).isEqualTo("밤편지");
+            assertThat(response.content().get(0).artistId()).isEqualTo(10L);
+            assertThat(response.content().get(0).artistName()).isEqualTo("아이유");
+            assertThat(response.content().get(0).albumId()).isEqualTo(100L);
+            assertThat(response.content().get(0).albumTitle()).isEqualTo("Palette");
+            assertThat(response.content().get(0).durationSec()).isEqualTo(230L);
+            assertThat(response.content().get(0).playCount()).isEqualTo(1200L);
+            assertThat(response.content().get(0).publishedAt())
+                    .isEqualTo(LocalDateTime.of(2026, 5, 1, 18, 0, 0));
+
+            assertThat(response.page()).isEqualTo(0);
+            assertThat(response.size()).isEqualTo(20);
+            assertThat(response.totalElements()).isEqualTo(2);
+            assertThat(response.totalPages()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("자유 창작 트랙이면 연관 정보 없이 공개 트랙 목록 조회 성공")
+        void getPublicTracks_success_whenFreeCreation() {
+            Pageable pageable = PageRequest.of(0, 20);
+
+            PublicTrackListProjection projection = new PublicTrackListProjection(
+                    3L,
+                    TrackType.FREE_CREATION,
+                    "밤편지 AI 버전",
+                    null,
+                    null,
+                    null,
+                    null,
+                    210L,
+                    300L,
+                    LocalDateTime.of(2026, 5, 2, 12, 0, 0)
+            );
+
+            when(trackRepository.searchPublicTracks(pageable))
+                    .thenReturn(new PageImpl<>(List.of(projection), pageable, 1));
+
+            PageResponse<PublicTrackListResponse> response =
+                    trackService.getPublicTracks(pageable);
+
+            assertThat(response.content()).hasSize(1);
+            assertThat(response.content().get(0).trackId()).isEqualTo(3L);
+            assertThat(response.content().get(0).trackType()).isEqualTo(TrackType.FREE_CREATION);
+            assertThat(response.content().get(0).title()).isEqualTo("밤편지 AI 버전");
+            assertThat(response.content().get(0).artistId()).isNull();
+            assertThat(response.content().get(0).artistName()).isNull();
+            assertThat(response.content().get(0).albumId()).isNull();
+            assertThat(response.content().get(0).albumTitle()).isNull();
+            assertThat(response.content().get(0).durationSec()).isEqualTo(210L);
+            assertThat(response.content().get(0).playCount()).isEqualTo(300L);
+            assertThat(response.content().get(0).publishedAt())
+                    .isEqualTo(LocalDateTime.of(2026, 5, 2, 12, 0, 0));
+
+            assertThat(response.totalElements()).isEqualTo(1);
+            assertThat(response.totalPages()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("조회 결과가 없으면 빈 페이지 조회 성공")
+        void getPublicTracks_success_whenEmpty() {
+            Pageable pageable = PageRequest.of(0, 20);
+
+            when(trackRepository.searchPublicTracks(pageable))
+                    .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+
+            PageResponse<PublicTrackListResponse> response =
+                    trackService.getPublicTracks(pageable);
+
+            assertThat(response.content()).isEmpty();
+            assertThat(response.page()).isEqualTo(0);
+            assertThat(response.size()).isEqualTo(20);
+            assertThat(response.totalElements()).isZero();
+            assertThat(response.totalPages()).isZero();
         }
     }
 }
