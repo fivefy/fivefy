@@ -20,6 +20,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -67,8 +69,8 @@ public class NotificationService {
 
     // 알림 발송 (수신 -> 저장 -> sse push)
     @Async
-    @EventListener
-    public void handleBotificationEvent(NotificationEvent event) {
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleNotificationEvent(NotificationEvent event) {
         send(event.targetUserId(), event.type(), event.content());
     }
 
