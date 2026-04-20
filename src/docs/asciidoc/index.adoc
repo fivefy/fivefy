@@ -572,6 +572,396 @@ include::{snippets}/albums-by-artist-not-found/response-fields.adoc[]
 
 ---
 
+== Playlist API
+
+=== 플레이리스트 생성
+
+include::{snippets}/playlist-create/http-request.adoc[]
+include::{snippets}/playlist-create/request-fields.adoc[]
+include::{snippets}/playlist-create/http-response.adoc[]
+include::{snippets}/playlist-create/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/playlist-create-invalid/http-request.adoc[]
+include::{snippets}/playlist-create-invalid/request-fields.adoc[]
+include::{snippets}/playlist-create-invalid/http-response.adoc[]
+include::{snippets}/playlist-create-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 중복 제목
+
+include::{snippets}/playlist-create-duplicate/http-request.adoc[]
+include::{snippets}/playlist-create-duplicate/request-fields.adoc[]
+include::{snippets}/playlist-create-duplicate/http-response.adoc[]
+include::{snippets}/playlist-create-duplicate/response-fields.adoc[]
+
+---
+
+=== 플레이리스트 목록 조회
+
+include::{snippets}/playlist-get-list/http-request.adoc[]
+include::{snippets}/playlist-get-list/http-response.adoc[]
+include::{snippets}/playlist-get-list/response-fields.adoc[]
+
+---
+
+=== 플레이리스트 단건 조회
+
+include::{snippets}/playlist-get/http-request.adoc[]
+include::{snippets}/playlist-get/http-response.adoc[]
+include::{snippets}/playlist-get/response-fields.adoc[]
+
+==== 에러 케이스 - 플레이리스트 없음
+
+include::{snippets}/playlist-get-not-found/http-request.adoc[]
+include::{snippets}/playlist-get-not-found/http-response.adoc[]
+include::{snippets}/playlist-get-not-found/response-fields.adoc[]
+
+---
+
+=== 플레이리스트 수정
+
+include::{snippets}/playlist-update/http-request.adoc[]
+include::{snippets}/playlist-update/request-fields.adoc[]
+include::{snippets}/playlist-update/http-response.adoc[]
+include::{snippets}/playlist-update/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/playlist-update-invalid/http-request.adoc[]
+include::{snippets}/playlist-update-invalid/request-fields.adoc[]
+include::{snippets}/playlist-update-invalid/http-response.adoc[]
+include::{snippets}/playlist-update-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 수정 권한 없음
+
+include::{snippets}/playlist-update-forbidden/http-request.adoc[]
+include::{snippets}/playlist-update-forbidden/request-fields.adoc[]
+include::{snippets}/playlist-update-forbidden/http-response.adoc[]
+include::{snippets}/playlist-update-forbidden/response-fields.adoc[]
+
+==== 에러 케이스 - 플레이리스트 없음
+
+include::{snippets}/playlist-update-not-found/http-request.adoc[]
+include::{snippets}/playlist-update-not-found/request-fields.adoc[]
+include::{snippets}/playlist-update-not-found/http-response.adoc[]
+include::{snippets}/playlist-update-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 중복 제목
+
+include::{snippets}/playlist-update-duplicate/http-request.adoc[]
+include::{snippets}/playlist-update-duplicate/request-fields.adoc[]
+include::{snippets}/playlist-update-duplicate/http-response.adoc[]
+include::{snippets}/playlist-update-duplicate/response-fields.adoc[]
+
+---
+
+=== 플레이리스트 삭제
+
+include::{snippets}/playlist-delete/http-request.adoc[]
+include::{snippets}/playlist-delete/http-response.adoc[]
+include::{snippets}/playlist-delete/response-fields.adoc[]
+
+==== 에러 케이스 - 삭제 권한 없음
+
+include::{snippets}/playlist-delete-forbidden/http-request.adoc[]
+include::{snippets}/playlist-delete-forbidden/http-response.adoc[]
+include::{snippets}/playlist-delete-forbidden/response-fields.adoc[]
+
+==== 에러 케이스 - 플레이리스트 없음
+
+include::{snippets}/playlist-delete-not-found/http-request.adoc[]
+include::{snippets}/playlist-delete-not-found/http-response.adoc[]
+include::{snippets}/playlist-delete-not-found/response-fields.adoc[]
+
+---
+
+== PlaylistTrack API
+
+=== 플레이리스트 트랙 추가
+
+include::{snippets}/playlist-track-add/http-request.adoc[]
+include::{snippets}/playlist-track-add/request-fields.adoc[]
+include::{snippets}/playlist-track-add/http-response.adoc[]
+include::{snippets}/playlist-track-add/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/playlist-track-add-invalid/http-request.adoc[]
+include::{snippets}/playlist-track-add-invalid/http-response.adoc[]
+include::{snippets}/playlist-track-add-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 플레이리스트 접근 권한 없음
+
+include::{snippets}/playlist-track-add-forbidden/http-request.adoc[]
+include::{snippets}/playlist-track-add-forbidden/request-fields.adoc[]
+include::{snippets}/playlist-track-add-forbidden/http-response.adoc[]
+include::{snippets}/playlist-track-add-forbidden/response-fields.adoc[]
+
+==== 에러 케이스 - 플레이리스트 없음
+
+include::{snippets}/playlist-track-add-not-found/http-request.adoc[]
+include::{snippets}/playlist-track-add-not-found/request-fields.adoc[]
+include::{snippets}/playlist-track-add-not-found/http-response.adoc[]
+include::{snippets}/playlist-track-add-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 이미 추가된 트랙
+
+include::{snippets}/playlist-track-add-duplicate/http-request.adoc[]
+include::{snippets}/playlist-track-add-duplicate/request-fields.adoc[]
+include::{snippets}/playlist-track-add-duplicate/http-response.adoc[]
+include::{snippets}/playlist-track-add-duplicate/response-fields.adoc[]
+
+---
+
+=== 플레이리스트 트랙 목록 조회
+
+include::{snippets}/playlist-track-get-list/http-request.adoc[]
+include::{snippets}/playlist-track-get-list/http-response.adoc[]
+include::{snippets}/playlist-track-get-list/response-fields.adoc[]
+
+==== 에러 케이스 - 플레이리스트 없음
+
+include::{snippets}/playlist-track-get-list-not-found/http-request.adoc[]
+include::{snippets}/playlist-track-get-list-not-found/http-response.adoc[]
+include::{snippets}/playlist-track-get-list-not-found/response-fields.adoc[]
+
+---
+
+=== 플레이리스트 트랙 순서 변경
+
+include::{snippets}/playlist-track-update-order/http-request.adoc[]
+include::{snippets}/playlist-track-update-order/request-fields.adoc[]
+include::{snippets}/playlist-track-update-order/http-response.adoc[]
+include::{snippets}/playlist-track-update-order/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/playlist-track-update-order-invalid/http-request.adoc[]
+include::{snippets}/playlist-track-update-order-invalid/request-fields.adoc[]
+include::{snippets}/playlist-track-update-order-invalid/http-response.adoc[]
+include::{snippets}/playlist-track-update-order-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 수정 권한 없음
+
+include::{snippets}/playlist-track-update-order-forbidden/http-request.adoc[]
+include::{snippets}/playlist-track-update-order-forbidden/request-fields.adoc[]
+include::{snippets}/playlist-track-update-order-forbidden/http-response.adoc[]
+include::{snippets}/playlist-track-update-order-forbidden/response-fields.adoc[]
+
+==== 에러 케이스 - 플레이리스트 없음
+
+include::{snippets}/playlist-track-update-order-not-found/http-request.adoc[]
+include::{snippets}/playlist-track-update-order-not-found/request-fields.adoc[]
+include::{snippets}/playlist-track-update-order-not-found/http-response.adoc[]
+include::{snippets}/playlist-track-update-order-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 순서 충돌
+
+include::{snippets}/playlist-track-update-order-conflict/http-request.adoc[]
+include::{snippets}/playlist-track-update-order-conflict/request-fields.adoc[]
+include::{snippets}/playlist-track-update-order-conflict/http-response.adoc[]
+include::{snippets}/playlist-track-update-order-conflict/response-fields.adoc[]
+
+---
+
+=== 플레이리스트 트랙 삭제
+
+include::{snippets}/playlist-track-delete/http-request.adoc[]
+include::{snippets}/playlist-track-delete/http-response.adoc[]
+include::{snippets}/playlist-track-delete/response-fields.adoc[]
+
+==== 에러 케이스 - 삭제 권한 없음
+
+include::{snippets}/playlist-track-delete-forbidden/http-request.adoc[]
+include::{snippets}/playlist-track-delete-forbidden/http-response.adoc[]
+include::{snippets}/playlist-track-delete-forbidden/response-fields.adoc[]
+
+==== 에러 케이스 - 삭제할 트랙 없음
+
+include::{snippets}/playlist-track-delete-not-found/http-request.adoc[]
+include::{snippets}/playlist-track-delete-not-found/http-response.adoc[]
+include::{snippets}/playlist-track-delete-not-found/response-fields.adoc[]
+
+---
+
+== Playback API
+
+=== 재생 시작
+
+include::{snippets}/playback-play/http-request.adoc[]
+include::{snippets}/playback-play/request-fields.adoc[]
+include::{snippets}/playback-play/http-response.adoc[]
+include::{snippets}/playback-play/response-fields.adoc[]
+
+==== 에러 케이스 - playlistId 누락
+
+include::{snippets}/playback-play-invalid-playlist-id/http-request.adoc[]
+include::{snippets}/playback-play-invalid-playlist-id/http-response.adoc[]
+include::{snippets}/playback-play-invalid-playlist-id/response-fields.adoc[]
+
+==== 에러 케이스 - 잘못된 재생 상태
+
+include::{snippets}/playback-play-invalid-state/http-request.adoc[]
+include::{snippets}/playback-play-invalid-state/request-fields.adoc[]
+include::{snippets}/playback-play-invalid-state/http-response.adoc[]
+include::{snippets}/playback-play-invalid-state/response-fields.adoc[]
+
+==== 에러 케이스 - 플레이리스트에 포함되지 않은 트랙
+
+include::{snippets}/playback-play-track-not-included/http-request.adoc[]
+include::{snippets}/playback-play-track-not-included/request-fields.adoc[]
+include::{snippets}/playback-play-track-not-included/http-response.adoc[]
+include::{snippets}/playback-play-track-not-included/response-fields.adoc[]
+
+---
+
+=== 재생 일시정지
+
+include::{snippets}/playback-pause/http-request.adoc[]
+include::{snippets}/playback-pause/request-fields.adoc[]
+include::{snippets}/playback-pause/http-response.adoc[]
+include::{snippets}/playback-pause/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/playback-pause-invalid/http-request.adoc[]
+include::{snippets}/playback-pause-invalid/http-response.adoc[]
+include::{snippets}/playback-pause-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 재생 기록 없음
+
+include::{snippets}/playback-pause-not-found/http-request.adoc[]
+include::{snippets}/playback-pause-not-found/request-fields.adoc[]
+include::{snippets}/playback-pause-not-found/http-response.adoc[]
+include::{snippets}/playback-pause-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 현재 재생 중인 곡 없음
+
+include::{snippets}/playback-pause-current-not-found/http-request.adoc[]
+include::{snippets}/playback-pause-current-not-found/request-fields.adoc[]
+include::{snippets}/playback-pause-current-not-found/http-response.adoc[]
+include::{snippets}/playback-pause-current-not-found/response-fields.adoc[]
+
+---
+
+=== 곡 건너뛰기
+
+include::{snippets}/playback-skip/http-request.adoc[]
+include::{snippets}/playback-skip/request-fields.adoc[]
+include::{snippets}/playback-skip/http-response.adoc[]
+include::{snippets}/playback-skip/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/playback-skip-invalid/http-request.adoc[]
+include::{snippets}/playback-skip-invalid/http-response.adoc[]
+include::{snippets}/playback-skip-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 재생 기록 없음
+
+include::{snippets}/playback-skip-not-found/http-request.adoc[]
+include::{snippets}/playback-skip-not-found/request-fields.adoc[]
+include::{snippets}/playback-skip-not-found/http-response.adoc[]
+include::{snippets}/playback-skip-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 잘못된 재생 상태
+
+include::{snippets}/playback-skip-invalid-state/http-request.adoc[]
+include::{snippets}/playback-skip-invalid-state/request-fields.adoc[]
+include::{snippets}/playback-skip-invalid-state/http-response.adoc[]
+include::{snippets}/playback-skip-invalid-state/response-fields.adoc[]
+
+==== 에러 케이스 - 플레이리스트 트랙 정보 없음
+
+include::{snippets}/playback-skip-playlist-track-not-found/http-request.adoc[]
+include::{snippets}/playback-skip-playlist-track-not-found/request-fields.adoc[]
+include::{snippets}/playback-skip-playlist-track-not-found/http-response.adoc[]
+include::{snippets}/playback-skip-playlist-track-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 현재 재생 트랙 불일치
+
+include::{snippets}/playback-skip-track-mismatch/http-request.adoc[]
+include::{snippets}/playback-skip-track-mismatch/request-fields.adoc[]
+include::{snippets}/playback-skip-track-mismatch/http-response.adoc[]
+include::{snippets}/playback-skip-track-mismatch/response-fields.adoc[]
+
+---
+
+=== 곡 정지
+
+include::{snippets}/playback-stop/http-request.adoc[]
+include::{snippets}/playback-stop/request-fields.adoc[]
+include::{snippets}/playback-stop/http-response.adoc[]
+include::{snippets}/playback-stop/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/playback-stop-invalid/http-request.adoc[]
+include::{snippets}/playback-stop-invalid/http-response.adoc[]
+include::{snippets}/playback-stop-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 재생 기록 없음
+
+include::{snippets}/playback-stop-not-found/http-request.adoc[]
+include::{snippets}/playback-stop-not-found/request-fields.adoc[]
+include::{snippets}/playback-stop-not-found/http-response.adoc[]
+include::{snippets}/playback-stop-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 잘못된 재생 상태
+
+include::{snippets}/playback-stop-invalid-state/http-request.adoc[]
+include::{snippets}/playback-stop-invalid-state/request-fields.adoc[]
+include::{snippets}/playback-stop-invalid-state/http-response.adoc[]
+include::{snippets}/playback-stop-invalid-state/response-fields.adoc[]
+
+---
+
+=== 재생 기록 조회
+
+include::{snippets}/playback-history/http-request.adoc[]
+include::{snippets}/playback-history/http-response.adoc[]
+include::{snippets}/playback-history/response-fields.adoc[]
+
+---
+
+== PopularChart API
+
+=== 인기 차트 조회
+
+include::{snippets}/popular-chart-get-top100/http-request.adoc[]
+include::{snippets}/popular-chart-get-top100/http-response.adoc[]
+include::{snippets}/popular-chart-get-top100/response-fields.adoc[]
+
+=== snapshotDate로 인기 차트 조회
+
+include::{snippets}/popular-chart-get-top100-with-date/http-request.adoc[]
+include::{snippets}/popular-chart-get-top100-with-date/http-response.adoc[]
+include::{snippets}/popular-chart-get-top100-with-date/response-fields.adoc[]
+
+==== 에러 케이스 - 차트 데이터 없음
+
+include::{snippets}/popular-chart-get-top100-not-found/http-request.adoc[]
+include::{snippets}/popular-chart-get-top100-not-found/http-response.adoc[]
+include::{snippets}/popular-chart-get-top100-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 유효하지 않은 snapshotDate
+
+include::{snippets}/popular-chart-get-top100-invalid-date/http-request.adoc[]
+include::{snippets}/popular-chart-get-top100-invalid-date/http-response.adoc[]
+include::{snippets}/popular-chart-get-top100-invalid-date/response-fields.adoc[]
+
+---
+
+== PopularChart Test API
+
+=== 테스트용 인기 차트 생성
+
+include::{snippets}/popular-chart-test-generate/http-request.adoc[]
+include::{snippets}/popular-chart-test-generate/http-response.adoc[]
+
+---
+
 == 도메인 API
 
 === 기능

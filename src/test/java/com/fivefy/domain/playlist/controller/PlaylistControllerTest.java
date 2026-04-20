@@ -1,6 +1,7 @@
 package com.fivefy.domain.playlist.controller;
 
 import com.fivefy.common.config.security.JwtUtil;
+import com.fivefy.common.docs.RestDocsSupport;
 import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.playlist.contoller.PlaylistController;
@@ -13,15 +14,12 @@ import com.fivefy.domain.playlist.service.PlaylistService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,16 +27,19 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.payload.JsonFieldType.*;
+import static org.springframework.restdocs.payload.PayloadDocumentation.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@WithMockUser
 @WebMvcTest(PlaylistController.class)
-@AutoConfigureMockMvc(addFilters = false)
-class PlaylistControllerTest {
-
-    @Autowired private MockMvc mockMvc;
-    @Autowired private ObjectMapper objectMapper;
+class PlaylistControllerTest extends RestDocsSupport {
 
     @MockitoBean private PlaylistService playlistService;
     @MockitoBean private JwtUtil jwtUtil;
@@ -68,6 +69,7 @@ class PlaylistControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playlists")
+                            .with(csrf().asHeader())
                             .param("userId", "1")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -76,7 +78,25 @@ class PlaylistControllerTest {
                     .andExpect(jsonPath("$.message").value("플레이리스트 생성 성공"))
                     .andExpect(jsonPath("$.data.id").value(1L))
                     .andExpect(jsonPath("$.data.title").value("운동할 때 듣는 노래"))
-                    .andExpect(jsonPath("$.data.description").value("신나는 음악 모음"));
+                    .andExpect(jsonPath("$.data.description").value("신나는 음악 모음"))
+                    .andDo(document("playlist-create",
+                            requestFields(
+                                    fieldWithPath("title").type(STRING).description("플레이리스트 제목"),
+                                    fieldWithPath("description").type(STRING).description("플레이리스트 설명")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    fieldWithPath("data.id").type(NUMBER).description("플레이리스트 ID"),
+                                    fieldWithPath("data.userId").type(NUMBER).description("유저 ID"),
+                                    fieldWithPath("data.title").type(STRING).description("플레이리스트 제목"),
+                                    fieldWithPath("data.description").type(STRING).description("플레이리스트 설명"),
+                                    fieldWithPath("data.createdAt").type(STRING).description("생성 일시"),
+                                    fieldWithPath("data.updatedAt").type(STRING).description("수정 일시"),
+                                    fieldWithPath("data.deletedAt").type(NULL).description("삭제 일시")
+                            )
+                    ));
         }
 
         @Test
@@ -87,9 +107,24 @@ class PlaylistControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playlists")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andDo(document("playlist-create-invalid",
+                            requestFields(
+                                    fieldWithPath("title").type(STRING).description("플레이리스트 제목 (값 없음)"),
+                                    fieldWithPath("description").type(STRING).description("플레이리스트 설명")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지"),
+                                    fieldWithPath("data").type(ARRAY).description("상세 에러 내역"),
+                                    fieldWithPath("data[].field").type(STRING).description("에러가 발생한 필드명"),
+                                    fieldWithPath("data[].message").type(STRING).description("에러 상세 사유")
+                            )
+                    ));
         }
 
         @Test
@@ -101,6 +136,7 @@ class PlaylistControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playlists")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest());
@@ -117,10 +153,22 @@ class PlaylistControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playlists")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isConflict())
-                    .andExpect(jsonPath("$.message").value(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME.getMessage()));
+                    .andExpect(jsonPath("$.message").value(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME.getMessage()))
+                    .andDo(document("playlist-create-duplicate",
+                            requestFields(
+                                    fieldWithPath("title").type(STRING).description("중복된 플레이리스트 제목"),
+                                    fieldWithPath("description").type(STRING).description("플레이리스트 설명")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
         }
     }
 
@@ -163,7 +211,26 @@ class PlaylistControllerTest {
                     .andExpect(jsonPath("$.data.page").value(0))
                     .andExpect(jsonPath("$.data.size").value(20))
                     .andExpect(jsonPath("$.data.totalElements").value(2))
-                    .andExpect(jsonPath("$.data.totalPages").value(1));
+                    .andExpect(jsonPath("$.data.totalPages").value(1))
+                    .andDo(document("playlist-get-list",
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    fieldWithPath("data.content").type(ARRAY).description("플레이리스트 목록"),
+                                    fieldWithPath("data.content[].id").type(NUMBER).description("플레이리스트 ID"),
+                                    fieldWithPath("data.content[].userId").type(NUMBER).description("유저 ID"),
+                                    fieldWithPath("data.content[].title").type(STRING).description("플레이리스트 제목"),
+                                    fieldWithPath("data.content[].description").type(STRING).description("플레이리스트 설명"),
+                                    fieldWithPath("data.content[].createdAt").type(STRING).description("생성 일시"),
+                                    fieldWithPath("data.content[].updatedAt").type(STRING).description("수정 일시"),
+                                    fieldWithPath("data.content[].deletedAt").type(NULL).description("삭제 일시"),
+                                    fieldWithPath("data.page").type(NUMBER).description("현재 페이지 번호"),
+                                    fieldWithPath("data.size").type(NUMBER).description("페이지 크기"),
+                                    fieldWithPath("data.totalElements").type(NUMBER).description("전체 데이터 수"),
+                                    fieldWithPath("data.totalPages").type(NUMBER).description("전체 페이지 수")
+                            )
+                    ));
         }
     }
 
@@ -193,7 +260,21 @@ class PlaylistControllerTest {
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("플레이리스트 조회 성공"))
                     .andExpect(jsonPath("$.data.id").value(1L))
-                    .andExpect(jsonPath("$.data.title").value("내 플레이리스트"));
+                    .andExpect(jsonPath("$.data.title").value("내 플레이리스트"))
+                    .andDo(document("playlist-get",
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    fieldWithPath("data.id").type(NUMBER).description("플레이리스트 ID"),
+                                    fieldWithPath("data.userId").type(NUMBER).description("유저 ID"),
+                                    fieldWithPath("data.title").type(STRING).description("플레이리스트 제목"),
+                                    fieldWithPath("data.description").type(STRING).description("플레이리스트 설명"),
+                                    fieldWithPath("data.createdAt").type(STRING).description("생성 일시"),
+                                    fieldWithPath("data.updatedAt").type(STRING).description("수정 일시"),
+                                    fieldWithPath("data.deletedAt").type(NULL).description("삭제 일시")
+                            )
+                    ));
         }
 
         @Test
@@ -206,7 +287,14 @@ class PlaylistControllerTest {
             // when & then
             mockMvc.perform(get("/api/playlists/1"))
                     .andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.message").value(PlaylistErrorCode.PLAYLIST_NOT_FOUND.getMessage()));
+                    .andExpect(jsonPath("$.message").value(PlaylistErrorCode.PLAYLIST_NOT_FOUND.getMessage()))
+                    .andDo(document("playlist-get-not-found",
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
         }
     }
 
@@ -234,13 +322,32 @@ class PlaylistControllerTest {
 
             // when & then
             mockMvc.perform(patch("/api/playlists/1")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("플레이리스트 수정 성공"))
                     .andExpect(jsonPath("$.data.title").value("수정된 제목"))
-                    .andExpect(jsonPath("$.data.description").value("수정된 설명"));
+                    .andExpect(jsonPath("$.data.description").value("수정된 설명"))
+                    .andDo(document("playlist-update",
+                            requestFields(
+                                    fieldWithPath("title").type(STRING).description("수정할 플레이리스트 제목"),
+                                    fieldWithPath("description").type(STRING).description("수정할 플레이리스트 설명")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    fieldWithPath("data.id").type(NUMBER).description("플레이리스트 ID"),
+                                    fieldWithPath("data.userId").type(NUMBER).description("유저 ID"),
+                                    fieldWithPath("data.title").type(STRING).description("수정된 제목"),
+                                    fieldWithPath("data.description").type(STRING).description("수정된 설명"),
+                                    fieldWithPath("data.createdAt").type(STRING).description("생성 일시"),
+                                    fieldWithPath("data.updatedAt").type(STRING).description("수정 일시"),
+                                    fieldWithPath("data.deletedAt").type(NULL).description("삭제 일시")
+                            )
+                    ));
         }
 
         @Test
@@ -251,9 +358,24 @@ class PlaylistControllerTest {
 
             // when & then
             mockMvc.perform(patch("/api/playlists/1")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andDo(document("playlist-update-invalid",
+                            requestFields(
+                                    fieldWithPath("title").type(STRING).description("플레이리스트 제목 (값 없음)"),
+                                    fieldWithPath("description").type(STRING).description("플레이리스트 설명")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지"),
+                                    fieldWithPath("data").type(ARRAY).description("상세 에러 내역"),
+                                    fieldWithPath("data[].field").type(STRING).description("에러가 발생한 필드명"),
+                                    fieldWithPath("data[].message").type(STRING).description("에러 상세 사유")
+                            )
+                    ));
         }
 
         @Test
@@ -267,10 +389,22 @@ class PlaylistControllerTest {
 
             // when & then
             mockMvc.perform(patch("/api/playlists/1")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isForbidden())
-                    .andExpect(jsonPath("$.message").value(PlaylistErrorCode.PLAYLIST_UPDATE_FORBIDDEN.getMessage()));
+                    .andExpect(jsonPath("$.message").value(PlaylistErrorCode.PLAYLIST_UPDATE_FORBIDDEN.getMessage()))
+                    .andDo(document("playlist-update-forbidden",
+                            requestFields(
+                                    fieldWithPath("title").type(STRING).description("수정할 플레이리스트 제목"),
+                                    fieldWithPath("description").type(STRING).description("플레이리스트 설명")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
         }
 
         @Test
@@ -284,10 +418,22 @@ class PlaylistControllerTest {
 
             // when & then
             mockMvc.perform(patch("/api/playlists/1")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.message").value(PlaylistErrorCode.PLAYLIST_NOT_FOUND.getMessage()));
+                    .andExpect(jsonPath("$.message").value(PlaylistErrorCode.PLAYLIST_NOT_FOUND.getMessage()))
+                    .andDo(document("playlist-update-not-found",
+                            requestFields(
+                                    fieldWithPath("title").type(STRING).description("수정할 플레이리스트 제목"),
+                                    fieldWithPath("description").type(STRING).description("플레이리스트 설명")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
         }
 
         @Test
@@ -301,10 +447,22 @@ class PlaylistControllerTest {
 
             // when & then
             mockMvc.perform(patch("/api/playlists/1")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isConflict())
-                    .andExpect(jsonPath("$.message").value(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME.getMessage()));
+                    .andExpect(jsonPath("$.message").value(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME.getMessage()))
+                    .andDo(document("playlist-update-duplicate",
+                            requestFields(
+                                    fieldWithPath("title").type(STRING).description("중복된 플레이리스트 제목"),
+                                    fieldWithPath("description").type(STRING).description("플레이리스트 설명")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
         }
     }
 
@@ -324,11 +482,21 @@ class PlaylistControllerTest {
             given(playlistService.deletePlaylist(any(), eq(1L))).willReturn(response);
 
             // when & then
-            mockMvc.perform(delete("/api/playlists/1"))
+            mockMvc.perform(delete("/api/playlists/1")
+                            .with(csrf().asHeader()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("플레이리스트 삭제 성공"))
-                    .andExpect(jsonPath("$.data.id").value(1L));
+                    .andExpect(jsonPath("$.data.id").value(1L))
+                    .andDo(document("playlist-delete",
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    fieldWithPath("data.id").type(NUMBER).description("삭제된 플레이리스트 ID"),
+                                    fieldWithPath("data.deletedAt").type(STRING).description("삭제 일시")
+                            )
+                    ));
         }
 
         @Test
@@ -339,9 +507,17 @@ class PlaylistControllerTest {
                     .willThrow(new BusinessException(PlaylistErrorCode.PLAYLIST_DELETE_FORBIDDEN));
 
             // when & then
-            mockMvc.perform(delete("/api/playlists/1"))
+            mockMvc.perform(delete("/api/playlists/1")
+                            .with(csrf().asHeader()))
                     .andExpect(status().isForbidden())
-                    .andExpect(jsonPath("$.message").value(PlaylistErrorCode.PLAYLIST_DELETE_FORBIDDEN.getMessage()));
+                    .andExpect(jsonPath("$.message").value(PlaylistErrorCode.PLAYLIST_DELETE_FORBIDDEN.getMessage()))
+                    .andDo(document("playlist-delete-forbidden",
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
         }
 
         @Test
@@ -352,9 +528,17 @@ class PlaylistControllerTest {
                     .willThrow(new BusinessException(PlaylistErrorCode.PLAYLIST_NOT_FOUND));
 
             // when & then
-            mockMvc.perform(delete("/api/playlists/1"))
+            mockMvc.perform(delete("/api/playlists/1")
+                            .with(csrf().asHeader()))
                     .andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.message").value(PlaylistErrorCode.PLAYLIST_NOT_FOUND.getMessage()));
+                    .andExpect(jsonPath("$.message").value(PlaylistErrorCode.PLAYLIST_NOT_FOUND.getMessage()))
+                    .andDo(document("playlist-delete-not-found",
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
         }
     }
 }
