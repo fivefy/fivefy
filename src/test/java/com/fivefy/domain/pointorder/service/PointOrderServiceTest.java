@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -44,6 +45,7 @@ class PointOrderServiceTest {
     private static final Long MONTH_PRICE = 50L;       // MONTH 플랜 가격
 
     @BeforeEach
+    @Transactional
     void setUp() {
         // 기존 지갑 삭제 후 새로 생성
         walletRepository.findByUserId(USER_ID)
@@ -56,6 +58,7 @@ class PointOrderServiceTest {
 
     // 테스트 정리 코드
     @AfterEach
+    @Transactional
     void tearDown() {
         subscriptionRepository.deleteAllByUserId(USER_ID);
         pointHistoryRepository.deleteAllByWalletId(
