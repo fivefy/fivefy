@@ -83,6 +83,7 @@ public class NotificationService {
 
         // SSE 전송 — DB 커넥션 미점유 상태
         List<SseEmitter> emitterList = sseEmitterRepository.findAllByUserId(userId);
+        int originalEmitterCount = emitterList.size();
         boolean sent = false;
 
         for (SseEmitter emitter : emitterList) {
@@ -99,10 +100,11 @@ public class NotificationService {
 
         if (sent) {
             saved.markAsSent();
-        } else if (!emitterList.isEmpty()) {
+        }
+        else if (originalEmitterCount > 0) {
             saved.markAsFailed();
         }
-        if (sent || !emitterList.isEmpty()) {
+        if (sent || originalEmitterCount > 0) {
             notificationRepository.save(saved);
         }
     }
