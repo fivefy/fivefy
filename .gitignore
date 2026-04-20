@@ -45,6 +45,7 @@ out/
 ### yml ###
 application-local.yml
 docker-compose.override.yml
+application-test.yml
 
 ### sh ###
 pull.sh

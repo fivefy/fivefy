@@ -1,5 +1,6 @@
 package com.fivefy.domain.cashorder.service;
 
+import com.fivefy.common.lock.annotation.RedissonLock;
 import com.fivefy.common.portone.PortoneWebhookVerifier;
 import com.fivefy.common.portone.client.PortoneClient;
 import com.fivefy.common.portone.dto.PortoneCancelResponse;
@@ -56,7 +57,7 @@ public class CashOrderService {
      * @param request
      * @return
      */
-    @Transactional
+    @RedissonLock(key = "'cashOrder:' + #userId")
     public CashOrderPurchaseResponse purchase(Long userId, CashOrderVerifyRequest request) {
 
         CashProductType productType = request.productType();
@@ -85,7 +86,7 @@ public class CashOrderService {
      * @param request
      * @return
      */
-    @Transactional
+    @RedissonLock(key = "'cashOrder:' + #userId")
     public CashOrderResponse refund(Long userId, CashOrderRefundRequest request) {
 
         // 주문 조회

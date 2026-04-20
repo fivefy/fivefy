@@ -1,5 +1,6 @@
 package com.fivefy.domain.pointorder.service;
 
+import com.fivefy.common.lock.annotation.RedissonLock;
 import com.fivefy.domain.pointorder.dto.PointOrderPurchaseRequest;
 import com.fivefy.domain.pointorder.dto.PointOrderRefundRequest;
 import com.fivefy.domain.pointorder.entity.PointOrder;
@@ -18,7 +19,6 @@ import com.fivefy.domain.wallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -44,7 +44,7 @@ public class PointOrderService {
      * 4. PointHistory(USE) 기록
      * 5. Subscription 생성 (FREE→ACTIVE / 유료→INACTIVE)
      */
-    @Transactional
+    @RedissonLock(key = "'pointOrder:' + #userId")
     public SubscriptionResponse purchase(Long userId, PointOrderPurchaseRequest request) {
         SubscriptionPlanType planType = request.planType();
         Long price = planType.getPrice();
@@ -113,7 +113,7 @@ public class PointOrderService {
      * @param request
      * @return
      */
-    @Transactional
+    @RedissonLock(key = "'pointOrder:' + #userId")
     public SubscriptionResponse refund(Long userId, PointOrderRefundRequest request) {
         // 1. 구독 조회 및 검증
         Subscription subscription = subscriptionRepository.findById(request.subscriptionId())

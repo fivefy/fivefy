@@ -1,21 +1,31 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb;MODE=MySQL
-    driver-class-name: org.h2.Driver
-    username: test
+    url: jdbc:mysql://localhost:3306/fivefy_db?serverTimezone=Asia/Seoul
+    username: root
     password: 12345678
+    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
       ddl-auto: create-drop
-    database-platform: org.hibernate.dialect.H2Dialect
+    show-sql: true
   data:
     redis:
       host: localhost
-      port: 6380
+      port: 6379
       timeout: 2000ms
 
 kafka:
   bootstrap-servers: localhost:9092,localhost:9093,localhost:9094
 
 jwt:
-  secret: jwt-your-secret-kcf-coffee-shop-spring-local-key-consds-test
+  secret: fivefy-test-secret-key-for-local-only
+
+app:
+  add-wallet-dummy-test-data: false
+
+portone:
+  api-secret: test
+  store-id: test
+  api-url: test
+  channel-key: test
+  webhook-secret: test

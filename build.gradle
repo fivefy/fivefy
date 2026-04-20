@@ -93,6 +93,9 @@ dependencies {
     implementation 'io.github.openfeign.querydsl:querydsl-core:7.1'
     implementation 'io.github.openfeign.querydsl:querydsl-jpa:7.1'
     annotationProcessor 'io.github.openfeign.querydsl:querydsl-apt:7.1:jpa'
+
+    // redissonclient
+    implementation 'org.redisson:redisson-spring-boot-starter:3.17.7'
 }
 
 tasks.named('test') {
