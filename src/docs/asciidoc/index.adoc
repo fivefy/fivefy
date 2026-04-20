@@ -572,6 +572,143 @@ include::{snippets}/albums-by-artist-not-found/response-fields.adoc[]
 
 ---
 
+== Track API
+
+=== 자유 창작 트랙 등록 신청 생성
+
+include::{snippets}/track-applications-free-creations-create/http-request.adoc[]
+include::{snippets}/track-applications-free-creations-create/request-fields.adoc[]
+include::{snippets}/track-applications-free-creations-create/http-response.adoc[]
+include::{snippets}/track-applications-free-creations-create/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/track-applications-free-creations-create-invalid/http-request.adoc[]
+include::{snippets}/track-applications-free-creations-create-invalid/request-fields.adoc[]
+include::{snippets}/track-applications-free-creations-create-invalid/http-response.adoc[]
+include::{snippets}/track-applications-free-creations-create-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 중복 신청
+
+include::{snippets}/track-applications-free-creations-create-duplicate/http-request.adoc[]
+include::{snippets}/track-applications-free-creations-create-duplicate/request-fields.adoc[]
+include::{snippets}/track-applications-free-creations-create-duplicate/http-response.adoc[]
+include::{snippets}/track-applications-free-creations-create-duplicate/response-fields.adoc[]
+
+---
+
+=== 정식 발매 트랙 등록 신청 생성
+
+include::{snippets}/track-applications-official-releases-create/http-request.adoc[]
+include::{snippets}/track-applications-official-releases-create/request-fields.adoc[]
+include::{snippets}/track-applications-official-releases-create/http-response.adoc[]
+include::{snippets}/track-applications-official-releases-create/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/track-applications-official-releases-create-invalid/http-request.adoc[]
+include::{snippets}/track-applications-official-releases-create-invalid/request-fields.adoc[]
+include::{snippets}/track-applications-official-releases-create-invalid/http-response.adoc[]
+include::{snippets}/track-applications-official-releases-create-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 중복 신청
+
+include::{snippets}/track-applications-official-releases-create-duplicate/http-request.adoc[]
+include::{snippets}/track-applications-official-releases-create-duplicate/request-fields.adoc[]
+include::{snippets}/track-applications-official-releases-create-duplicate/http-response.adoc[]
+include::{snippets}/track-applications-official-releases-create-duplicate/response-fields.adoc[]
+
+---
+
+=== 내 트랙 등록 신청 목록 조회
+
+include::{snippets}/track-applications-me-get/http-request.adoc[]
+include::{snippets}/track-applications-me-get/http-response.adoc[]
+include::{snippets}/track-applications-me-get/response-fields.adoc[]
+
+---
+
+=== 트랙 등록 신청 상세 조회
+
+include::{snippets}/track-applications-get/http-request.adoc[]
+include::{snippets}/track-applications-get/path-parameters.adoc[]
+include::{snippets}/track-applications-get/http-response.adoc[]
+include::{snippets}/track-applications-get/response-fields.adoc[]
+
+==== 에러 케이스 - 조회 권한 없음
+
+include::{snippets}/track-applications-get-forbidden/http-request.adoc[]
+include::{snippets}/track-applications-get-forbidden/path-parameters.adoc[]
+include::{snippets}/track-applications-get-forbidden/http-response.adoc[]
+include::{snippets}/track-applications-get-forbidden/response-fields.adoc[]
+
+==== 에러 케이스 - 신청 없음
+
+include::{snippets}/track-applications-get-not-found/http-request.adoc[]
+include::{snippets}/track-applications-get-not-found/path-parameters.adoc[]
+include::{snippets}/track-applications-get-not-found/http-response.adoc[]
+include::{snippets}/track-applications-get-not-found/response-fields.adoc[]
+
+---
+
+=== 트랙 등록 신청 목록 조회
+
+include::{snippets}/admin-track-applications-get/http-request.adoc[]
+include::{snippets}/admin-track-applications-get/http-response.adoc[]
+include::{snippets}/admin-track-applications-get/response-fields.adoc[]
+
+---
+
+=== 트랙 등록 신청 승인
+
+include::{snippets}/admin-track-applications-approve/http-request.adoc[]
+include::{snippets}/admin-track-applications-approve/path-parameters.adoc[]
+include::{snippets}/admin-track-applications-approve/http-response.adoc[]
+include::{snippets}/admin-track-applications-approve/response-fields.adoc[]
+
+==== 에러 케이스 - 이미 처리된 신청
+
+include::{snippets}/admin-track-applications-approve-already-processed/http-request.adoc[]
+include::{snippets}/admin-track-applications-approve-already-processed/http-response.adoc[]
+include::{snippets}/admin-track-applications-approve-already-processed/response-fields.adoc[]
+
+==== 에러 케이스 - 신청 없음
+
+include::{snippets}/admin-track-applications-approve-not-found/http-request.adoc[]
+include::{snippets}/admin-track-applications-approve-not-found/http-response.adoc[]
+include::{snippets}/admin-track-applications-approve-not-found/response-fields.adoc[]
+
+---
+
+=== 트랙 등록 신청 거절
+
+include::{snippets}/admin-track-applications-reject/http-request.adoc[]
+include::{snippets}/admin-track-applications-reject/path-parameters.adoc[]
+include::{snippets}/admin-track-applications-reject/request-fields.adoc[]
+include::{snippets}/admin-track-applications-reject/http-response.adoc[]
+include::{snippets}/admin-track-applications-reject/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/admin-track-applications-reject-invalid/http-request.adoc[]
+include::{snippets}/admin-track-applications-reject-invalid/request-fields.adoc[]
+include::{snippets}/admin-track-applications-reject-invalid/http-response.adoc[]
+include::{snippets}/admin-track-applications-reject-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 이미 처리된 신청
+
+include::{snippets}/admin-track-applications-reject-already-processed/http-request.adoc[]
+include::{snippets}/admin-track-applications-reject-already-processed/http-response.adoc[]
+include::{snippets}/admin-track-applications-reject-already-processed/response-fields.adoc[]
+
+==== 에러 케이스 - 신청 없음
+
+include::{snippets}/admin-track-applications-reject-not-found/http-request.adoc[]
+include::{snippets}/admin-track-applications-reject-not-found/http-response.adoc[]
+include::{snippets}/admin-track-applications-reject-not-found/response-fields.adoc[]
+
+---
+
 == Playlist API
 
 === 플레이리스트 생성
