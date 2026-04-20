@@ -1,8 +1,11 @@
 package com.fivefy.domain.pointorder.service;
 
 import com.fivefy.domain.pointorder.dto.PointOrderPurchaseRequest;
+import com.fivefy.domain.pointorder.repository.PointOrderRepository;
 import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
+import com.fivefy.domain.subscription.repository.SubscriptionRepository;
 import com.fivefy.domain.wallet.entity.Wallet;
+import com.fivefy.domain.wallet.repository.PointHistoryRepository;
 import com.fivefy.domain.wallet.repository.WalletRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,8 +26,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ActiveProfiles("test")
 class PointOrderServiceTest {
 
-    @Autowired PointOrderService pointOrderService;
-    @Autowired WalletRepository walletRepository;
+    @Autowired
+    PointOrderService pointOrderService;
+    @Autowired
+    WalletRepository walletRepository;
+
+    @Autowired
+    PointOrderRepository pointOrderRepository;
+    @Autowired
+    SubscriptionRepository subscriptionRepository;
+    @Autowired
+    PointHistoryRepository pointHistoryRepository;
 
     // 테스트용 고정 userId (실제 User 없이 지갑만 생성)
     private static final Long USER_ID = 99999L;
@@ -42,8 +54,14 @@ class PointOrderServiceTest {
         walletRepository.save(wallet);
     }
 
+    // 테스트 정리 코드
     @AfterEach
     void tearDown() {
+        subscriptionRepository.deleteAllByUserId(USER_ID);
+        pointHistoryRepository.deleteAllByWalletId(
+                walletRepository.findByUserId(USER_ID).map(Wallet::getId).orElse(null)
+        );
+        pointOrderRepository.deleteAllByUserId(USER_ID);
         walletRepository.findByUserId(USER_ID)
                 .ifPresent(walletRepository::delete);
     }
@@ -79,9 +97,9 @@ class PointOrderServiceTest {
 
         Wallet wallet = walletRepository.findByUserId(USER_ID).orElseThrow();
 
-        System.out.println("✅ 성공: " + successCount.get());
-        System.out.println("❌ 실패: " + failCount.get());
-        System.out.println("💰 최종 잔액: " + wallet.getBalance());
+        System.out.println("성공: " + successCount.get());
+        System.out.println("실패: " + failCount.get());
+        System.out.println("최종 잔액: " + wallet.getBalance());
 
         // 200P / 50P = 4건 성공
         assertThat(successCount.get()).isEqualTo(4);
@@ -125,8 +143,8 @@ class PointOrderServiceTest {
 
         Wallet wallet = walletRepository.findByUserId(USER_ID).orElseThrow();
 
-        System.out.println("✅ 성공: " + successCount.get());
-        System.out.println("💰 최종 잔액: " + wallet.getBalance());
+        System.out.println("성공: " + successCount.get());
+        System.out.println("최종 잔액: " + wallet.getBalance());
 
         // 핵심: 잔액이 절대 음수가 되면 안 됨
         assertThat(wallet.getBalance()).isGreaterThanOrEqualTo(0L);
