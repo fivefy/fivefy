@@ -174,6 +174,35 @@ public class PlaylistTrackControllerTest extends RestDocsSupport {
         }
 
         @Test
+        @DisplayName("트랙이 존재하지 않으면 404 반환")
+        void addTrackTrackNotFound() throws Exception {
+            // given
+            PlaylistTrackCreateRequest request = new PlaylistTrackCreateRequest(10L);
+
+            given(playlistTrackService.addTrack(any(), eq(1L), any(PlaylistTrackCreateRequest.class)))
+                    .willThrow(new BusinessException(PlaylistErrorCode.TRACK_NOT_FOUND));
+
+            // when & then
+            mockMvc.perform(post("/api/playlists/{playlistId}/tracks", 1L)
+                            .with(csrf().asHeader())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.message")
+                            .value(PlaylistErrorCode.TRACK_NOT_FOUND.getMessage()))
+                    .andDo(document("playlist-track-add-track-not-found",
+                            requestFields(
+                                    fieldWithPath("trackId").type(NUMBER).description("존재하지 않는 트랙 ID")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
+        }
+
+        @Test
         @DisplayName("이미 추가된 트랙이면 409 반환")
         void addTrackDuplicate() throws Exception {
             // given
