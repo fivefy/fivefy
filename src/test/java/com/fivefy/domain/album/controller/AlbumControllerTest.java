@@ -1,34 +1,41 @@
 package com.fivefy.domain.album.controller;
 
 import com.fivefy.common.config.security.JwtUtil;
+import com.fivefy.common.docs.RestDocsSupport;
 import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.enums.ApplicationStatus;
+import com.fivefy.common.exception.BusinessException;
 import com.fivefy.common.filter.LastActiveAtFilter;
 import com.fivefy.domain.album.dto.request.AlbumApplicationCreateRequest;
 import com.fivefy.domain.album.dto.request.AlbumApplicationRejectRequest;
 import com.fivefy.domain.album.dto.response.*;
+import com.fivefy.domain.album.enums.AlbumApplicationErrorCode;
+import com.fivefy.domain.album.enums.AlbumErrorCode;
 import com.fivefy.domain.album.service.AlbumService;
+import com.fivefy.domain.artist.enums.ArtistErrorCode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
-import com.fivefy.common.docs.RestDocsSupport;
+import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.payload.JsonFieldType.*;
-import static org.springframework.restdocs.payload.PayloadDocumentation.*;
-import static org.springframework.restdocs.request.RequestDocumentation.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.payload.JsonFieldType.*;
+import static org.springframework.restdocs.payload.PayloadDocumentation.*;
+import static org.springframework.restdocs.request.RequestDocumentation.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -37,7 +44,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * AlbumController 웹 계층 테스트 및 REST Docs 문서화
  */
-@WithMockUser
 @WebMvcTest(AlbumController.class)
 class AlbumControllerTest extends RestDocsSupport {
 
@@ -51,13 +57,13 @@ class AlbumControllerTest extends RestDocsSupport {
     private LastActiveAtFilter lastActiveAtFilter;
 
     @Nested
+    @WithMockUser
     @DisplayName("앨범 등록 신청 생성 API")
     class CreateAlbumApplication {
 
         @Test
-        @DisplayName("앨범 등록 신청 생성 성공 시 201 반환")
+        @DisplayName("앨범 등록 신청 생성 성공")
         void createAlbumApplication_success() throws Exception {
-            // given
             AlbumApplicationCreateRequest request = new AlbumApplicationCreateRequest(
                     10L,
                     "Love poem",
@@ -77,7 +83,6 @@ class AlbumControllerTest extends RestDocsSupport {
             given(albumService.createAlbumApplication(any(), any(AlbumApplicationCreateRequest.class)))
                     .willReturn(response);
 
-            // when & then
             mockMvc.perform(post("/api/album-applications")
                             .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
@@ -87,26 +92,14 @@ class AlbumControllerTest extends RestDocsSupport {
                     .andExpect(jsonPath("$.message").value("앨범 등록 신청 성공"))
                     .andExpect(jsonPath("$.data.applicationId").value(1L))
                     .andExpect(jsonPath("$.data.artistId").value(10L))
-                    .andExpect(jsonPath("$.data.title").value("Love poem"))
-                    .andExpect(jsonPath("$.data.status").value("PENDING"))
-                    .andExpect(jsonPath("$.data.status").value("PENDING"))
                     .andDo(document("album-applications-create",
                             requestFields(
-                                    fieldWithPath("artistId").type(NUMBER).description("아티스트 ID"),
-                                    fieldWithPath("title").type(STRING).description("앨범 제목"),
-                                    fieldWithPath("description").type(STRING).description("앨범 설명"),
-                                    fieldWithPath("coverImageUrl").type(STRING).description("커버 이미지 URL"),
-                                    fieldWithPath("publishDelayDays").type(NUMBER).description("공개 예약 일수 (0~7)")
+                                    albumApplicationCreateRequestFields()
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
-                                    fieldWithPath("data.applicationId").type(NUMBER).description("신청 ID"),
-                                    fieldWithPath("data.artistId").type(NUMBER).description("아티스트 ID"),
-                                    fieldWithPath("data.title").type(STRING).description("앨범 제목"),
-                                    fieldWithPath("data.status").type(STRING).description("신청 상태"),
-                                    fieldWithPath("data.createdAt").type(STRING).description("신청 생성 시각")
+                                    baseSuccessResponseFields()
+                            ).and(
+                                    albumApplicationResponseFields()
                             )
                     ));
         }
@@ -114,7 +107,6 @@ class AlbumControllerTest extends RestDocsSupport {
         @Test
         @DisplayName("제목 없이 생성 요청 시 400 반환")
         void createAlbumApplication_fail_withoutTitle() throws Exception {
-            // given
             AlbumApplicationCreateRequest request = new AlbumApplicationCreateRequest(
                     10L,
                     "",
@@ -123,7 +115,6 @@ class AlbumControllerTest extends RestDocsSupport {
                     3
             );
 
-            // when & then
             mockMvc.perform(post("/api/album-applications")
                             .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
@@ -135,28 +126,59 @@ class AlbumControllerTest extends RestDocsSupport {
                                     fieldWithPath("title").type(STRING).description("앨범 제목 (값 없음)"),
                                     fieldWithPath("description").type(STRING).description("앨범 설명"),
                                     fieldWithPath("coverImageUrl").type(STRING).description("커버 이미지 URL"),
-                                    fieldWithPath("publishDelayDays").type(NUMBER).description("공개 예약 일수")
+                                    fieldWithPath("publishDelayDays").type(NUMBER).description("공개 예약 일수 (0~7)")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("에러 메시지"),
-                                    fieldWithPath("data").type(ARRAY).description("상세 에러 내역"),
-                                    fieldWithPath("data[].field").type(STRING).description("에러가 발생한 필드명"),
-                                    fieldWithPath("data[].message").type(STRING).description("에러 상세 사유")
+                                    baseErrorResponseFields()
+                            ).and(
+                                    validationErrorResponseFields()
+                            )
+                    ));
+        }
+
+        @Test
+        @DisplayName("중복 신청이면 409 반환")
+        void createAlbumApplication_fail_whenAlreadyExists() throws Exception {
+            AlbumApplicationCreateRequest request = new AlbumApplicationCreateRequest(
+                    10L,
+                    "Love poem",
+                    "앨범 설명",
+                    "https://example.com/cover.jpg",
+                    3
+            );
+
+            given(albumService.createAlbumApplication(any(), any(AlbumApplicationCreateRequest.class)))
+                    .willThrow(new BusinessException(
+                            AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_EXISTS
+                    ));
+
+            mockMvc.perform(post("/api/album-applications")
+                            .with(csrf().asHeader())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.message").value(
+                            AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_EXISTS.getMessage()
+                    ))
+                    .andDo(document("album-applications-create-duplicate",
+                            requestFields(
+                                    albumApplicationCreateRequestFields()
+                            ),
+                            responseFields(
+                                    baseErrorResponseFields()
                             )
                     ));
         }
     }
 
     @Nested
+    @WithMockUser
     @DisplayName("내 앨범 등록 신청 목록 조회 API")
     class GetMyAlbumApplications {
 
         @Test
-        @DisplayName("내 앨범 등록 신청 목록 조회 성공 시 200 반환")
+        @DisplayName("내 앨범 등록 신청 목록 조회 성공")
         void getMyAlbumApplications_success() throws Exception {
-            // given
             List<AlbumApplicationResponse> response = List.of(
                     new AlbumApplicationResponse(
                             2L,
@@ -176,21 +198,17 @@ class AlbumControllerTest extends RestDocsSupport {
 
             given(albumService.getMyAlbumApplications(any())).willReturn(response);
 
-            // when & then
             mockMvc.perform(get("/api/album-applications/me"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("내 앨범 등록 신청 목록 조회 성공"))
                     .andExpect(jsonPath("$.data[0].applicationId").value(2L))
                     .andExpect(jsonPath("$.data[0].title").value("두 번째 신청"))
-                    .andExpect(jsonPath("$.data[1].applicationId").value(1L))
-                    .andExpect(jsonPath("$.data[1].applicationId").value(1L))
                     .andDo(document("album-applications-me-get",
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
-                                    fieldWithPath("data").type(ARRAY).description("내 앨범 신청 목록"),
+                                    baseSuccessResponseFields()
+                            ).and(
+                                    fieldWithPath("data").type(ARRAY).description("내 앨범 등록 신청 목록"),
                                     fieldWithPath("data[].applicationId").type(NUMBER).description("신청 ID"),
                                     fieldWithPath("data[].artistId").type(NUMBER).description("아티스트 ID"),
                                     fieldWithPath("data[].title").type(STRING).description("앨범 제목"),
@@ -202,13 +220,13 @@ class AlbumControllerTest extends RestDocsSupport {
     }
 
     @Nested
+    @WithMockUser
     @DisplayName("앨범 등록 신청 상세 조회 API")
     class GetAlbumApplication {
 
         @Test
-        @DisplayName("앨범 등록 신청 상세 조회 성공 시 200 반환")
+        @DisplayName("앨범 등록 신청 상세 조회 성공")
         void getAlbumApplication_success() throws Exception {
-            // given
             Long applicationId = 100L;
 
             AlbumApplicationDetailResponse response = new AlbumApplicationDetailResponse(
@@ -229,35 +247,70 @@ class AlbumControllerTest extends RestDocsSupport {
 
             given(albumService.getAlbumApplication(any(), eq(applicationId))).willReturn(response);
 
-            // when & then
             mockMvc.perform(get("/api/album-applications/{applicationId}", applicationId))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("앨범 등록 신청 상세 조회 성공"))
                     .andExpect(jsonPath("$.data.applicationId").value(applicationId))
                     .andExpect(jsonPath("$.data.title").value("Palette"))
-                    .andExpect(jsonPath("$.data.title").value("Palette"))
                     .andDo(document("album-applications-get",
                             pathParameters(
                                     parameterWithName("applicationId").description("신청 ID")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
-                                    fieldWithPath("data.applicationId").type(NUMBER).description("신청 ID"),
-                                    fieldWithPath("data.requesterUserId").type(NUMBER).description("신청자 유저 ID"),
-                                    fieldWithPath("data.artistId").type(NUMBER).description("아티스트 ID"),
-                                    fieldWithPath("data.title").type(STRING).description("앨범 제목"),
-                                    fieldWithPath("data.description").type(STRING).description("앨범 설명"),
-                                    fieldWithPath("data.coverImageUrl").type(STRING).description("커버 이미지 URL"),
-                                    fieldWithPath("data.publishDelayDays").type(NUMBER).description("공개 예약 일수"),
-                                    fieldWithPath("data.status").type(STRING).description("신청 상태"),
-                                    fieldWithPath("data.reviewedByAdminId").type(NULL).description("검토 관리자 ID"),
-                                    fieldWithPath("data.reviewedAt").type(NULL).description("검토 시각"),
-                                    fieldWithPath("data.rejectionReason").type(NULL).description("거절 사유"),
-                                    fieldWithPath("data.createdAt").type(STRING).description("신청 생성 시각"),
-                                    fieldWithPath("data.updatedAt").type(STRING).description("신청 수정 시각")
+                                    baseSuccessResponseFields()
+                            ).and(
+                                    albumApplicationDetailResponseFields()
+                            )
+                    ));
+        }
+
+        @Test
+        @DisplayName("다른 사용자의 신청 조회 시 403 반환")
+        void getAlbumApplication_fail_forbidden() throws Exception {
+            Long applicationId = 100L;
+
+            given(albumService.getAlbumApplication(any(), eq(applicationId)))
+                    .willThrow(new BusinessException(
+                            AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_DETAIL_FORBIDDEN
+                    ));
+
+            mockMvc.perform(get("/api/album-applications/{applicationId}", applicationId))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.message").value(
+                            AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_DETAIL_FORBIDDEN.getMessage()
+                    ))
+                    .andDo(document("album-applications-get-forbidden",
+                            pathParameters(
+                                    parameterWithName("applicationId").description("신청 ID")
+                            ),
+                            responseFields(
+                                    baseErrorResponseFields()
+                            )
+                    ));
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 신청 조회 시 404 반환")
+        void getAlbumApplication_fail_notFound() throws Exception {
+            Long applicationId = 999L;
+
+            given(albumService.getAlbumApplication(any(), eq(applicationId)))
+                    .willThrow(new BusinessException(
+                            AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_NOT_FOUND
+                    ));
+
+            mockMvc.perform(get("/api/album-applications/{applicationId}", applicationId))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.message").value(
+                            AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_NOT_FOUND.getMessage()
+                    ))
+                    .andDo(document("album-applications-get-not-found",
+                            pathParameters(
+                                    parameterWithName("applicationId").description("신청 ID")
+                            ),
+                            responseFields(
+                                    baseErrorResponseFields()
                             )
                     ));
         }
@@ -269,9 +322,8 @@ class AlbumControllerTest extends RestDocsSupport {
     class GetAlbumApplications {
 
         @Test
-        @DisplayName("앨범 등록 신청 목록 조회 성공 시 200 반환")
+        @DisplayName("앨범 등록 신청 목록 조회 성공")
         void getAlbumApplications_success() throws Exception {
-            // given
             AlbumApplicationListResponse content = new AlbumApplicationListResponse(
                     1L,
                     1L,
@@ -282,36 +334,43 @@ class AlbumControllerTest extends RestDocsSupport {
             );
 
             PageResponse<AlbumApplicationListResponse> response = PageResponse.from(
-                    new PageImpl<>(List.of(content))
+                    new PageImpl<>(List.of(content), PageRequest.of(0, 10), 1)
             );
 
             given(albumService.getAlbumApplications(eq(null), any(Pageable.class)))
                     .willReturn(response);
 
-            // when & then
-            mockMvc.perform(get("/api/admin/album-applications"))
+            mockMvc.perform(get("/api/admin/album-applications")
+                            .param("page", "0")
+                            .param("size", "10")
+                            .param("sort", "createdAt,asc"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("앨범 등록 신청 목록 조회 성공"))
                     .andExpect(jsonPath("$.data.content[0].applicationId").value(1L))
-                    .andExpect(jsonPath("$.data.content[0].title").value("첫 번째 신청"))
-                    .andExpect(jsonPath("$.data.content[0].title").value("첫 번째 신청"))
+                    .andExpect(jsonPath("$.data.page").value(0))
+                    .andExpect(jsonPath("$.data.size").value(10))
+                    .andExpect(jsonPath("$.data.totalPages").value(1))
+                    .andExpect(jsonPath("$.data.totalElements").value(1))
                     .andDo(document("admin-album-applications-get",
+                            queryParameters(
+                                    parameterWithName("status").optional().description("신청 상태"),
+                                    parameterWithName("page").optional().description("페이지 번호"),
+                                    parameterWithName("size").optional().description("페이지 크기"),
+                                    parameterWithName("sort").optional().description("정렬 조건")
+                            ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    baseSuccessResponseFields()
+                            ).and(
                                     fieldWithPath("data.content").type(ARRAY).description("신청 목록"),
                                     fieldWithPath("data.content[].applicationId").type(NUMBER).description("신청 ID"),
-                                    fieldWithPath("data.content[].requesterUserId").type(NUMBER).description("신청자 유저 ID"),
+                                    fieldWithPath("data.content[].requesterUserId").type(NUMBER).description("신청자 ID"),
                                     fieldWithPath("data.content[].artistId").type(NUMBER).description("아티스트 ID"),
                                     fieldWithPath("data.content[].title").type(STRING).description("앨범 제목"),
                                     fieldWithPath("data.content[].status").type(STRING).description("신청 상태"),
-                                    fieldWithPath("data.content[].createdAt").type(STRING).description("신청 생성 시각"),
-                                    fieldWithPath("data.page").type(NUMBER).description("현재 페이지 번호"),
-                                    fieldWithPath("data.size").type(NUMBER).description("페이지 크기"),
-                                    fieldWithPath("data.totalElements").type(NUMBER).description("전체 데이터 수"),
-                                    fieldWithPath("data.totalPages").type(NUMBER).description("전체 페이지 수")
+                                    fieldWithPath("data.content[].createdAt").type(STRING).description("신청 생성 시각")
+                            ).and(
+                                    pageResponseFields()
                             )
                     ));
         }
@@ -323,9 +382,8 @@ class AlbumControllerTest extends RestDocsSupport {
     class ApproveAlbumApplication {
 
         @Test
-        @DisplayName("앨범 등록 신청 승인 성공 시 200 반환")
+        @DisplayName("앨범 등록 신청 승인 성공")
         void approveAlbumApplication_success() throws Exception {
-            // given
             Long applicationId = 10L;
 
             AlbumApplicationApproveResponse response = new AlbumApplicationApproveResponse(
@@ -339,29 +397,79 @@ class AlbumControllerTest extends RestDocsSupport {
             given(albumService.approveAlbumApplication(any(), eq(applicationId)))
                     .willReturn(response);
 
-            // when & then
             mockMvc.perform(post("/api/admin/album-applications/{applicationId}/approve", applicationId)
-                    .with(csrf().asHeader()))
+                            .with(csrf().asHeader()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("앨범 등록 신청 승인 성공"))
                     .andExpect(jsonPath("$.data.applicationId").value(applicationId))
                     .andExpect(jsonPath("$.data.albumId").value(1000L))
-                    .andExpect(jsonPath("$.data.status").value("APPROVED"))
-                    .andExpect(jsonPath("$.data.status").value("APPROVED"))
                     .andDo(document("admin-album-applications-approve",
                             pathParameters(
                                     parameterWithName("applicationId").description("신청 ID")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    baseSuccessResponseFields()
+                            ).and(
                                     fieldWithPath("data.applicationId").type(NUMBER).description("신청 ID"),
                                     fieldWithPath("data.albumId").type(NUMBER).description("생성된 앨범 ID"),
                                     fieldWithPath("data.status").type(STRING).description("신청 상태"),
                                     fieldWithPath("data.reviewedByAdminId").type(NUMBER).description("승인 관리자 ID"),
                                     fieldWithPath("data.reviewedAt").type(STRING).description("승인 시각")
+                            )
+                    ));
+        }
+
+        @Test
+        @WithMockUser(roles = "ADMIN")
+        @DisplayName("앨범 등록 신청 승인 시 이미 처리된 신청이면 400 반환")
+        void approveAlbumApplication_fail_whenAlreadyProcessed() throws Exception {
+            Long applicationId = 10L;
+
+            given(albumService.approveAlbumApplication(any(), eq(applicationId)))
+                    .willThrow(new BusinessException(
+                            AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_PROCESSED
+                    ));
+
+            mockMvc.perform(post("/api/admin/album-applications/{applicationId}/approve", applicationId)
+                            .with(csrf().asHeader()))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value(
+                            AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_PROCESSED.getMessage()
+                    ))
+                    .andDo(document("admin-album-applications-approve-already-processed",
+                            pathParameters(
+                                    parameterWithName("applicationId").description("신청 ID")
+                            ),
+                            responseFields(
+                                    baseErrorResponseFields()
+                            )
+                    ));
+        }
+
+        @Test
+        @WithMockUser(roles = "ADMIN")
+        @DisplayName("앨범 등록 신청 승인 시 존재하지 않는 신청이면 404 반환")
+        void approveAlbumApplication_fail_notFound() throws Exception {
+            Long applicationId = 999L;
+
+            given(albumService.approveAlbumApplication(any(), eq(applicationId)))
+                    .willThrow(new BusinessException(
+                            AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_NOT_FOUND
+                    ));
+
+            mockMvc.perform(post("/api/admin/album-applications/{applicationId}/approve", applicationId)
+                            .with(csrf().asHeader()))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.message").value(
+                            AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_NOT_FOUND.getMessage()
+                    ))
+                    .andDo(document("admin-album-applications-approve-not-found",
+                            pathParameters(
+                                    parameterWithName("applicationId").description("신청 ID")
+                            ),
+                            responseFields(
+                                    baseErrorResponseFields()
                             )
                     ));
         }
@@ -373,9 +481,8 @@ class AlbumControllerTest extends RestDocsSupport {
     class RejectAlbumApplication {
 
         @Test
-        @DisplayName("앨범 등록 신청 거절 성공 시 200 반환")
+        @DisplayName("앨범 등록 신청 거절 성공")
         void rejectAlbumApplication_success() throws Exception {
-            // given
             Long applicationId = 10L;
             AlbumApplicationRejectRequest request =
                     new AlbumApplicationRejectRequest("앨범 정보가 부족합니다");
@@ -391,7 +498,6 @@ class AlbumControllerTest extends RestDocsSupport {
             given(albumService.rejectAlbumApplication(any(), eq(applicationId), eq(request.rejectionReason())))
                     .willReturn(response);
 
-            // when & then
             mockMvc.perform(post("/api/admin/album-applications/{applicationId}/reject", applicationId)
                             .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
@@ -400,20 +506,17 @@ class AlbumControllerTest extends RestDocsSupport {
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("앨범 등록 신청 거절 성공"))
                     .andExpect(jsonPath("$.data.applicationId").value(applicationId))
-                    .andExpect(jsonPath("$.data.status").value("REJECTED"))
-                    .andExpect(jsonPath("$.data.rejectionReason").value("앨범 정보가 부족합니다"))
                     .andExpect(jsonPath("$.data.rejectionReason").value("앨범 정보가 부족합니다"))
                     .andDo(document("admin-album-applications-reject",
                             pathParameters(
                                     parameterWithName("applicationId").description("신청 ID")
                             ),
                             requestFields(
-                                    fieldWithPath("rejectionReason").type(STRING).description("거절 사유")
+                                    albumApplicationRejectRequestFields()
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    baseSuccessResponseFields()
+                            ).and(
                                     fieldWithPath("data.applicationId").type(NUMBER).description("신청 ID"),
                                     fieldWithPath("data.status").type(STRING).description("신청 상태"),
                                     fieldWithPath("data.reviewedByAdminId").type(NUMBER).description("거절 관리자 ID"),
@@ -426,41 +529,105 @@ class AlbumControllerTest extends RestDocsSupport {
         @Test
         @DisplayName("거절 사유 없이 요청 시 400 반환")
         void rejectAlbumApplication_fail_withoutReason() throws Exception {
-            // given
             AlbumApplicationRejectRequest request =
                     new AlbumApplicationRejectRequest("");
 
-            // when & then
             mockMvc.perform(post("/api/admin/album-applications/10/reject")
                             .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest())
                     .andExpect(status().isBadRequest())
                     .andDo(document("admin-album-applications-reject-invalid",
                             requestFields(
                                     fieldWithPath("rejectionReason").type(STRING).description("거절 사유 (값 없음)")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("에러 메시지"),
-                                    fieldWithPath("data").type(ARRAY).description("상세 에러 내역"),
-                                    fieldWithPath("data[].field").type(STRING).description("에러가 발생한 필드명"),
-                                    fieldWithPath("data[].message").type(STRING).description("에러 상세 사유")
+                                    baseErrorResponseFields()
+                            ).and(
+                                    validationErrorResponseFields()
+                            )
+                    ));
+        }
+
+        @Test
+        @WithMockUser(roles = "ADMIN")
+        @DisplayName("앨범 등록 신청 거절 시 이미 처리된 신청이면 400 반환")
+        void rejectAlbumApplication_fail_whenAlreadyProcessed() throws Exception {
+            Long applicationId = 10L;
+
+            AlbumApplicationRejectRequest request =
+                    new AlbumApplicationRejectRequest("사유");
+
+            given(albumService.rejectAlbumApplication(any(), eq(applicationId), any()))
+                    .willThrow(new BusinessException(
+                            AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_PROCESSED
+                    ));
+
+            mockMvc.perform(post("/api/admin/album-applications/{applicationId}/reject", applicationId)
+                            .with(csrf().asHeader())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value(
+                            AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_PROCESSED.getMessage()
+                    ))
+                    .andDo(document("admin-album-applications-reject-already-processed",
+                            pathParameters(
+                                    parameterWithName("applicationId").description("신청 ID")
+                            ),
+                            requestFields(
+                                    fieldWithPath("rejectionReason").description("거절 사유")
+                            ),
+                            responseFields(
+                                    baseErrorResponseFields()
+                            )
+                    ));
+        }
+
+        @Test
+        @WithMockUser(roles = "ADMIN")
+        @DisplayName("앨범 등록 신청 거절 시 존재하지 않는 신청이면 404 반환")
+        void rejectAlbumApplication_fail_notFound() throws Exception {
+            Long applicationId = 999L;
+
+            AlbumApplicationRejectRequest request =
+                    new AlbumApplicationRejectRequest("사유");
+
+            given(albumService.rejectAlbumApplication(any(), eq(applicationId), any()))
+                    .willThrow(new BusinessException(
+                            AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_NOT_FOUND
+                    ));
+
+            mockMvc.perform(post("/api/admin/album-applications/{applicationId}/reject", applicationId)
+                            .with(csrf().asHeader())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.message").value(
+                            AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_NOT_FOUND.getMessage()
+                    ))
+                    .andDo(document("admin-album-applications-reject-not-found",
+                            pathParameters(
+                                    parameterWithName("applicationId").description("신청 ID")
+                            ),
+                            requestFields(
+                                    fieldWithPath("rejectionReason").description("거절 사유")
+                            ),
+                            responseFields(
+                                    baseErrorResponseFields()
                             )
                     ));
         }
     }
 
     @Nested
+    @WithMockUser
     @DisplayName("앨범 상세 조회 API")
     class GetAlbum {
 
         @Test
-        @DisplayName("앨범 상세 조회 성공 시 200 반환")
+        @DisplayName("앨범 상세 조회 성공")
         void getAlbum_success() throws Exception {
-            // given
             Long albumId = 1L;
 
             AlbumDetailResponse response = new AlbumDetailResponse(
@@ -477,45 +644,58 @@ class AlbumControllerTest extends RestDocsSupport {
 
             given(albumService.getAlbum(albumId)).willReturn(response);
 
-            // when & then
             mockMvc.perform(get("/api/albums/{albumId}", albumId))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("앨범 상세 조회 성공"))
                     .andExpect(jsonPath("$.data.albumId").value(albumId))
                     .andExpect(jsonPath("$.data.artistName").value("아이유"))
-                    .andExpect(jsonPath("$.data.title").value("Palette"))
-                    .andExpect(jsonPath("$.data.title").value("Palette"))
                     .andDo(document("albums-get",
                             pathParameters(
                                     parameterWithName("albumId").description("앨범 ID")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
-                                    fieldWithPath("data.albumId").type(NUMBER).description("앨범 ID"),
-                                    fieldWithPath("data.artistId").type(NUMBER).description("아티스트 ID"),
-                                    fieldWithPath("data.artistName").type(STRING).description("아티스트 이름"),
-                                    fieldWithPath("data.title").type(STRING).description("앨범 제목"),
-                                    fieldWithPath("data.description").type(STRING).description("앨범 설명"),
-                                    fieldWithPath("data.coverImageUrl").type(STRING).description("커버 이미지 URL"),
-                                    fieldWithPath("data.trackCount").type(NUMBER).description("트랙 수"),
-                                    fieldWithPath("data.totalDurationSec").type(NUMBER).description("총 재생 시간(초)"),
-                                    fieldWithPath("data.publishedAt").type(STRING).description("게시 시각")
+                                    baseSuccessResponseFields()
+                            ).and(
+                                    albumDetailResponseFields()
+                            )
+                    ));
+        }
+
+        @Test
+        @DisplayName("앨범 상세 조회 시 존재하지 않는 앨범이면 404 반환")
+        void getAlbum_fail_notFound() throws Exception {
+            Long albumId = 999L;
+
+            given(albumService.getAlbum(albumId))
+                    .willThrow(new BusinessException(
+                            AlbumErrorCode.ERR_ALBUM_NOT_FOUND
+                    ));
+
+            mockMvc.perform(get("/api/albums/{albumId}", albumId))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.message").value(
+                            AlbumErrorCode.ERR_ALBUM_NOT_FOUND.getMessage()
+                    ))
+                    .andDo(document("albums-get-not-found",
+                            pathParameters(
+                                    parameterWithName("albumId").description("앨범 ID")
+                            ),
+                            responseFields(
+                                    baseErrorResponseFields()
                             )
                     ));
         }
     }
 
     @Nested
+    @WithMockUser
     @DisplayName("아티스트별 앨범 목록 조회 API")
     class GetArtistAlbums {
 
         @Test
-        @DisplayName("아티스트별 앨범 목록 조회 성공 시 200 반환")
+        @DisplayName("아티스트별 앨범 목록 조회 성공")
         void getArtistAlbums_success() throws Exception {
-            // given
             Long artistId = 10L;
 
             ArtistAlbumListResponse album1 = new ArtistAlbumListResponse(
@@ -536,23 +716,19 @@ class AlbumControllerTest extends RestDocsSupport {
             given(albumService.getArtistAlbums(artistId))
                     .willReturn(response);
 
-            // when & then
             mockMvc.perform(get("/api/artists/{artistId}/albums", artistId))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("아티스트별 앨범 목록 조회 성공"))
                     .andExpect(jsonPath("$.data[0].albumId").value(100L))
                     .andExpect(jsonPath("$.data[0].title").value("Palette"))
-                    .andExpect(jsonPath("$.data[1].albumId").value(101L))
-                    .andExpect(jsonPath("$.data[1].albumId").value(101L))
                     .andDo(document("artists-albums-get",
                             pathParameters(
                                     parameterWithName("artistId").description("아티스트 ID")
                             ),
                             responseFields(
-                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
-                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
-                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    baseSuccessResponseFields()
+                            ).and(
                                     fieldWithPath("data").type(ARRAY).description("앨범 목록"),
                                     fieldWithPath("data[].albumId").type(NUMBER).description("앨범 ID"),
                                     fieldWithPath("data[].title").type(STRING).description("앨범 제목"),
@@ -561,5 +737,121 @@ class AlbumControllerTest extends RestDocsSupport {
                             )
                     ));
         }
+
+        @Test
+        @DisplayName("아티스트별 앨범 목록 조회 시 존재하지 않는 아티스트이면 404 반환")
+        void getAlbumsByArtist_fail_notFound() throws Exception {
+            Long artistId = 999L;
+
+            given(albumService.getArtistAlbums(artistId))
+                    .willThrow(new BusinessException(
+                            ArtistErrorCode.ERR_ARTIST_NOT_FOUND
+                    ));
+
+            mockMvc.perform(get("/api/artists/{artistId}/albums", artistId))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.message").value(
+                            ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage()
+                    ))
+                    .andDo(document("albums-by-artist-not-found",
+                            pathParameters(
+                                    parameterWithName("artistId").description("아티스트 ID")
+                            ),
+                            responseFields(
+                                    baseErrorResponseFields()
+                            )
+                    ));
+        }
+    }
+
+    private FieldDescriptor[] baseSuccessResponseFields() {
+        return new FieldDescriptor[]{
+                fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                fieldWithPath("message").type(STRING).description("응답 메시지")
+        };
+    }
+
+    private FieldDescriptor[] baseErrorResponseFields() {
+        return new FieldDescriptor[]{
+                fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                fieldWithPath("message").type(STRING).description("에러 메시지")
+        };
+    }
+
+    private FieldDescriptor[] validationErrorResponseFields() {
+        return new FieldDescriptor[]{
+                fieldWithPath("data").type(ARRAY).description("상세 에러 내역"),
+                fieldWithPath("data[].field").type(STRING).description("에러가 발생한 필드명"),
+                fieldWithPath("data[].message").type(STRING).description("에러 상세 사유")
+        };
+    }
+
+    private FieldDescriptor[] pageResponseFields() {
+        return new FieldDescriptor[]{
+                fieldWithPath("data.page").type(NUMBER).description("현재 페이지"),
+                fieldWithPath("data.size").type(NUMBER).description("페이지 크기"),
+                fieldWithPath("data.totalElements").type(NUMBER).description("전체 데이터 수"),
+                fieldWithPath("data.totalPages").type(NUMBER).description("전체 페이지 수")
+        };
+    }
+
+    private FieldDescriptor[] albumApplicationResponseFields() {
+        return new FieldDescriptor[]{
+                fieldWithPath("data.applicationId").type(NUMBER).description("신청 ID"),
+                fieldWithPath("data.artistId").type(NUMBER).description("아티스트 ID"),
+                fieldWithPath("data.title").type(STRING).description("앨범 제목"),
+                fieldWithPath("data.status").type(STRING).description("신청 상태"),
+                fieldWithPath("data.createdAt").type(STRING).description("신청 생성 시각")
+        };
+    }
+
+    private FieldDescriptor[] albumApplicationDetailResponseFields() {
+        return new FieldDescriptor[]{
+                fieldWithPath("data.applicationId").type(NUMBER).description("신청 ID"),
+                fieldWithPath("data.requesterUserId").type(NUMBER).description("신청자 ID"),
+                fieldWithPath("data.artistId").type(NUMBER).description("아티스트 ID"),
+                fieldWithPath("data.title").type(STRING).description("앨범 제목"),
+                fieldWithPath("data.description").type(STRING).description("앨범 설명"),
+                fieldWithPath("data.coverImageUrl").type(STRING).description("커버 이미지 URL"),
+                fieldWithPath("data.publishDelayDays").type(NUMBER).description("공개 예약 일수"),
+                fieldWithPath("data.status").type(STRING).description("신청 상태"),
+                fieldWithPath("data.reviewedByAdminId").type(NULL).description("검토 관리자 ID"),
+                fieldWithPath("data.reviewedAt").type(NULL).description("검토 시각"),
+                fieldWithPath("data.rejectionReason").type(NULL).description("거절 사유"),
+                fieldWithPath("data.createdAt").type(STRING).description("신청 생성 시각"),
+                fieldWithPath("data.updatedAt").type(STRING).description("신청 수정 시각")
+        };
+    }
+
+    private FieldDescriptor[] albumDetailResponseFields() {
+        return new FieldDescriptor[]{
+                fieldWithPath("data.albumId").type(NUMBER).description("앨범 ID"),
+                fieldWithPath("data.artistId").type(NUMBER).description("아티스트 ID"),
+                fieldWithPath("data.artistName").type(STRING).description("아티스트 이름"),
+                fieldWithPath("data.title").type(STRING).description("앨범 제목"),
+                fieldWithPath("data.description").type(STRING).description("앨범 설명"),
+                fieldWithPath("data.coverImageUrl").type(STRING).description("커버 이미지 URL"),
+                fieldWithPath("data.trackCount").type(NUMBER).description("트랙 수"),
+                fieldWithPath("data.totalDurationSec").type(NUMBER).description("총 재생 시간(초)"),
+                fieldWithPath("data.publishedAt").type(STRING).description("공개 시각")
+        };
+    }
+
+    private FieldDescriptor[] albumApplicationCreateRequestFields() {
+        return new FieldDescriptor[]{
+                fieldWithPath("artistId").type(NUMBER).description("아티스트 ID"),
+                fieldWithPath("title").type(STRING).description("앨범 제목"),
+                fieldWithPath("description").type(STRING).description("앨범 설명"),
+                fieldWithPath("coverImageUrl").type(STRING).description("커버 이미지 URL"),
+                fieldWithPath("publishDelayDays").type(NUMBER).description("공개 예약 일수 (0~7)")
+        };
+    }
+
+    private FieldDescriptor[] albumApplicationRejectRequestFields() {
+        return new FieldDescriptor[]{
+                fieldWithPath("rejectionReason").type(STRING).description("거절 사유")
+        };
     }
 }

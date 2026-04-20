@@ -104,7 +104,7 @@ class AlbumServiceTest {
             ReflectionTestUtils.setField(artist, "id", artistId);
 
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
-            when(albumApplicationRepository.existsPendingApplication(userId, artistId, request.title()))
+            when(albumApplicationRepository.existsActiveApplication(userId, artistId, request.title()))
                     .thenReturn(false);
 
             AlbumApplication savedApplication = AlbumApplication.create(
@@ -335,7 +335,7 @@ class AlbumServiceTest {
             ReflectionTestUtils.setField(artist, "id", artistId);
 
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
-            when(albumApplicationRepository.existsPendingApplication(userId, artistId, request.title()))
+            when(albumApplicationRepository.existsActiveApplication(userId, artistId, request.title()))
                     .thenReturn(true);
 
             assertThatThrownBy(() -> albumService.createAlbumApplication(userId, request))

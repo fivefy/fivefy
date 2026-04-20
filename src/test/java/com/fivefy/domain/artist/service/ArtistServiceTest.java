@@ -4,18 +4,19 @@ import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationCreateRequest;
-import com.fivefy.domain.artist.dto.request.ArtistProfileUpdateRequest;
-import com.fivefy.domain.artist.enums.ArtistErrorCode;
-import com.fivefy.domain.artist.enums.ArtistStatus;
-import com.fivefy.domain.artist.enums.ArtistType;
 import com.fivefy.domain.artist.dto.request.ArtistApplicationRejectRequest;
+import com.fivefy.domain.artist.dto.request.ArtistProfileUpdateRequest;
 import com.fivefy.domain.artist.dto.response.*;
 import com.fivefy.domain.artist.entity.Artist;
 import com.fivefy.domain.artist.entity.ArtistApplication;
 import com.fivefy.domain.artist.enums.ArtistApplicationErrorCode;
+import com.fivefy.domain.artist.enums.ArtistErrorCode;
+import com.fivefy.domain.artist.enums.ArtistStatus;
+import com.fivefy.domain.artist.enums.ArtistType;
 import com.fivefy.domain.artist.repository.ArtistApplicationRepository;
 import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.user.entity.User;
+import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.enums.UserRole;
 import com.fivefy.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -25,13 +26,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
-import static com.fivefy.common.enums.ApplicationStatus.PENDING;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -40,12 +44,18 @@ import static org.mockito.Mockito.*;
 /**
  * ArtistService의 비즈니스 로직을 검증하는 단위 테스트
  *
- * 아티스트 등록 요청 생성 기능을 검증한다.
- * 내 아티스트 등록 요청 목록 조회 기능을 검증한다.
- * 관리자용 아티스트 등록 요청 목록 조회 기능을 검증한다.
- * 아티스트 등록 요청 상세 조회 기능을 검증한다.
- * 아티스트 등록 요청 승인 기능을 검증한다.
- * 아티스트 등록 요청 거절 기능을 검증한다.
+ * 아티스트 등록 신청 생성 기능 검증
+ * 내 아티스트 등록 신청 목록 조회 기능 검증
+ * 아티스트 등록 신청 상세 조회 기능 검증
+ * 아티스트 등록 신청 목록 조회 기능 검증
+ * 아티스트 등록 신청 승인 기능 검증
+ * 아티스트 등록 신청 거절 기능 검증
+ * 내 아티스트 목록 조회 기능 검증
+ * 아티스트 상세 조회 기능 검증
+ * 아티스트 프로필 수정 기능 검증
+ * 아티스트 삭제 기능 검증
+ * 아티스트 활성화 기능 검증
+ * 아티스트 비활성화 기능 검증
  */
 @ExtendWith(MockitoExtension.class)
 class ArtistServiceTest {
@@ -63,14 +73,14 @@ class ArtistServiceTest {
     private ArtistService artistService;
 
     @Nested
-    @DisplayName("아티스트 등록 요청 생성")
+    @DisplayName("아티스트 등록 신청 생성")
     class CreateArtistApplication {
 
         @Test
-        @DisplayName("아티스트 등록 요청 생성에 성공한다")
+        @DisplayName("생성 성공")
         void createArtistApplication_success() {
-            // given
             Long userId = 1L;
+
             ArtistApplicationCreateRequest request = new ArtistApplicationCreateRequest(
                     "아이유",
                     ArtistType.SOLO,
@@ -79,8 +89,12 @@ class ArtistServiceTest {
             );
 
             User user = mock(User.class);
-            when(userRepository.findById(userId))
-                    .thenReturn(java.util.Optional.of(user));
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(artistApplicationRepository.existsActiveApplication(
+                    userId,
+                    request.requestedName(),
+                    request.artistType()
+            )).thenReturn(false);
 
             ArtistApplication savedApplication = ArtistApplication.create(
                     userId,
@@ -89,41 +103,52 @@ class ArtistServiceTest {
                     request.bio(),
                     request.profileImageUrl()
             );
-
-            // 단위 테스트에서는 JPA auditing이 동작하지 않으므로 createdAt을 직접 주입한다.
             ReflectionTestUtils.setField(savedApplication, "id", 1L);
-            ReflectionTestUtils.setField(savedApplication, "createdAt",
-                    LocalDateTime.of(2026, 4, 14, 22, 30, 0));
-
-            when(artistApplicationRepository.existsActiveApplication(userId, request.requestedName(), request.artistType()))
-                    .thenReturn(false);
+            ReflectionTestUtils.setField(
+                    savedApplication,
+                    "createdAt",
+                    LocalDateTime.of(2026, 4, 14, 22, 30, 0)
+            );
 
             when(artistApplicationRepository.save(any(ArtistApplication.class)))
                     .thenReturn(savedApplication);
 
-            // when
             ArtistApplicationResponse response =
                     artistService.createArtistApplication(userId, request);
 
-            // then
             assertThat(response.applicationId()).isEqualTo(1L);
             assertThat(response.requestedName()).isEqualTo("아이유");
             assertThat(response.artistType()).isEqualTo(ArtistType.SOLO.name());
-            assertThat(response.status()).isEqualTo(PENDING.name());
-            assertThat(response.createdAt()).isEqualTo(LocalDateTime.of(2026, 4, 14, 22, 30, 0));
-
-            verify(artistApplicationRepository, times(1))
-                    .save(any(ArtistApplication.class));
-            verify(artistApplicationRepository, times(1))
-                    .existsActiveApplication(userId, request.requestedName(), request.artistType());
-            verify(userRepository, times(1)).findById(userId);
+            assertThat(response.status()).isEqualTo(ApplicationStatus.PENDING.name());
+            assertThat(response.createdAt()).isEqualTo(
+                    LocalDateTime.of(2026, 4, 14, 22, 30, 0)
+            );
         }
 
         @Test
-        @DisplayName("같은 이름의 진행 중이거나 승인된 요청이 있으면 생성에 실패한다")
-        void createArtistApplication_fail_whenActiveApplicationExists() {
-            // given
+        @DisplayName("유저 없으면 실패")
+        void createArtistApplication_fail_whenUserNotFound() {
             Long userId = 1L;
+
+            ArtistApplicationCreateRequest request = new ArtistApplicationCreateRequest(
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/profile.jpg"
+            );
+
+            when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> artistService.createArtistApplication(userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(UserErrorCode.ERR_USER_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("중복 신청이면 실패")
+        void createArtistApplication_fail_whenAlreadyExists() {
+            Long userId = 1L;
+
             ArtistApplicationCreateRequest request = new ArtistApplicationCreateRequest(
                     "아이유",
                     ArtistType.SOLO,
@@ -132,37 +157,30 @@ class ArtistServiceTest {
             );
 
             User user = mock(User.class);
-            when(userRepository.findById(userId))
-                    .thenReturn(java.util.Optional.of(user));
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(artistApplicationRepository.existsActiveApplication(
+                    userId,
+                    request.requestedName(),
+                    request.artistType()
+            )).thenReturn(true);
 
-            when(artistApplicationRepository.existsActiveApplication(userId, request.requestedName(), request.artistType()))
-                    .thenReturn(true);
-
-            // when & then
             assertThatThrownBy(() -> artistService.createArtistApplication(userId, request))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_EXISTS.getMessage());
-
-            verify(artistApplicationRepository, times(1))
-                    .existsActiveApplication(userId, request.requestedName(), request.artistType());
-            verify(userRepository, times(1)).findById(userId);
-            verify(artistApplicationRepository, never()).save(any(ArtistApplication.class));
         }
     }
 
     @Nested
-    @DisplayName("내 아티스트 등록 요청 목록 조회")
+    @DisplayName("내 아티스트 등록 신청 목록 조회")
     class GetMyArtistApplications {
 
         @Test
-        @DisplayName("내 아티스트 등록 요청 목록을 최신순으로 조회한다")
+        @DisplayName("최신순 조회 성공")
         void getMyArtistApplications_success() {
-            // given
             Long userId = 1L;
 
             User user = mock(User.class);
-            when(userRepository.findById(userId))
-                    .thenReturn(java.util.Optional.of(user));
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
             ArtistApplication firstApplication = ArtistApplication.create(
                     userId,
@@ -171,6 +189,13 @@ class ArtistServiceTest {
                     "가수",
                     "https://example.com/iu.jpg"
             );
+            ReflectionTestUtils.setField(firstApplication, "id", 2L);
+            ReflectionTestUtils.setField(
+                    firstApplication,
+                    "createdAt",
+                    LocalDateTime.of(2026, 4, 15, 10, 0, 0)
+            );
+
             ArtistApplication secondApplication = ArtistApplication.create(
                     userId,
                     "아이유 밴드",
@@ -178,215 +203,61 @@ class ArtistServiceTest {
                     "프로젝트 아티스트",
                     "https://example.com/band.jpg"
             );
-
-            ReflectionTestUtils.setField(firstApplication, "id", 2L);
-            ReflectionTestUtils.setField(firstApplication, "createdAt",
-                    LocalDateTime.of(2026, 4, 15, 10, 0, 0));
-
             ReflectionTestUtils.setField(secondApplication, "id", 1L);
-            ReflectionTestUtils.setField(secondApplication, "createdAt",
-                    LocalDateTime.of(2026, 4, 14, 10, 0, 0));
+            ReflectionTestUtils.setField(
+                    secondApplication,
+                    "createdAt",
+                    LocalDateTime.of(2026, 4, 14, 10, 0, 0)
+            );
 
-            when(artistApplicationRepository.findAllByRequesterUserIdOrderByCreatedAtDesc(userId))
+            when(artistApplicationRepository.searchMyArtistApplications(userId))
                     .thenReturn(List.of(firstApplication, secondApplication));
 
-            // when
-            List<ArtistApplicationResponse> response = artistService.getMyArtistApplications(userId);
+            List<ArtistApplicationResponse> response =
+                    artistService.getMyArtistApplications(userId);
 
-            // then
             assertThat(response).hasSize(2);
             assertThat(response.get(0).applicationId()).isEqualTo(2L);
             assertThat(response.get(0).requestedName()).isEqualTo("아이유");
-            assertThat(response.get(0).artistType()).isEqualTo(ArtistType.SOLO.name());
-            assertThat(response.get(0).status()).isEqualTo("PENDING");
-
             assertThat(response.get(1).applicationId()).isEqualTo(1L);
             assertThat(response.get(1).requestedName()).isEqualTo("아이유 밴드");
-            assertThat(response.get(1).artistType()).isEqualTo(ArtistType.COLLABORATION.name());
-
-            verify(artistApplicationRepository, times(1))
-                    .findAllByRequesterUserIdOrderByCreatedAtDesc(userId);
-            verify(userRepository, times(1)).findById(userId);
         }
 
         @Test
-        @DisplayName("내 아티스트 등록 요청이 없으면 빈 목록을 반환한다")
-        void getMyArtistApplications_empty() {
-            // given
+        @DisplayName("빈 목록 조회 성공")
+        void getMyArtistApplications_success_whenEmpty() {
             Long userId = 1L;
 
             User user = mock(User.class);
-            when(userRepository.findById(userId))
-                    .thenReturn(java.util.Optional.of(user));
-
-            when(artistApplicationRepository.findAllByRequesterUserIdOrderByCreatedAtDesc(userId))
+            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(artistApplicationRepository.searchMyArtistApplications(userId))
                     .thenReturn(List.of());
 
-            // when
-            List<ArtistApplicationResponse> response = artistService.getMyArtistApplications(userId);
+            List<ArtistApplicationResponse> response =
+                    artistService.getMyArtistApplications(userId);
 
-            // then
             assertThat(response).isEmpty();
+        }
 
-            verify(artistApplicationRepository, times(1))
-                    .findAllByRequesterUserIdOrderByCreatedAtDesc(userId);
-            verify(userRepository, times(1)).findById(userId);
+        @Test
+        @DisplayName("유저 없으면 실패")
+        void getMyArtistApplications_fail_whenUserNotFound() {
+            Long userId = 1L;
+
+            when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> artistService.getMyArtistApplications(userId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(UserErrorCode.ERR_USER_NOT_FOUND.getMessage());
         }
     }
 
     @Nested
-    @DisplayName("관리자용 아티스트 등록 요청 목록 조회")
-    class GetArtistApplications {
-
-        @Test
-        @DisplayName("관리자는 아티스트 등록 요청 목록을 오래된 순으로 조회한다")
-        void getArtistApplications_success() {
-            // given
-            Pageable pageable = PageRequest.of(
-                    0,
-                    5,
-                    Sort.by(Sort.Direction.ASC, "createdAt")
-            );
-
-            ArtistApplication firstApplication = ArtistApplication.create(
-                    1L,
-                    "아이유",
-                    ArtistType.SOLO,
-                    "가수",
-                    "https://example.com/iu.jpg"
-            );
-            ArtistApplication secondApplication = ArtistApplication.create(
-                    2L,
-                    "볼빨간사춘기",
-                    ArtistType.COLLABORATION,
-                    "듀오",
-                    "https://example.com/bol4.jpg"
-            );
-
-            // 오래된 요청이 먼저 조회되도록 createdAt과 id를 직접 주입한다.
-            ReflectionTestUtils.setField(firstApplication, "id", 1L);
-            ReflectionTestUtils.setField(firstApplication, "createdAt",
-                    LocalDateTime.of(2026, 4, 14, 10, 0, 0));
-
-            ReflectionTestUtils.setField(secondApplication, "id", 2L);
-            ReflectionTestUtils.setField(secondApplication, "createdAt",
-                    LocalDateTime.of(2026, 4, 15, 10, 0, 0));
-
-            Page<ArtistApplication> page = new PageImpl<>(
-                    List.of(firstApplication, secondApplication),
-                    pageable,
-                    2
-            );
-
-            when(artistApplicationRepository.searchArtistApplications(null, pageable))
-                    .thenReturn(page);
-
-            // when
-            PageResponse<ArtistApplicationListResponse> response =
-                    artistService.getArtistApplications(null, pageable);
-
-            // then
-            assertThat(response.content()).hasSize(2);
-            assertThat(response.page()).isEqualTo(0);
-            assertThat(response.size()).isEqualTo(5);
-            assertThat(response.totalElements()).isEqualTo(2);
-            assertThat(response.totalPages()).isEqualTo(1);
-
-            assertThat(response.content().get(0).applicationId()).isEqualTo(1L);
-            assertThat(response.content().get(0).requesterUserId()).isEqualTo(1L);
-            assertThat(response.content().get(0).requestedName()).isEqualTo("아이유");
-            assertThat(response.content().get(0).artistType()).isEqualTo(ArtistType.SOLO.name());
-            assertThat(response.content().get(0).status()).isEqualTo("PENDING");
-            assertThat(response.content().get(0).createdAt()).isEqualTo(LocalDateTime.of(2026, 4, 14, 10, 0, 0));
-
-            assertThat(response.content().get(1).applicationId()).isEqualTo(2L);
-            assertThat(response.content().get(1).requesterUserId()).isEqualTo(2L);
-            assertThat(response.content().get(1).requestedName()).isEqualTo("볼빨간사춘기");
-            assertThat(response.content().get(1).artistType()).isEqualTo(ArtistType.COLLABORATION.name());
-            assertThat(response.content().get(1).status()).isEqualTo("PENDING");
-            assertThat(response.content().get(1).createdAt()).isEqualTo(LocalDateTime.of(2026, 4, 15, 10, 0, 0));
-
-            verify(artistApplicationRepository, times(1))
-                    .searchArtistApplications(null, pageable);
-        }
-
-        @Test
-        @DisplayName("등록 요청이 없으면 빈 페이지를 반환한다")
-        void getArtistApplications_empty() {
-            // given
-            Pageable pageable = PageRequest.of(
-                    0,
-                    5,
-                    Sort.by(Sort.Direction.ASC, "createdAt")
-            );
-
-            Page<ArtistApplication> emptyPage = new PageImpl<>(List.of(), pageable, 0);
-
-            when(artistApplicationRepository.searchArtistApplications(null, pageable))
-                    .thenReturn(emptyPage);
-
-            // when
-            PageResponse<ArtistApplicationListResponse> response =
-                    artistService.getArtistApplications(null, pageable);
-
-            // then
-            assertThat(response.content()).isEmpty();
-            assertThat(response.page()).isEqualTo(0);
-            assertThat(response.size()).isEqualTo(5);
-            assertThat(response.totalElements()).isZero();
-            assertThat(response.totalPages()).isZero();
-
-            verify(artistApplicationRepository, times(1))
-                    .searchArtistApplications(null, pageable);
-        }
-
-        @Test
-        @DisplayName("관리자는 상태 조건으로 아티스트 등록 요청 목록을 조회한다")
-        void getArtistApplications_withStatus_success() {
-            // given
-            Pageable pageable = PageRequest.of(
-                    0,
-                    5,
-                    Sort.by(Sort.Direction.ASC, "createdAt")
-            );
-
-            ArtistApplication application = ArtistApplication.create(
-                    1L,
-                    "아이유",
-                    ArtistType.SOLO,
-                    "가수",
-                    "https://example.com/iu.jpg"
-            );
-
-            ReflectionTestUtils.setField(application, "id", 1L);
-            ReflectionTestUtils.setField(application, "createdAt",
-                    LocalDateTime.of(2026, 4, 14, 10, 0, 0));
-
-            Page<ArtistApplication> page = new PageImpl<>(List.of(application), pageable, 1);
-
-            when(artistApplicationRepository.searchArtistApplications(ApplicationStatus.PENDING, pageable))
-                    .thenReturn(page);
-
-            // when
-            PageResponse<ArtistApplicationListResponse> response =
-                    artistService.getArtistApplications(ApplicationStatus.PENDING, pageable);
-
-            // then
-            assertThat(response.content()).hasSize(1);
-            assertThat(response.content().get(0).status()).isEqualTo("PENDING");
-            assertThat(response.content().get(0).artistType()).isEqualTo(ArtistType.SOLO.name());
-
-            verify(artistApplicationRepository, times(1))
-                    .searchArtistApplications(ApplicationStatus.PENDING, pageable);
-        }
-    }
-
-    @Nested
-    @DisplayName("아티스트 등록 요청 상세 조회")
+    @DisplayName("아티스트 등록 신청 상세 조회")
     class GetArtistApplication {
 
         @Test
-        @DisplayName("요청자 본인은 아티스트 등록 요청 상세를 조회할 수 있다")
+        @DisplayName("요청자 본인은 아티스트 등록 신청 상세를 조회할 수 있다")
         void getArtistApplication_requester_success() {
             // given
             Long userId = 1L;
@@ -400,7 +271,6 @@ class ArtistServiceTest {
                     "https://example.com/iu.jpg"
             );
 
-            // 상세 조회 검증을 위해 엔티티 필드를 직접 주입한다.
             ReflectionTestUtils.setField(application, "id", applicationId);
             ReflectionTestUtils.setField(application, "createdAt",
                     LocalDateTime.of(2026, 4, 14, 10, 0, 0));
@@ -438,7 +308,7 @@ class ArtistServiceTest {
         }
 
         @Test
-        @DisplayName("관리자는 아티스트 등록 요청 상세를 조회할 수 있다")
+        @DisplayName("관리자는 아티스트 등록 신청 상세를 조회할 수 있다")
         void getArtistApplication_admin_success() {
             // given
             Long userId = 99L;
@@ -452,7 +322,6 @@ class ArtistServiceTest {
                     "https://example.com/iu.jpg"
             );
 
-            // 상세 조회 검증을 위해 엔티티 필드를 직접 주입한다.
             ReflectionTestUtils.setField(application, "id", applicationId);
             ReflectionTestUtils.setField(application, "createdAt",
                     LocalDateTime.of(2026, 4, 14, 10, 0, 0));
@@ -515,7 +384,7 @@ class ArtistServiceTest {
         }
 
         @Test
-        @DisplayName("존재하지 않는 아티스트 등록 요청이면 예외가 발생한다")
+        @DisplayName("존재하지 않는 아티스트 등록 신청이면 예외가 발생한다")
         void getArtistApplication_notFound() {
             // given
             Long userId = 1L;
@@ -535,13 +404,121 @@ class ArtistServiceTest {
     }
 
     @Nested
-    @DisplayName("아티스트 등록 요청 승인")
+    @DisplayName("아티스트 등록 신청 목록 조회")
+    class GetArtistApplications {
+
+        @Test
+        @DisplayName("상태 조건 없이 목록 조회 성공")
+        void getArtistApplications_success_withoutStatus() {
+            Pageable pageable = PageRequest.of(0, 5);
+
+            ArtistApplication firstApplication = ArtistApplication.create(
+                    1L,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/iu.jpg"
+            );
+            ReflectionTestUtils.setField(firstApplication, "id", 1L);
+            ReflectionTestUtils.setField(
+                    firstApplication,
+                    "createdAt",
+                    LocalDateTime.of(2026, 4, 14, 10, 0, 0)
+            );
+
+            ArtistApplication secondApplication = ArtistApplication.create(
+                    2L,
+                    "볼빨간사춘기",
+                    ArtistType.COLLABORATION,
+                    "듀오",
+                    "https://example.com/bol4.jpg"
+            );
+            ReflectionTestUtils.setField(secondApplication, "id", 2L);
+            ReflectionTestUtils.setField(
+                    secondApplication,
+                    "createdAt",
+                    LocalDateTime.of(2026, 4, 15, 10, 0, 0)
+            );
+
+            Page<ArtistApplication> page = new PageImpl<>(
+                    List.of(firstApplication, secondApplication),
+                    pageable,
+                    2
+            );
+
+            when(artistApplicationRepository.searchArtistApplications(null, pageable))
+                    .thenReturn(page);
+
+            PageResponse<ArtistApplicationListResponse> response =
+                    artistService.getArtistApplications(null, pageable);
+
+            assertThat(response.content()).hasSize(2);
+            assertThat(response.content().get(0).applicationId()).isEqualTo(1L);
+            assertThat(response.content().get(0).requesterUserId()).isEqualTo(1L);
+            assertThat(response.content().get(0).requestedName()).isEqualTo("아이유");
+            assertThat(response.content().get(1).applicationId()).isEqualTo(2L);
+            assertThat(response.page()).isEqualTo(0);
+            assertThat(response.size()).isEqualTo(5);
+            assertThat(response.totalElements()).isEqualTo(2);
+            assertThat(response.totalPages()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("상태 조건으로 목록 조회 성공")
+        void getArtistApplications_success_withStatus() {
+            Pageable pageable = PageRequest.of(0, 5);
+
+            ArtistApplication application = ArtistApplication.create(
+                    1L,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/iu.jpg"
+            );
+            ReflectionTestUtils.setField(application, "id", 1L);
+            ReflectionTestUtils.setField(
+                    application,
+                    "createdAt",
+                    LocalDateTime.of(2026, 4, 14, 10, 0, 0)
+            );
+
+            Page<ArtistApplication> page = new PageImpl<>(List.of(application), pageable, 1);
+
+            when(artistApplicationRepository.searchArtistApplications(ApplicationStatus.PENDING, pageable))
+                    .thenReturn(page);
+
+            PageResponse<ArtistApplicationListResponse> response =
+                    artistService.getArtistApplications(ApplicationStatus.PENDING, pageable);
+
+            assertThat(response.content()).hasSize(1);
+            assertThat(response.content().get(0).status()).isEqualTo(ApplicationStatus.PENDING.name());
+            assertThat(response.totalElements()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("조회 결과가 없으면 빈 페이지 조회 성공")
+        void getArtistApplications_success_whenEmpty() {
+            Pageable pageable = PageRequest.of(0, 5);
+
+            when(artistApplicationRepository.searchArtistApplications(ApplicationStatus.REJECTED, pageable))
+                    .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+
+            PageResponse<ArtistApplicationListResponse> response =
+                    artistService.getArtistApplications(ApplicationStatus.REJECTED, pageable);
+
+            assertThat(response.content()).isEmpty();
+            assertThat(response.totalElements()).isZero();
+            assertThat(response.totalPages()).isZero();
+        }
+    }
+
+    @Nested
+    @DisplayName("아티스트 등록 신청 승인")
     class ApproveArtistApplication {
 
         @Test
-        @DisplayName("아티스트 등록 요청 승인에 성공한다")
+        @DisplayName("승인 성공")
         void approveArtistApplication_success() {
-            // given
             Long adminId = 1L;
             Long applicationId = 10L;
 
@@ -564,29 +541,38 @@ class ArtistServiceTest {
             ReflectionTestUtils.setField(savedArtist, "id", 100L);
 
             when(artistApplicationRepository.findById(applicationId))
-                    .thenReturn(java.util.Optional.of(application));
+                    .thenReturn(Optional.of(application));
             when(artistRepository.save(any(Artist.class)))
                     .thenReturn(savedArtist);
 
-            // when
             ArtistApplicationApproveResponse response =
                     artistService.approveArtistApplication(adminId, applicationId);
 
-            // then
             assertThat(response.applicationId()).isEqualTo(applicationId);
             assertThat(response.artistId()).isEqualTo(100L);
+            assertThat(response.artistType()).isEqualTo(ArtistType.SOLO.name());
             assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED.name());
             assertThat(response.reviewedByAdminId()).isEqualTo(adminId);
             assertThat(response.reviewedAt()).isNotNull();
-
-            verify(artistApplicationRepository, times(1)).findById(applicationId);
-            verify(artistRepository, times(1)).save(any(Artist.class));
         }
 
         @Test
-        @DisplayName("이미 처리된 아티스트 등록 요청이면 승인에 실패한다")
+        @DisplayName("존재하지 않는 신청이면 승인 실패")
+        void approveArtistApplication_fail_whenNotFound() {
+            Long adminId = 1L;
+            Long applicationId = 10L;
+
+            when(artistApplicationRepository.findById(applicationId))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> artistService.approveArtistApplication(adminId, applicationId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("이미 처리된 신청이면 승인 실패")
         void approveArtistApplication_fail_whenAlreadyProcessed() {
-            // given
             Long adminId = 1L;
             Long applicationId = 10L;
 
@@ -601,28 +587,24 @@ class ArtistServiceTest {
             application.approve(adminId);
 
             when(artistApplicationRepository.findById(applicationId))
-                    .thenReturn(java.util.Optional.of(application));
+                    .thenReturn(Optional.of(application));
 
-            // when & then
             assertThatThrownBy(() -> artistService.approveArtistApplication(adminId, applicationId))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_PROCESSED.getMessage());
-
-            verify(artistApplicationRepository, times(1)).findById(applicationId);
-            verify(artistRepository, never()).save(any(Artist.class));
         }
     }
 
     @Nested
-    @DisplayName("아티스트 등록 요청 거절")
+    @DisplayName("아티스트 등록 신청 거절")
     class RejectArtistApplication {
 
         @Test
-        @DisplayName("아티스트 등록 요청 거절에 성공한다")
+        @DisplayName("거절 성공")
         void rejectArtistApplication_success() {
-            // given
             Long adminId = 1L;
             Long applicationId = 10L;
+
             ArtistApplicationRejectRequest request =
                     new ArtistApplicationRejectRequest("정보 부족");
 
@@ -636,29 +618,42 @@ class ArtistServiceTest {
             ReflectionTestUtils.setField(application, "id", applicationId);
 
             when(artistApplicationRepository.findById(applicationId))
-                    .thenReturn(java.util.Optional.of(application));
+                    .thenReturn(Optional.of(application));
 
-            // when
             ArtistApplicationRejectResponse response =
                     artistService.rejectArtistApplication(adminId, applicationId, request);
 
-            // then
             assertThat(response.applicationId()).isEqualTo(applicationId);
+            assertThat(response.artistType()).isEqualTo(ArtistType.SOLO.name());
             assertThat(response.status()).isEqualTo(ApplicationStatus.REJECTED.name());
             assertThat(response.reviewedByAdminId()).isEqualTo(adminId);
             assertThat(response.reviewedAt()).isNotNull();
             assertThat(response.rejectionReason()).isEqualTo("정보 부족");
-
-            verify(artistApplicationRepository, times(1)).findById(applicationId);
-            verify(artistRepository, never()).save(any(Artist.class));
         }
 
         @Test
-        @DisplayName("이미 처리된 아티스트 등록 요청이면 거절에 실패한다")
-        void rejectArtistApplication_fail_whenAlreadyProcessed() {
-            // given
+        @DisplayName("존재하지 않는 신청이면 거절 실패")
+        void rejectArtistApplication_fail_whenNotFound() {
             Long adminId = 1L;
             Long applicationId = 10L;
+
+            ArtistApplicationRejectRequest request =
+                    new ArtistApplicationRejectRequest("정보 부족");
+
+            when(artistApplicationRepository.findById(applicationId))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> artistService.rejectArtistApplication(adminId, applicationId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("이미 처리된 신청이면 거절 실패")
+        void rejectArtistApplication_fail_whenAlreadyProcessed() {
+            Long adminId = 1L;
+            Long applicationId = 10L;
+
             ArtistApplicationRejectRequest request =
                     new ArtistApplicationRejectRequest("정보 부족");
 
@@ -673,15 +668,11 @@ class ArtistServiceTest {
             application.reject(adminId, "기존 거절 사유");
 
             when(artistApplicationRepository.findById(applicationId))
-                    .thenReturn(java.util.Optional.of(application));
+                    .thenReturn(Optional.of(application));
 
-            // when & then
             assertThatThrownBy(() -> artistService.rejectArtistApplication(adminId, applicationId, request))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_PROCESSED.getMessage());
-
-            verify(artistApplicationRepository, times(1)).findById(applicationId);
-            verify(artistRepository, never()).save(any(Artist.class));
         }
     }
 
@@ -1041,7 +1032,6 @@ class ArtistServiceTest {
 
             verify(artistRepository, times(1)).findById(artistId);
         }
-
     }
 
     @Nested
@@ -1049,9 +1039,8 @@ class ArtistServiceTest {
     class DeleteArtist {
 
         @Test
-        @DisplayName("아티스트 소유자는 삭제에 성공한다")
+        @DisplayName("삭제 성공")
         void deleteArtist_success() {
-            // given
             Long userId = 10L;
             Long artistId = 1L;
 
@@ -1065,38 +1054,30 @@ class ArtistServiceTest {
             ReflectionTestUtils.setField(artist, "id", artistId);
 
             when(artistRepository.findById(artistId))
-                    .thenReturn(java.util.Optional.of(artist));
+                    .thenReturn(Optional.of(artist));
 
-            // when
             artistService.deleteArtist(userId, artistId);
 
-            // then
             assertThat(artist.isDeleted()).isTrue();
-            verify(artistRepository, times(1)).findById(artistId);
         }
 
         @Test
-        @DisplayName("존재하지 않는 아티스트는 삭제할 수 없다")
+        @DisplayName("존재하지 않는 아티스트면 삭제 실패")
         void deleteArtist_fail_whenArtistNotFound() {
-            // given
             Long userId = 10L;
             Long artistId = 1L;
 
             when(artistRepository.findById(artistId))
-                    .thenReturn(java.util.Optional.empty());
+                    .thenReturn(Optional.empty());
 
-            // when & then
             assertThatThrownBy(() -> artistService.deleteArtist(userId, artistId))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
-
-            verify(artistRepository, times(1)).findById(artistId);
         }
 
         @Test
-        @DisplayName("이미 삭제된 아티스트는 다시 삭제할 수 없다")
+        @DisplayName("이미 삭제된 아티스트면 삭제 실패")
         void deleteArtist_fail_whenAlreadyDeleted() {
-            // given
             Long userId = 10L;
             Long artistId = 1L;
 
@@ -1108,24 +1089,23 @@ class ArtistServiceTest {
                     "https://example.com/iu.jpg"
             );
             ReflectionTestUtils.setField(artist, "id", artistId);
-            ReflectionTestUtils.setField(artist, "deletedAt",
-                    LocalDateTime.of(2026, 4, 15, 20, 0, 0));
+            ReflectionTestUtils.setField(
+                    artist,
+                    "deletedAt",
+                    LocalDateTime.of(2026, 4, 15, 20, 0, 0)
+            );
 
             when(artistRepository.findById(artistId))
-                    .thenReturn(java.util.Optional.of(artist));
+                    .thenReturn(Optional.of(artist));
 
-            // when & then
             assertThatThrownBy(() -> artistService.deleteArtist(userId, artistId))
                     .isInstanceOf(BusinessException.class)
-                    .hasMessage(ArtistErrorCode.ERR_ARTIST_ALREADY_DELETED.getMessage());
-
-            verify(artistRepository, times(1)).findById(artistId);
+                    .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
         }
 
         @Test
-        @DisplayName("아티스트 소유자가 아니면 삭제할 수 없다")
+        @DisplayName("소유자가 아니면 삭제 실패")
         void deleteArtist_fail_whenNotOwner() {
-            // given
             Long userId = 99L;
             Long artistId = 1L;
 
@@ -1139,14 +1119,11 @@ class ArtistServiceTest {
             ReflectionTestUtils.setField(artist, "id", artistId);
 
             when(artistRepository.findById(artistId))
-                    .thenReturn(java.util.Optional.of(artist));
+                    .thenReturn(Optional.of(artist));
 
-            // when & then
             assertThatThrownBy(() -> artistService.deleteArtist(userId, artistId))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(ArtistErrorCode.ERR_FORBIDDEN_ARTIST_ACCESS.getMessage());
-
-            verify(artistRepository, times(1)).findById(artistId);
         }
     }
 

@@ -117,7 +117,7 @@ public class Artist extends BaseEntity {
 
     public void softDelete() {
         if (this.deletedAt != null) {
-            throw new BusinessException(ArtistErrorCode.ERR_ARTIST_ALREADY_DELETED);
+            throw new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND);
         }
         this.deletedAt = LocalDateTime.now();
     }

@@ -3,7 +3,8 @@ package com.fivefy.domain.track.entity;
 import com.fivefy.common.entity.BaseEntity;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
-import com.fivefy.domain.track.enums.TrackReleaseErrorCode;
+import com.fivefy.domain.track.enums.TrackApplicationErrorCode;
+import com.fivefy.domain.track.enums.TrackErrorCode;
 import com.fivefy.domain.track.enums.TrackType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -18,16 +19,16 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 @Getter
 @Entity
 @Table(
-        name = "track_release_requests",
+        name = "track_applications",
         indexes = {
-                @Index(name = "idx_track_release_request_requester_user_id", columnList = "requester_user_id"),
-                @Index(name = "idx_track_release_request_artist_id", columnList = "artist_id"),
-                @Index(name = "idx_track_release_request_album_id", columnList = "album_id"),
-                @Index(name = "idx_track_release_request_status", columnList = "status")
+                @Index(name = "idx_track_application_requester_user_id", columnList = "requester_user_id"),
+                @Index(name = "idx_track_application_artist_id", columnList = "artist_id"),
+                @Index(name = "idx_track_application_album_id", columnList = "album_id"),
+                @Index(name = "idx_track_application_status", columnList = "status")
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class TrackReleaseRequest extends BaseEntity {
+public class TrackApplication extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -67,8 +68,8 @@ public class TrackReleaseRequest extends BaseEntity {
     @Column(name = "featured_artist_text", length = 255)
     private String featuredArtistText;
 
-    @Column(name = "scheduled_publish_at")
-    private LocalDateTime scheduledPublishAt;
+    @Column(name = "publish_delay_days")
+    private Integer publishDelayDays;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -87,7 +88,10 @@ public class TrackReleaseRequest extends BaseEntity {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public static TrackReleaseRequest create(
+    /**
+     * 트랙 등록 신청 생성
+     */
+    public static TrackApplication create(
             Long requesterUserId,
             TrackType trackType,
             Long artistId,
@@ -99,35 +103,39 @@ public class TrackReleaseRequest extends BaseEntity {
             String audioUrl,
             Long durationSec,
             String featuredArtistText,
-            LocalDateTime scheduledPublishAt
+            Integer publishDelayDays
     ) {
         validateNonNull(requesterUserId, "requesterUserId");
         validateNonNull(trackType, "trackType");
         validateNonNull(title, "title");
         validateNonNull(genre, "genre");
         validateNonNull(audioUrl, "audioUrl");
-        validateNonNull(durationSec, "durationSec");
 
-        TrackReleaseRequest request = new TrackReleaseRequest();
+        validatePublishDelayDays(publishDelayDays);
+        validateDurationSec(durationSec);
 
-        request.requesterUserId = requesterUserId;
-        request.trackType = trackType;
-        request.artistId = artistId;
-        request.albumId = albumId;
-        request.trackNumber = trackNumber;
-        request.title = title;
-        request.lyrics = lyrics;
-        request.genre = genre;
-        request.audioUrl = audioUrl;
-        request.durationSec = durationSec;
-        request.featuredArtistText = featuredArtistText;
-        request.scheduledPublishAt = scheduledPublishAt;
-        request.status = ApplicationStatus.PENDING;
+        TrackApplication application = new TrackApplication();
 
-        return request;
+        application.requesterUserId = requesterUserId;
+        application.trackType = trackType;
+        application.artistId = artistId;
+        application.albumId = albumId;
+        application.trackNumber = trackNumber;
+        application.title = title;
+        application.lyrics = lyrics;
+        application.genre = genre;
+        application.audioUrl = audioUrl;
+        application.durationSec = durationSec;
+        application.featuredArtistText = featuredArtistText;
+        application.publishDelayDays = publishDelayDays;
+        application.status = ApplicationStatus.PENDING;
+
+        return application;
     }
 
-
+    /**
+     * 트랙 등록 신청 승인
+     */
     public void approve(Long adminId) {
         validateNonNull(adminId, "adminId");
         validatePending();
@@ -138,6 +146,9 @@ public class TrackReleaseRequest extends BaseEntity {
         this.rejectionReason = null;
     }
 
+    /**
+     * 트랙 등록 신청 거절
+     */
     public void reject(Long adminId, String rejectionReason) {
         validateNonNull(adminId, "adminId");
         validateNonNull(rejectionReason, "rejectionReason");
@@ -149,9 +160,28 @@ public class TrackReleaseRequest extends BaseEntity {
         this.rejectionReason = rejectionReason;
     }
 
+    // 상태 검증 (PENDING만 처리 가능)
     private void validatePending() {
         if (this.status != ApplicationStatus.PENDING) {
-            throw new BusinessException(TrackReleaseErrorCode.ERR_TRACK_RELEASE_ALREADY_PROCESSED);
+            throw new BusinessException(
+                    TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_PROCESSED
+            );
+        }
+    }
+
+    // 재생 시간 검증
+    private static void validateDurationSec(Long durationSec) {
+        validateNonNull(durationSec, "durationSec");
+
+        if (durationSec <= 0L) {
+            throw new BusinessException(TrackErrorCode.ERR_INVALID_DURATION_SEC);
+        }
+    }
+
+    // 공개 예약 옵션 검증
+    private static void validatePublishDelayDays(Integer publishDelayDays) {
+        if (publishDelayDays != null && (publishDelayDays < 0 || publishDelayDays > 7)) {
+            throw new BusinessException(TrackApplicationErrorCode.ERR_INVALID_PUBLISH_DELAY_DAYS);
         }
     }
 }
