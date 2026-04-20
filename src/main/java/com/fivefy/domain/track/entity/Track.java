@@ -15,6 +15,9 @@ import java.time.LocalDateTime;
 
 import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
+/**
+ * 트랙 엔티티
+ */
 @Getter
 @Entity
 @Table(
@@ -87,20 +90,24 @@ public class Track extends BaseEntity {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    /**
+     * 자유 창작 트랙 생성
+     */
     public static Track createFreeCreation(
             Long ownerUserId,
             String title,
             String lyrics,
             String genre,
             String audioUrl,
-            Long durationSec,
-            LocalDateTime scheduledPublishAt
+            Long durationSec
     ) {
         validateNonNull(ownerUserId, "ownerUserId");
         validateNonNull(title, "title");
         validateNonNull(genre, "genre");
         validateNonNull(audioUrl, "audioUrl");
         validateNonNull(durationSec, "durationSec");
+
+        validateDurationSec(durationSec);
 
         Track track = new Track();
 
@@ -111,13 +118,16 @@ public class Track extends BaseEntity {
         track.genre = genre;
         track.audioUrl = audioUrl;
         track.durationSec = durationSec;
-        track.scheduledPublishAt = scheduledPublishAt;
         track.status = TrackStatus.PUBLISHED;
+        track.publishedAt = LocalDateTime.now();
         track.playCount = 0L;
 
         return track;
     }
 
+    /**
+     * 정식 발매 트랙 생성
+     */
     public static Track createOfficialRelease(
             Long ownerUserId,
             Long artistId,
@@ -140,13 +150,8 @@ public class Track extends BaseEntity {
         validateNonNull(audioUrl, "audioUrl");
         validateNonNull(durationSec, "durationSec");
 
-        if (trackNumber <= 0L) {
-            throw new BusinessException(TrackErrorCode.ERR_INVALID_TRACK_NUMBER);
-        }
-
-        if (durationSec <= 0L) {
-            throw new BusinessException(TrackErrorCode.ERR_INVALID_DURATION_SEC);
-        }
+        validateTrackNumber(trackNumber);
+        validateDurationSec(durationSec);
 
         Track track = new Track();
 
@@ -168,38 +173,54 @@ public class Track extends BaseEntity {
         return track;
     }
 
+    /**
+     * 트랙 공개
+     */
     public void publish() {
         validateNotDeleted();
 
         if (this.status == TrackStatus.PUBLISHED) {
             throw new BusinessException(TrackErrorCode.ERR_TRACK_ALREADY_PUBLISHED);
         }
+
         this.status = TrackStatus.PUBLISHED;
         this.publishedAt = LocalDateTime.now();
     }
 
+    /**
+     * 트랙 차단
+     */
     public void block() {
         validateNotDeleted();
 
         if (this.status == TrackStatus.BLOCKED) {
             throw new BusinessException(TrackErrorCode.ERR_TRACK_ALREADY_BLOCKED);
         }
+
         this.status = TrackStatus.BLOCKED;
     }
 
+    /**
+     * 재생 수 증가
+     */
     public void increasePlayCount() {
         validateNotDeleted();
 
         if (this.status != TrackStatus.PUBLISHED) {
             throw new BusinessException(TrackErrorCode.ERR_TRACK_NOT_PUBLISHED);
         }
+
         this.playCount++;
     }
 
+    /**
+     * soft delete
+     */
     public void softDelete() {
         if (this.deletedAt != null) {
             throw new BusinessException(TrackErrorCode.ERR_TRACK_ALREADY_DELETED);
         }
+
         this.deletedAt = LocalDateTime.now();
     }
 
@@ -214,6 +235,18 @@ public class Track extends BaseEntity {
     public boolean isOwnedBy(Long ownerUserId) {
         validateNonNull(ownerUserId, "ownerUserId");
         return this.ownerUserId.equals(ownerUserId);
+    }
+
+    private static void validateTrackNumber(Long trackNumber) {
+        if (trackNumber <= 0L) {
+            throw new BusinessException(TrackErrorCode.ERR_INVALID_TRACK_NUMBER);
+        }
+    }
+
+    private static void validateDurationSec(Long durationSec) {
+        if (durationSec <= 0L) {
+            throw new BusinessException(TrackErrorCode.ERR_INVALID_DURATION_SEC);
+        }
     }
 
     private void validateNotDeleted() {

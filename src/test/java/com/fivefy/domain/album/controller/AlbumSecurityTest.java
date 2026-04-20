@@ -1,11 +1,7 @@
 package com.fivefy.domain.album.controller;
 
-import com.fivefy.common.config.security.JwtUtil;
-import com.fivefy.common.config.security.JwtAccessDeniedHandler;
-import com.fivefy.common.config.security.JwtAuthenticationEntryPoint;
-import com.fivefy.common.config.security.JwtFilter;
+import com.fivefy.common.config.security.*;
 import com.fivefy.common.filter.LastActiveAtFilter;
-import com.fivefy.common.config.security.SecurityConfig;
 import com.fivefy.domain.album.dto.response.AlbumDetailResponse;
 import com.fivefy.domain.album.dto.response.ArtistAlbumListResponse;
 import com.fivefy.domain.album.service.AlbumService;

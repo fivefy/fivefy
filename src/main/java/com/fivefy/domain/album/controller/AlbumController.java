@@ -10,6 +10,8 @@ import com.fivefy.domain.album.service.AlbumService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -80,7 +82,11 @@ public class AlbumController {
     @GetMapping("/admin/album-applications")
     public ResponseEntity<BaseResponse<PageResponse<AlbumApplicationListResponse>>> getAlbumApplications(
             @RequestParam(required = false) ApplicationStatus status,
-            Pageable pageable
+            @PageableDefault(
+                    size = 10,
+                    sort = "createdAt",
+                    direction = Sort.Direction.ASC
+            ) Pageable pageable
     ) {
         PageResponse<AlbumApplicationListResponse> response =
                 albumService.getAlbumApplications(status, pageable);

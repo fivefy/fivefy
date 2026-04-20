@@ -12,7 +12,7 @@ import java.util.List;
  */
 public interface AlbumApplicationQueryRepository {
 
-    boolean existsPendingApplication(Long requesterUserId, Long artistId, String title);
+    boolean existsActiveApplication(Long requesterUserId, Long artistId, String title);
 
     List<AlbumApplication> searchMyAlbumApplications(Long requesterUserId);
 

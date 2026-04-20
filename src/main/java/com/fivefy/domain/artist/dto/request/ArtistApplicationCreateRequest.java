@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
- * 아티스트 등록 요청 생성 API의 요청 DTO
+ * 아티스트 등록 신청 생성 API의 요청 DTO
  */
 public record ArtistApplicationCreateRequest(
         @NotBlank(message = "아티스트 이름은 필수입니다")

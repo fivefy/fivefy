@@ -5,7 +5,7 @@ import com.fivefy.domain.artist.entity.ArtistApplication;
 import java.time.LocalDateTime;
 
 /**
- * 아티스트 등록 요청 승인 응답 DTO
+ * 아티스트 등록 신청 승인 응답 DTO
  */
 public record ArtistApplicationApproveResponse(
         Long applicationId,

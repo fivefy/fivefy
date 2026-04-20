@@ -65,7 +65,7 @@ public class AlbumService {
         validatePublishDelayDays(request.publishDelayDays());
 
         // 중복 신청 검증
-        validateDuplicatePendingApplication(userId, request.artistId(), request.title());
+        validateDuplicateActiveApplication(userId, request.artistId(), request.title());
 
         // 등록 신청 생성 및 저장
         AlbumApplication savedApplication = albumApplicationRepository.save(
@@ -126,7 +126,7 @@ public class AlbumService {
     }
 
     /**
-     * 앨범 등록 신청 승인
+     * 앨범 등록 신청 승인 (관리자)
      */
     @Transactional
     public AlbumApplicationApproveResponse approveAlbumApplication(Long adminId, Long applicationId) {
@@ -142,7 +142,7 @@ public class AlbumService {
     }
 
     /**
-     * 앨범 등록 신청 거절
+     * 앨범 등록 신청 거절 (관리자)
      */
     @Transactional
     public AlbumApplicationRejectResponse rejectAlbumApplication(
@@ -261,8 +261,8 @@ public class AlbumService {
     }
 
     // 중복 신청 검증
-    private void validateDuplicatePendingApplication(Long userId, Long artistId, String title) {
-        if (albumApplicationRepository.existsPendingApplication(userId, artistId, title)) {
+    private void validateDuplicateActiveApplication(Long userId, Long artistId, String title) {
+        if (albumApplicationRepository.existsActiveApplication(userId, artistId, title)) {
             throw new BusinessException(
                     AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_EXISTS
             );
