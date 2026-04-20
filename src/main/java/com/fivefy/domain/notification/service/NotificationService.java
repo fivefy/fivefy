@@ -25,6 +25,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -45,12 +46,12 @@ public class NotificationService {
 
         sseEmitterRepository.save(userId, emitter);
 
-        emitter.onCompletion(() -> sseEmitterRepository.deleteByUserId(userId));
+        emitter.onCompletion(() -> sseEmitterRepository.delete(userId, emitter));
         emitter.onTimeout(() -> {
-            sseEmitterRepository.deleteByUserId(userId);
+            sseEmitterRepository.delete(userId, emitter);
             emitter.complete();
         });
-        emitter.onError((e) -> sseEmitterRepository.deleteByUserId(userId));
+        emitter.onError(e -> sseEmitterRepository.delete(userId, emitter));
 
 
         // 연결 직후 초기 이벤트 전송
@@ -61,7 +62,7 @@ public class NotificationService {
                     .data(unreadCount));
         } catch (IOException e) {
             log.warn("SSE 초기 이벤트 전송 실패: userId={}", userId);
-            sseEmitterRepository.deleteByUserId(userId);
+            sseEmitterRepository.delete(userId, emitter);
         }
 
         return emitter;
@@ -74,23 +75,36 @@ public class NotificationService {
         send(event.targetUserId(), event.type(), event.content());
     }
 
-    @Transactional
     public void send(Long userId, NotificationType type, String content) {
-        Notification notification = Notification.create(userId, content, type, NotificationChannel.IN_APP);
-        notificationRepository.save(notification);
 
-        sseEmitterRepository.findByUserId(userId).ifPresent(sseEmitter -> {
+        // DB 저장 — save() 자체 트랜잭션으로 처리 후 커넥션 즉시 반환
+        Notification notification = Notification.create(userId, content, type, NotificationChannel.IN_APP);
+        Notification saved = notificationRepository.save(notification);
+
+        // SSE 전송 — DB 커넥션 미점유 상태
+        List<SseEmitter> emitterList = sseEmitterRepository.findAllByUserId(userId);
+        boolean sent = false;
+
+        for (SseEmitter emitter : emitterList) {
             try {
-                notification.markAsSent();
-                sseEmitter.send(SseEmitter.event()
+                emitter.send(SseEmitter.event()
                         .name(SSE_EVENT_NOTIFICATION)
-                        .data(NotificationGetResponse.from(notification)));
+                        .data(NotificationGetResponse.from(saved)));
+                sent = true;
             } catch (IOException e) {
                 log.warn("SSE 전송 실패: userId={}, type={}", userId, type);
-                notification.markAsFailed();
-                sseEmitterRepository.deleteByUserId(userId);
+                sseEmitterRepository.delete(userId, emitter);
             }
-        });
+        }
+
+        if (sent) {
+            saved.markAsSent();
+        } else if (!emitterList.isEmpty()) {
+            saved.markAsFailed();
+        }
+        if (sent || !emitterList.isEmpty()) {
+            notificationRepository.save(saved);
+        }
     }
 
     // 알림 목록 조회
