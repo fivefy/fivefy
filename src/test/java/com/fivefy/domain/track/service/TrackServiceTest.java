@@ -30,7 +30,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -49,7 +48,13 @@ import static org.mockito.Mockito.when;
 /**
  * TrackService의 비즈니스 로직을 검증하는 단위 테스트
  *
- * 자유 창작 트랙 등록 신청 생성 기능을 검증한다.
+ * 자유 창작 트랙 등록 신청 생성 기능 검증
+ * 정식 발매 트랙 등록 신청 생성 기능 검증
+ * 내 트랙 등록 신청 목록 조회 기능 검증
+ * 트랙 등록 신청 상세 조회 기능 검증
+ * 트랙 등록 신청 목록 조회 기능 검증
+ * 트랙 등록 신청 승인 기능 검증
+ * 트랙 등록 신청 거절 기능 검증
  */
 @ExtendWith(MockitoExtension.class)
 class TrackServiceTest {
@@ -1102,7 +1107,7 @@ class TrackServiceTest {
 
             assertThat(response.applicationId()).isEqualTo(applicationId);
             assertThat(response.trackId()).isEqualTo(1000L);
-            assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED.name());
+            assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED);
             assertThat(response.reviewedByAdminId()).isEqualTo(adminId);
             assertThat(response.reviewedAt()).isNotNull();
         }
@@ -1152,7 +1157,7 @@ class TrackServiceTest {
 
             assertThat(response.applicationId()).isEqualTo(applicationId);
             assertThat(response.trackId()).isEqualTo(1000L);
-            assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED.name());
+            assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED);
             assertThat(response.reviewedByAdminId()).isEqualTo(adminId);
             assertThat(response.reviewedAt()).isNotNull();
         }
@@ -1240,7 +1245,7 @@ class TrackServiceTest {
 
             assertThat(response.applicationId()).isEqualTo(applicationId);
             assertThat(response.trackId()).isEqualTo(1000L);
-            assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED.name());
+            assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED);
             assertThat(response.reviewedByAdminId()).isEqualTo(adminId);
             assertThat(response.reviewedAt()).isNotNull();
         }

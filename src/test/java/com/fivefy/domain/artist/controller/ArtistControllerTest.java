@@ -76,8 +76,8 @@ class ArtistControllerTest extends RestDocsSupport {
             ArtistApplicationResponse response = new ArtistApplicationResponse(
                     1L,
                     "아이유",
-                    ArtistType.SOLO.name(),
-                    ApplicationStatus.PENDING.name(),
+                    ArtistType.SOLO,
+                    ApplicationStatus.PENDING,
                     LocalDateTime.of(2026, 4, 18, 12, 0, 0)
             );
 
@@ -192,15 +192,15 @@ class ArtistControllerTest extends RestDocsSupport {
                     new ArtistApplicationResponse(
                             2L,
                             "아이유",
-                            ArtistType.SOLO.name(),
-                            ApplicationStatus.PENDING.name(),
+                            ArtistType.SOLO,
+                            ApplicationStatus.PENDING,
                             LocalDateTime.of(2026, 4, 18, 12, 0, 0)
                     ),
                     new ArtistApplicationResponse(
                             1L,
                             "아이유 밴드",
-                            ArtistType.COLLABORATION.name(),
-                            ApplicationStatus.PENDING.name(),
+                            ArtistType.COLLABORATION,
+                            ApplicationStatus.PENDING,
                             LocalDateTime.of(2026, 4, 17, 12, 0, 0)
                     )
             );
@@ -242,10 +242,10 @@ class ArtistControllerTest extends RestDocsSupport {
                     applicationId,
                     1L,
                     "아이유",
-                    ArtistType.SOLO.name(),
+                    ArtistType.SOLO,
                     "가수",
                     "https://example.com/iu.jpg",
-                    ApplicationStatus.PENDING.name(),
+                    ApplicationStatus.PENDING,
                     null,
                     null,
                     null,
@@ -348,8 +348,8 @@ class ArtistControllerTest extends RestDocsSupport {
                     1L,
                     1L,
                     "아이유",
-                    ArtistType.SOLO.name(),
-                    ApplicationStatus.PENDING.name(),
+                    ArtistType.SOLO,
+                    ApplicationStatus.PENDING,
                     LocalDateTime.of(2026, 4, 18, 12, 0, 0)
             );
 
@@ -410,8 +410,8 @@ class ArtistControllerTest extends RestDocsSupport {
             ArtistApplicationApproveResponse response = new ArtistApplicationApproveResponse(
                     applicationId,
                     100L,
-                    ArtistType.SOLO.name(),
-                    ApplicationStatus.APPROVED.name(),
+                    ArtistType.SOLO,
+                    ApplicationStatus.APPROVED,
                     1L,
                     LocalDateTime.of(2026, 4, 18, 12, 0, 0)
             );
@@ -484,8 +484,8 @@ class ArtistControllerTest extends RestDocsSupport {
 
             ArtistApplicationRejectResponse response = new ArtistApplicationRejectResponse(
                     applicationId,
-                    ArtistType.SOLO.name(),
-                    ApplicationStatus.REJECTED.name(),
+                    ArtistType.SOLO,
+                    ApplicationStatus.REJECTED,
                     1L,
                     LocalDateTime.of(2026, 4, 18, 12, 0, 0),
                     "정보 부족"
@@ -592,7 +592,7 @@ class ArtistControllerTest extends RestDocsSupport {
                     new MyArtistResponse(
                             2L,
                             "아이유",
-                            ArtistType.SOLO.name(),
+                            ArtistType.SOLO,
                             "가수",
                             "https://example.com/iu.jpg",
                             LocalDateTime.of(2026, 4, 15, 10, 0, 0),
@@ -601,7 +601,7 @@ class ArtistControllerTest extends RestDocsSupport {
                     new MyArtistResponse(
                             1L,
                             "아이유 밴드",
-                            ArtistType.COLLABORATION.name(),
+                            ArtistType.COLLABORATION,
                             "프로젝트 아티스트",
                             "https://example.com/band.jpg",
                             LocalDateTime.of(2026, 4, 14, 10, 0, 0),
@@ -647,8 +647,8 @@ class ArtistControllerTest extends RestDocsSupport {
             ArtistDetailResponse response = new ArtistDetailResponse(
                     artistId,
                     "아이유",
-                    ArtistType.SOLO.name(),
-                    ArtistStatus.ACTIVE.name(),
+                    ArtistType.SOLO,
+                    ArtistStatus.ACTIVE,
                     "가수",
                     "https://example.com/iu.jpg",
                     LocalDateTime.of(2026, 4, 15, 10, 0, 0),
@@ -726,8 +726,8 @@ class ArtistControllerTest extends RestDocsSupport {
             ArtistDetailResponse response = new ArtistDetailResponse(
                     artistId,
                     "아이유 리브랜딩",
-                    ArtistType.SOLO.name(),
-                    ArtistStatus.ACTIVE.name(),
+                    ArtistType.SOLO,
+                    ArtistStatus.ACTIVE,
                     "대한민국 솔로 가수",
                     "https://example.com/new-iu.jpg",
                     LocalDateTime.of(2026, 4, 15, 10, 0, 0),
@@ -899,8 +899,8 @@ class ArtistControllerTest extends RestDocsSupport {
             ArtistDetailResponse response = new ArtistDetailResponse(
                     artistId,
                     "아이유",
-                    ArtistType.SOLO.name(),
-                    ArtistStatus.ACTIVE.name(),
+                    ArtistType.SOLO,
+                    ArtistStatus.ACTIVE,
                     "가수",
                     "https://example.com/iu.jpg",
                     LocalDateTime.of(2026, 4, 15, 10, 0, 0),
@@ -1026,8 +1026,8 @@ class ArtistControllerTest extends RestDocsSupport {
             ArtistDetailResponse response = new ArtistDetailResponse(
                     artistId,
                     "아이유",
-                    ArtistType.SOLO.name(),
-                    ArtistStatus.INACTIVE.name(),
+                    ArtistType.SOLO,
+                    ArtistStatus.INACTIVE,
                     "가수",
                     "https://example.com/iu.jpg",
                     LocalDateTime.of(2026, 4, 15, 10, 0, 0),

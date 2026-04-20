@@ -1,6 +1,8 @@
 package com.fivefy.domain.artist.dto.response;
 
+import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.domain.artist.entity.ArtistApplication;
+import com.fivefy.domain.artist.enums.ArtistType;
 
 import java.time.LocalDateTime;
 
@@ -11,8 +13,8 @@ public record ArtistApplicationListResponse(
         Long applicationId,
         Long requesterUserId,
         String requestedName,
-        String artistType,
-        String status,
+        ArtistType artistType,
+        ApplicationStatus status,
         LocalDateTime createdAt
 ) {
     public static ArtistApplicationListResponse from(ArtistApplication artistApplication) {
@@ -20,8 +22,8 @@ public record ArtistApplicationListResponse(
                 artistApplication.getId(),
                 artistApplication.getRequesterUserId(),
                 artistApplication.getRequestedName(),
-                artistApplication.getArtistType().name(),
-                artistApplication.getStatus().name(),
+                artistApplication.getArtistType(),
+                artistApplication.getStatus(),
                 artistApplication.getCreatedAt()
         );
     }

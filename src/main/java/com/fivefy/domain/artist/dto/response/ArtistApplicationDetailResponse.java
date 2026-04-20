@@ -1,6 +1,8 @@
 package com.fivefy.domain.artist.dto.response;
 
+import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.domain.artist.entity.ArtistApplication;
+import com.fivefy.domain.artist.enums.ArtistType;
 
 import java.time.LocalDateTime;
 
@@ -11,10 +13,10 @@ public record ArtistApplicationDetailResponse(
         Long applicationId,
         Long requesterUserId,
         String requestedName,
-        String artistType,
+        ArtistType artistType,
         String bio,
         String profileImageUrl,
-        String status,
+        ApplicationStatus status,
         Long reviewedByAdminId,
         LocalDateTime reviewedAt,
         String rejectionReason,
@@ -26,10 +28,10 @@ public record ArtistApplicationDetailResponse(
                 artistApplication.getId(),
                 artistApplication.getRequesterUserId(),
                 artistApplication.getRequestedName(),
-                artistApplication.getArtistType().name(),
+                artistApplication.getArtistType(),
                 artistApplication.getBio(),
                 artistApplication.getProfileImageUrl(),
-                artistApplication.getStatus().name(),
+                artistApplication.getStatus(),
                 artistApplication.getReviewedByAdminId(),
                 artistApplication.getReviewedAt(),
                 artistApplication.getRejectionReason(),

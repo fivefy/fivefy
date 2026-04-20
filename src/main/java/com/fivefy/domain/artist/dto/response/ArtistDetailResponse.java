@@ -1,6 +1,8 @@
 package com.fivefy.domain.artist.dto.response;
 
 import com.fivefy.domain.artist.entity.Artist;
+import com.fivefy.domain.artist.enums.ArtistStatus;
+import com.fivefy.domain.artist.enums.ArtistType;
 
 import java.time.LocalDateTime;
 
@@ -10,8 +12,8 @@ import java.time.LocalDateTime;
 public record ArtistDetailResponse(
         Long artistId,
         String name,
-        String artistType,
-        String status,
+        ArtistType artistType,
+        ArtistStatus status,
         String bio,
         String profileImageUrl,
         LocalDateTime createdAt,
@@ -21,8 +23,8 @@ public record ArtistDetailResponse(
         return new ArtistDetailResponse(
                 artist.getId(),
                 artist.getName(),
-                artist.getArtistType().name(),
-                artist.getStatus().name(),
+                artist.getArtistType(),
+                artist.getStatus(),
                 artist.getBio(),
                 artist.getProfileImageUrl(),
                 artist.getCreatedAt(),

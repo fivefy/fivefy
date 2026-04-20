@@ -43,17 +43,17 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * AlbumService의 비즈니스 로직을 검증하는 단위 테스트
+ * AlbumService의 비즈니스 로직검증하는 단위 테스트
  *
- * 앨범 등록 신청 생성 기능을 검증한다.
- * 내 앨범 등록 신청 목록 조회 기능을 검증한다.
- * 내 앨범 등록 신청 목록 빈 결과 조회 기능을 검증한다.
- * 앨범 등록 신청 상세 조회 기능을 검증한다.
- * 앨범 등록 신청 목록 조회 기능을 검증한다.
- * 앨범 등록 신청 승인 기능을 검증한다.
- * 앨범 등록 신청 거절 기능을 검증한다.
- * 앨범 상세 조회 기능을 검증한다.
- * 아티스트별 앨범 목록 조회 기능을 검증한다.
+ * 앨범 등록 신청 생성 기능 검증
+ * 내 앨범 등록 신청 목록 조회 기능 검증
+ * 내 앨범 등록 신청 목록 빈 결과 조회 기능 검증
+ * 앨범 등록 신청 상세 조회 기능 검증
+ * 앨범 등록 신청 목록 조회 기능 검증
+ * 앨범 등록 신청 승인 기능 검증
+ * 앨범 등록 신청 거절 기능 검증
+ * 앨범 상세 조회 기능 검증
+ * 아티스트별 앨범 목록 조회 기능 검증
  */
 @ExtendWith(MockitoExtension.class)
 class AlbumServiceTest {
@@ -665,7 +665,7 @@ class AlbumServiceTest {
 
             assertThat(response.applicationId()).isEqualTo(applicationId);
             assertThat(response.albumId()).isEqualTo(1000L);
-            assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED.name());
+            assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED);
             assertThat(response.reviewedByAdminId()).isEqualTo(adminId);
             assertThat(response.reviewedAt()).isNotNull();
         }
@@ -703,7 +703,7 @@ class AlbumServiceTest {
 
             assertThat(response.applicationId()).isEqualTo(applicationId);
             assertThat(response.albumId()).isEqualTo(1000L);
-            assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED.name());
+            assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED);
             assertThat(response.reviewedByAdminId()).isEqualTo(adminId);
             assertThat(response.reviewedAt()).isNotNull();
         }

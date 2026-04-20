@@ -389,7 +389,7 @@ class AlbumControllerTest extends RestDocsSupport {
             AlbumApplicationApproveResponse response = new AlbumApplicationApproveResponse(
                     applicationId,
                     1000L,
-                    "APPROVED",
+                    ApplicationStatus.APPROVED,
                     1L,
                     LocalDateTime.of(2026, 4, 17, 12, 0, 0)
             );

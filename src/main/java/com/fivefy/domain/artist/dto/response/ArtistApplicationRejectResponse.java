@@ -1,6 +1,8 @@
 package com.fivefy.domain.artist.dto.response;
 
+import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.domain.artist.entity.ArtistApplication;
+import com.fivefy.domain.artist.enums.ArtistType;
 
 import java.time.LocalDateTime;
 
@@ -9,8 +11,8 @@ import java.time.LocalDateTime;
  */
 public record ArtistApplicationRejectResponse(
         Long applicationId,
-        String artistType,
-        String status,
+        ArtistType artistType,
+        ApplicationStatus status,
         Long reviewedByAdminId,
         LocalDateTime reviewedAt,
         String rejectionReason
@@ -18,8 +20,8 @@ public record ArtistApplicationRejectResponse(
     public static ArtistApplicationRejectResponse from(ArtistApplication application) {
         return new ArtistApplicationRejectResponse(
                 application.getId(),
-                application.getArtistType().name(),
-                application.getStatus().name(),
+                application.getArtistType(),
+                application.getStatus(),
                 application.getReviewedByAdminId(),
                 application.getReviewedAt(),
                 application.getRejectionReason()
