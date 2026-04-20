@@ -5,6 +5,7 @@ import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.album.entity.Album;
 import com.fivefy.domain.album.enums.AlbumErrorCode;
+import com.fivefy.domain.album.enums.AlbumStatus;
 import com.fivefy.domain.album.repository.AlbumRepository;
 import com.fivefy.domain.artist.entity.Artist;
 import com.fivefy.domain.artist.enums.ArtistErrorCode;
@@ -234,6 +235,12 @@ public class TrackService {
     @Transactional(readOnly = true)
     public TrackDetailResponse getTrack(Long trackId) {
         Track track = findPublishedTrack(trackId);
+
+        // 정식 발매 트랙은 연관 앨범/아티스트 공개 가능 상태까지 검증
+        if (track.getTrackType() == TrackType.OFFICIAL_RELEASE) {
+            validateOfficialTrackVisibility(track);
+        }
+
         TrackDetailProjection projection = trackRepository.findTrackDetailById(trackId);
 
         String artistName = projection == null ? null : projection.artistName();
@@ -446,6 +453,21 @@ public class TrackService {
             throw new BusinessException(
                     TrackApplicationErrorCode.ERR_TRACK_APPLICATION_DETAIL_FORBIDDEN
             );
+        }
+    }
+
+    // 정식 발매 트랙 공개 가능 상태 검증
+    private void validateOfficialTrackVisibility(Track track) {
+        Album album = findAlbum(track.getAlbumId());
+
+        if (album.getDeletedAt() != null || album.getStatus() != AlbumStatus.PUBLISHED) {
+            throw new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND);
+        }
+
+        Artist artist = findArtist(track.getArtistId());
+
+        if (artist.isDeleted()) {
+            throw new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND);
         }
     }
 

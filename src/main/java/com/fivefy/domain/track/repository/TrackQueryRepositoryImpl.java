@@ -72,7 +72,14 @@ public class TrackQueryRepositoryImpl implements TrackQueryRepository {
                 .leftJoin(album).on(track.albumId.eq(album.id))
                 .where(
                         track.deletedAt.isNull(),
-                        track.status.eq(TrackStatus.PUBLISHED)
+                        track.status.eq(TrackStatus.PUBLISHED),
+                        track.trackType.eq(TrackType.FREE_CREATION)
+                                .or(
+                                        track.trackType.eq(TrackType.OFFICIAL_RELEASE)
+                                                .and(album.deletedAt.isNull())
+                                                .and(album.status.eq(com.fivefy.domain.album.enums.AlbumStatus.PUBLISHED))
+                                                .and(artist.deletedAt.isNull())
+                                )
                 )
                 // 최신 공개순 정렬 (명세 기준)
                 .orderBy(track.publishedAt.desc())
@@ -85,9 +92,18 @@ public class TrackQueryRepositoryImpl implements TrackQueryRepository {
         Long total = queryFactory
                 .select(track.count())
                 .from(track)
+                .leftJoin(artist).on(track.artistId.eq(artist.id))
+                .leftJoin(album).on(track.albumId.eq(album.id))
                 .where(
                         track.deletedAt.isNull(),
-                        track.status.eq(TrackStatus.PUBLISHED)
+                        track.status.eq(TrackStatus.PUBLISHED),
+                        track.trackType.eq(TrackType.FREE_CREATION)
+                                .or(
+                                        track.trackType.eq(TrackType.OFFICIAL_RELEASE)
+                                                .and(album.deletedAt.isNull())
+                                                .and(album.status.eq(com.fivefy.domain.album.enums.AlbumStatus.PUBLISHED))
+                                                .and(artist.deletedAt.isNull())
+                                )
                 )
                 .fetchOne();
 
