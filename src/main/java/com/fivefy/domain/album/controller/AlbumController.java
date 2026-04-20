@@ -10,6 +10,8 @@ import com.fivefy.domain.album.service.AlbumService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -80,7 +82,11 @@ public class AlbumController {
     @GetMapping("/admin/album-applications")
     public ResponseEntity<BaseResponse<PageResponse<AlbumApplicationListResponse>>> getAlbumApplications(
             @RequestParam(required = false) ApplicationStatus status,
-            Pageable pageable
+            @PageableDefault(
+                    size = 10,
+                    sort = "createdAt",
+                    direction = Sort.Direction.ASC
+            ) Pageable pageable
     ) {
         PageResponse<AlbumApplicationListResponse> response =
                 albumService.getAlbumApplications(status, pageable);
@@ -120,6 +126,34 @@ public class AlbumController {
 
         return ResponseEntity.status(HttpStatus.OK).body(
                 BaseResponse.success(HttpStatus.OK, "앨범 등록 신청 거절 성공", response)
+        );
+    }
+
+    /**
+     * 앨범 상세 조회 API
+     */
+    @GetMapping("/albums/{albumId}")
+    public ResponseEntity<BaseResponse<AlbumDetailResponse>> getAlbum(
+            @PathVariable Long albumId
+    ) {
+        AlbumDetailResponse response = albumService.getAlbum(albumId);
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(BaseResponse.success(HttpStatus.OK, "앨범 상세 조회 성공", response));
+    }
+
+    /**
+     * 아티스트별 앨범 목록 조회 API
+     */
+    @GetMapping("/artists/{artistId}/albums")
+    public ResponseEntity<BaseResponse<List<ArtistAlbumListResponse>>> getArtistAlbums(
+            @PathVariable Long artistId
+    ) {
+        List<ArtistAlbumListResponse> response =
+                albumService.getArtistAlbums(artistId);
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                BaseResponse.success(HttpStatus.OK, "아티스트별 앨범 목록 조회 성공", response)
         );
     }
 }

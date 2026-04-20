@@ -8,6 +8,8 @@ import com.fivefy.domain.album.dto.response.*;
 import com.fivefy.domain.album.entity.Album;
 import com.fivefy.domain.album.entity.AlbumApplication;
 import com.fivefy.domain.album.enums.AlbumApplicationErrorCode;
+import com.fivefy.domain.album.enums.AlbumErrorCode;
+import com.fivefy.domain.album.enums.AlbumStatus;
 import com.fivefy.domain.album.repository.AlbumApplicationRepository;
 import com.fivefy.domain.album.repository.AlbumRepository;
 import com.fivefy.domain.artist.entity.Artist;
@@ -63,7 +65,7 @@ public class AlbumService {
         validatePublishDelayDays(request.publishDelayDays());
 
         // 중복 신청 검증
-        validateDuplicatePendingApplication(userId, request.artistId(), request.title());
+        validateDuplicateActiveApplication(userId, request.artistId(), request.title());
 
         // 등록 신청 생성 및 저장
         AlbumApplication savedApplication = albumApplicationRepository.save(
@@ -124,7 +126,7 @@ public class AlbumService {
     }
 
     /**
-     * 앨범 등록 신청 승인
+     * 앨범 등록 신청 승인 (관리자)
      */
     @Transactional
     public AlbumApplicationApproveResponse approveAlbumApplication(Long adminId, Long applicationId) {
@@ -140,7 +142,7 @@ public class AlbumService {
     }
 
     /**
-     * 앨범 등록 신청 거절
+     * 앨범 등록 신청 거절 (관리자)
      */
     @Transactional
     public AlbumApplicationRejectResponse rejectAlbumApplication(
@@ -154,6 +156,32 @@ public class AlbumService {
         application.reject(adminId, rejectionReason);
 
         return AlbumApplicationRejectResponse.from(application);
+    }
+
+    /**
+     * 앨범 상세 조회
+     */
+    @Transactional(readOnly = true)
+    public AlbumDetailResponse getAlbum(Long albumId) {
+        Album album = findPublishedAlbum(albumId);
+
+        // 공개 상세 조회에서는 삭제된 아티스트도 노출되면 안 되니까
+        Artist artist = findNotDeletedArtist(album.getArtistId());
+
+        return AlbumDetailResponse.of(album, artist.getName());
+    }
+
+    /**
+     * 아티스트별 앨범 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public List<ArtistAlbumListResponse> getArtistAlbums(Long artistId) {
+        // 삭제되지 않은 아티스트 확인
+        findNotDeletedArtist(artistId);
+
+        return albumRepository.searchArtistAlbums(artistId).stream()
+                .map(ArtistAlbumListResponse::from)
+                .toList();
     }
 
     // =========================
@@ -191,6 +219,18 @@ public class AlbumService {
                 ));
     }
 
+    // 공개 가능한 앨범 조회
+    private Album findPublishedAlbum(Long albumId) {
+        Album album = albumRepository.findById(albumId)
+                .orElseThrow(() -> new BusinessException(AlbumErrorCode.ERR_ALBUM_NOT_FOUND));
+
+        if (album.getDeletedAt() != null || album.getStatus() != AlbumStatus.PUBLISHED) {
+            throw new BusinessException(AlbumErrorCode.ERR_ALBUM_NOT_FOUND);
+        }
+
+        return album;
+    }
+
     // =========================
     // 검증
     // =========================
@@ -221,8 +261,8 @@ public class AlbumService {
     }
 
     // 중복 신청 검증
-    private void validateDuplicatePendingApplication(Long userId, Long artistId, String title) {
-        if (albumApplicationRepository.existsPendingApplication(userId, artistId, title)) {
+    private void validateDuplicateActiveApplication(Long userId, Long artistId, String title) {
+        if (albumApplicationRepository.existsActiveApplication(userId, artistId, title)) {
             throw new BusinessException(
                     AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_EXISTS
             );
