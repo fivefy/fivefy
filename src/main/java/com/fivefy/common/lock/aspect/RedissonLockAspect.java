@@ -1,10 +1,11 @@
 package com.fivefy.common.lock.aspect;
 
+import com.fivefy.common.exception.LockErrorCode;
 import com.fivefy.common.lock.AopForTransaction;
 import com.fivefy.common.lock.annotation.RedissonLock;
 import com.fivefy.common.lock.consts.AopConsts;
-import com.fivefy.common.lock.exception.ErrorEnum;
-import com.fivefy.common.lock.exception.ServiceException;
+import com.fivefy.common.exception.ErrorCode;
+import com.fivefy.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -65,7 +66,7 @@ public class RedissonLockAspect {
         if (!acquired) {
             // retryDelaySeconds 안에 락을 획득하지 못한 경우
             log.warn("[RedissonLockAspect] 락 획득 실패 - key: {}", lockKey);
-            throw new ServiceException(ErrorEnum.LOCK_ACQUISITION_FAILED);
+            throw new BusinessException(LockErrorCode.LOCK_ACQUISITION_FAILED);
         }
 
         log.info("[RedissonLockAspect] 락 획득 성공 - key: {}", lockKey);
