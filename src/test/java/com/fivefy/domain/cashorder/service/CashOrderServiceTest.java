@@ -28,11 +28,12 @@ class CashOrderServiceTest {
     private static final Long USER_ID = 99998L;
 
     @AfterEach
-    @Transactional
     void tearDown() {
-        cashOrderRepository.findAll().stream()
-            .filter(o -> o.getUserId().equals(USER_ID))
-            .forEach(cashOrderRepository::delete);
+        cashOrderRepository.deleteAll(
+            cashOrderRepository.findAll().stream()
+                .filter(o -> o.getUserId().equals(USER_ID))
+                .toList()
+        );
     }
 
     @Test

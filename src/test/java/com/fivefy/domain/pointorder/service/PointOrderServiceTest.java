@@ -45,11 +45,11 @@ class PointOrderServiceTest {
     private static final Long MONTH_PRICE = 50L;       // MONTH 플랜 가격
 
     @BeforeEach
-    @Transactional
     void setUp() {
         // 기존 지갑 삭제 후 새로 생성
-        walletRepository.findByUserId(USER_ID)
-                .ifPresent(walletRepository::delete);
+        // walletRepository.findByUserId(USER_ID).ifPresent(walletRepository::delete);
+        // ifPresent 대신 직접 삭제
+        walletRepository.deleteAll(walletRepository.findByUserId(USER_ID).stream().toList());
 
         Wallet wallet = Wallet.create(USER_ID);
         wallet.chargeBalance(INITIAL_BALANCE);  // 200P 충전
@@ -58,15 +58,13 @@ class PointOrderServiceTest {
 
     // 테스트 정리 코드
     @AfterEach
-    @Transactional
     void tearDown() {
         subscriptionRepository.deleteAllByUserId(USER_ID);
-        pointHistoryRepository.deleteAllByWalletId(
-                walletRepository.findByUserId(USER_ID).map(Wallet::getId).orElse(null)
+        walletRepository.findByUserId(USER_ID).ifPresent(w ->
+            pointHistoryRepository.deleteAllByWalletId(w.getId())
         );
         pointOrderRepository.deleteAllByUserId(USER_ID);
-        walletRepository.findByUserId(USER_ID)
-                .ifPresent(walletRepository::delete);
+        walletRepository.deleteAll(walletRepository.findByUserId(USER_ID).stream().toList());
     }
 
     @Test
