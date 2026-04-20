@@ -32,10 +32,10 @@ public class PlaylistTrack extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "playlist_id", nullable = false)
     private Long playlistId;
 
-    @Column(nullable = false)
+    @Column(name = "track_id", nullable = false)
     private Long trackId;
 
     @Column(nullable = false)
@@ -45,6 +45,10 @@ public class PlaylistTrack extends BaseEntity {
         validateNonNull(playlistId, "playlistId");
         validateNonNull(trackId, "trackId");
         validateNonNull(position, "position");
+
+        if (position <= 0) {
+            throw new BusinessException(PlaylistErrorCode.INVALID_POSITION);
+        }
 
         PlaylistTrack playlistTrack = new PlaylistTrack();
         playlistTrack.playlistId = playlistId;

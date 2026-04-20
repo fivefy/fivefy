@@ -9,6 +9,8 @@ import com.fivefy.domain.playlisttrack.dto.request.PlaylistTrackOrderUpdateReque
 import com.fivefy.domain.playlisttrack.dto.response.PlaylistTrackResponse;
 import com.fivefy.domain.playlisttrack.entity.PlaylistTrack;
 import com.fivefy.domain.playlisttrack.repository.PlaylistTrackRepository;
+import com.fivefy.domain.track.repository.TrackRepository;
+import org.hibernate.exception.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -21,8 +23,13 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class PlaylistTrackService {
 
+    // DB 유니크 제약 조건 이름 (예외 발생 시 어떤 충돌인지 구분하기 위해 사용)
+    private static final String UK_PLAYLIST_TRACK_PLAYLIST_POSITION = "uk_playlist_track_playlist_position";
+    private static final String UK_PLAYLIST_TRACK_PLAYLIST_TRACK = "uk_playlist_track_playlist_track";
+
     private final PlaylistTrackRepository playlistTrackRepository;
     private final PlaylistRepository playlistRepository;
+    private final TrackRepository trackRepository;
 
     @Transactional
     public PlaylistTrackResponse addTrack(Long userId, Long playlistId, PlaylistTrackCreateRequest request) {
@@ -32,6 +39,11 @@ public class PlaylistTrackService {
         // 본인 플레이리스트만 트랙 추가 가능
         if (!playlist.isOwner(userId)) {
             throw new BusinessException(PlaylistErrorCode.PLAYLIST_ACCESS_FORBIDDEN);
+        }
+
+        // 존재하는 트랙인지 검증
+        if (!trackRepository.existsById(request.trackId())) {
+            throw new BusinessException(PlaylistErrorCode.TRACK_NOT_FOUND);
         }
 
         // 동일 트랙 중복 추가 방지
@@ -48,10 +60,12 @@ public class PlaylistTrackService {
         );
 
         try {
-            PlaylistTrack savedPlaylistTrack = playlistTrackRepository.save(playlistTrack);
+            PlaylistTrack savedPlaylistTrack = playlistTrackRepository.saveAndFlush(playlistTrack);
             return PlaylistTrackResponse.from(savedPlaylistTrack);
+        // DB 유니크 제약조건 충돌 발생 시,
+        // 어떤 제약조건이 깨졌는지(constraint name)를 기준으로 예외 구분
         } catch (DataIntegrityViolationException e) {
-            throw new BusinessException(PlaylistErrorCode.PLAYLIST_TRACK_POSITION_CONFLICT);
+            throw handlePlaylistTrackConstraintException(e);
         }
     }
 
@@ -103,8 +117,14 @@ public class PlaylistTrackService {
         playlistTracks.remove(target);
         playlistTracks.add(newPosition - 1, target);
 
-        // 변경된 순서대로 position 재정렬
-        reorderPositions(playlistTracks);
+        try {
+            // 변경된 순서대로 position 재정렬
+            reorderPositions(playlistTracks);
+        // DB 유니크 제약조건 충돌 발생 시,
+        // 어떤 제약조건이 깨졌는지(constraint name)를 기준으로 예외 구분
+        } catch (DataIntegrityViolationException e) {
+            throw handlePlaylistTrackConstraintException(e);
+        }
     }
 
     @Transactional
@@ -128,11 +148,14 @@ public class PlaylistTrackService {
         playlistTracks.remove(target);
         playlistTrackRepository.delete(target);
 
-        // position 충돌 방지를 위해 삭제를 먼저 DB에 반영
-        playlistTrackRepository.flush();
-
-        // 변경된 순서대로 position 재정렬
-        reorderPositions(playlistTracks);
+        try {
+            // position 충돌 방지를 위해 삭제를 먼저 DB에 반영
+            playlistTrackRepository.flush();
+            // 변경된 순서대로 position 재정렬
+            reorderPositions(playlistTracks);
+        } catch (DataIntegrityViolationException e) {
+            throw handlePlaylistTrackConstraintException(e);
+        }
     }
 
     /**
@@ -153,5 +176,40 @@ public class PlaylistTrackService {
         for (int i = 0; i < playlistTracks.size(); i++) {
             playlistTracks.get(i).updatePosition(i + 1);
         }
+
+        // 최종 position 반영
+        playlistTrackRepository.flush();
+    }
+
+    /**
+     * DB 유니크 제약조건 위반 시 constraint 이름을 기반으로
+     * 적절한 비즈니스 예외 변환
+     */
+    private BusinessException handlePlaylistTrackConstraintException(DataIntegrityViolationException e) {
+        String constraintName = extractConstraintName(e);
+
+        if (UK_PLAYLIST_TRACK_PLAYLIST_TRACK.equalsIgnoreCase(constraintName)) {
+            return new BusinessException(PlaylistErrorCode.PLAYLIST_TRACK_ALREADY_EXISTS);
+        }
+
+        if (UK_PLAYLIST_TRACK_PLAYLIST_POSITION.equalsIgnoreCase(constraintName)) {
+            return new BusinessException(PlaylistErrorCode.PLAYLIST_TRACK_POSITION_CONFLICT);
+        }
+
+        throw e;
+    }
+
+    // constraint 이름을 추출하여 어떤 제약 조건이 깨졌는지 확인
+    private String extractConstraintName(Throwable throwable) {
+        Throwable current = throwable;
+
+        while (current != null) {
+            if (current instanceof ConstraintViolationException constraintViolationException) {
+                return constraintViolationException.getConstraintName();
+            }
+            current = current.getCause();
+        }
+
+        return null;
     }
 }

@@ -24,7 +24,8 @@ public enum PlaylistErrorCode implements ErrorCode {
     PLAYLIST_TRACK_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 플레이리스트에 추가된 트랙입니다"),
     INVALID_PLAYLIST_TRACK_POSITION(HttpStatus.BAD_REQUEST, "유효하지 않은 플레이리스트 트랙 순서입니다"),
     INVALID_POSITION(HttpStatus.BAD_REQUEST, "유효하지 않은 플레이리스트 순서 값입니다"),
-    PLAYLIST_TRACK_POSITION_CONFLICT(HttpStatus.CONFLICT, "트랙 순서 충돌이 발생했습니다");
+    PLAYLIST_TRACK_POSITION_CONFLICT(HttpStatus.CONFLICT, "트랙 순서 충돌이 발생했습니다"),
+    TRACK_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 트랙입니다");
 
     private final HttpStatus httpStatus;
     private final String message;

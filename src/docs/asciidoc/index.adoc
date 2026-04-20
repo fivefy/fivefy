@@ -849,6 +849,13 @@ include::{snippets}/playlist-track-add-not-found/request-fields.adoc[]
 include::{snippets}/playlist-track-add-not-found/http-response.adoc[]
 include::{snippets}/playlist-track-add-not-found/response-fields.adoc[]
 
+==== 에러 케이스 - 트랙 없음
+
+include::{snippets}/playlist-track-add-track-not-found/http-request.adoc[]
+include::{snippets}/playlist-track-add-track-not-found/request-fields.adoc[]
+include::{snippets}/playlist-track-add-track-not-found/http-response.adoc[]
+include::{snippets}/playlist-track-add-track-not-found/response-fields.adoc[]
+
 ==== 에러 케이스 - 이미 추가된 트랙
 
 include::{snippets}/playlist-track-add-duplicate/http-request.adoc[]
