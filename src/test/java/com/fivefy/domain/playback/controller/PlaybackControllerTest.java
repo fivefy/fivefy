@@ -1,6 +1,7 @@
 package com.fivefy.domain.playback.controller;
 
 import com.fivefy.common.config.security.JwtUtil;
+import com.fivefy.common.docs.RestDocsSupport;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.playback.dto.request.PlaybackPauseRequest;
 import com.fivefy.domain.playback.dto.request.PlaybackPlayRequest;
@@ -13,31 +14,29 @@ import com.fivefy.domain.playback.service.PlaybackService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.payload.JsonFieldType.*;
+import static org.springframework.restdocs.payload.PayloadDocumentation.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@WithMockUser
 @WebMvcTest(PlaybackController.class)
-@AutoConfigureMockMvc(addFilters = false)
-class PlaybackControllerTest {
-
-    @Autowired private MockMvc mockMvc;
-    @Autowired private ObjectMapper objectMapper;
+class PlaybackControllerTest extends RestDocsSupport {
 
     @MockitoBean private PlaybackService playbackService;
     @MockitoBean private JwtUtil jwtUtil;
@@ -73,6 +72,7 @@ class PlaybackControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playbacks/play")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
@@ -81,7 +81,31 @@ class PlaybackControllerTest {
                     .andExpect(jsonPath("$.data.id").value(1L))
                     .andExpect(jsonPath("$.data.playlistId").value(1L))
                     .andExpect(jsonPath("$.data.trackId").value(10L))
-                    .andExpect(jsonPath("$.data.status").value("PLAYING"));
+                    .andExpect(jsonPath("$.data.status").value("PLAYING"))
+                    .andDo(document("playback-play",
+                            requestFields(
+                                    fieldWithPath("playlistId").type(NUMBER).description("플레이리스트 ID"),
+                                    fieldWithPath("trackId").type(NUMBER).description("트랙 ID"),
+                                    fieldWithPath("sessionId").type(STRING).description("세션 ID"),
+                                    fieldWithPath("deviceId").type(STRING).description("디바이스 ID")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    fieldWithPath("data.id").type(NUMBER).description("재생 기록 ID"),
+                                    fieldWithPath("data.playlistId").type(NUMBER).description("플레이리스트 ID"),
+                                    fieldWithPath("data.trackId").type(NUMBER).description("트랙 ID"),
+                                    fieldWithPath("data.userId").type(NUMBER).description("유저 ID"),
+                                    fieldWithPath("data.sessionId").type(STRING).description("세션 ID"),
+                                    fieldWithPath("data.deviceId").type(STRING).description("디바이스 ID"),
+                                    fieldWithPath("data.status").type(STRING).description("재생 상태"),
+                                    fieldWithPath("data.playedDuration").type(NUMBER).description("누적 재생 시간(초)"),
+                                    fieldWithPath("data.startedAt").type(STRING).description("재생 시작 시각"),
+                                    fieldWithPath("data.lastPlayedAt").type(STRING).description("마지막 재생 시각"),
+                                    fieldWithPath("data.endedAt").type(NULL).description("재생 종료 시각")
+                            )
+                    ));
         }
 
         @Test
@@ -98,9 +122,20 @@ class PlaybackControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playbacks/play")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(request))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andDo(document("playback-play-invalid-playlist-id",
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지"),
+                                    fieldWithPath("data").type(ARRAY).description("상세 에러 내역"),
+                                    fieldWithPath("data[].field").type(STRING).description("에러가 발생한 필드명"),
+                                    fieldWithPath("data[].message").type(STRING).description("에러 상세 사유")
+                            )
+                    ));
         }
 
         @Test
@@ -117,6 +152,7 @@ class PlaybackControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playbacks/play")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(request))
                     .andExpect(status().isBadRequest());
@@ -137,6 +173,7 @@ class PlaybackControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playbacks/play")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(request))
                     .andExpect(status().isBadRequest());
@@ -153,10 +190,24 @@ class PlaybackControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playbacks/play")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isConflict())
-                    .andExpect(jsonPath("$.message").value(PlaybackErrorCode.INVALID_PLAYBACK_STATE.getMessage()));
+                    .andExpect(jsonPath("$.message").value(PlaybackErrorCode.INVALID_PLAYBACK_STATE.getMessage()))
+                    .andDo(document("playback-play-invalid-state",
+                            requestFields(
+                                    fieldWithPath("playlistId").type(NUMBER).description("플레이리스트 ID"),
+                                    fieldWithPath("trackId").type(NUMBER).description("트랙 ID"),
+                                    fieldWithPath("sessionId").type(STRING).description("세션 ID"),
+                                    fieldWithPath("deviceId").type(STRING).description("디바이스 ID")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
         }
 
         @Test
@@ -170,10 +221,24 @@ class PlaybackControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playbacks/play")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.message").value(PlaybackErrorCode.PLAYLIST_TRACK_NOT_INCLUDED.getMessage()));
+                    .andExpect(jsonPath("$.message").value(PlaybackErrorCode.PLAYLIST_TRACK_NOT_INCLUDED.getMessage()))
+                    .andDo(document("playback-play-track-not-included",
+                            requestFields(
+                                    fieldWithPath("playlistId").type(NUMBER).description("플레이리스트 ID"),
+                                    fieldWithPath("trackId").type(NUMBER).description("트랙 ID"),
+                                    fieldWithPath("sessionId").type(STRING).description("세션 ID"),
+                                    fieldWithPath("deviceId").type(STRING).description("디바이스 ID")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
         }
     }
 
@@ -205,12 +270,34 @@ class PlaybackControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playbacks/pause")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("재생 일시정지 성공"))
-                    .andExpect(jsonPath("$.data.status").value("PAUSED"));
+                    .andExpect(jsonPath("$.data.status").value("PAUSED"))
+                    .andDo(document("playback-pause",
+                            requestFields(
+                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    fieldWithPath("data.id").type(NUMBER).description("재생 기록 ID"),
+                                    fieldWithPath("data.playlistId").type(NUMBER).description("플레이리스트 ID"),
+                                    fieldWithPath("data.trackId").type(NUMBER).description("트랙 ID"),
+                                    fieldWithPath("data.userId").type(NUMBER).description("유저 ID"),
+                                    fieldWithPath("data.sessionId").type(STRING).description("세션 ID"),
+                                    fieldWithPath("data.deviceId").type(STRING).description("디바이스 ID"),
+                                    fieldWithPath("data.status").type(STRING).description("재생 상태"),
+                                    fieldWithPath("data.playedDuration").type(NUMBER).description("누적 재생 시간(초)"),
+                                    fieldWithPath("data.startedAt").type(STRING).description("재생 시작 시각"),
+                                    fieldWithPath("data.lastPlayedAt").type(STRING).description("마지막 재생 시각"),
+                                    fieldWithPath("data.endedAt").type(NULL).description("재생 종료 시각")
+                            )
+                    ));
         }
 
         @Test
@@ -221,9 +308,20 @@ class PlaybackControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playbacks/pause")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(request))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andDo(document("playback-pause-invalid",
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지"),
+                                    fieldWithPath("data").type(ARRAY).description("상세 에러 내역"),
+                                    fieldWithPath("data[].field").type(STRING).description("에러가 발생한 필드명"),
+                                    fieldWithPath("data[].message").type(STRING).description("에러 상세 사유")
+                            )
+                    ));
         }
 
         @Test
@@ -237,10 +335,21 @@ class PlaybackControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playbacks/pause")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.message").value(PlaybackErrorCode.PLAYBACK_NOT_FOUND.getMessage()));
+                    .andExpect(jsonPath("$.message").value(PlaybackErrorCode.PLAYBACK_NOT_FOUND.getMessage()))
+                    .andDo(document("playback-pause-not-found",
+                            requestFields(
+                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
         }
 
         @Test
@@ -254,10 +363,21 @@ class PlaybackControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playbacks/pause")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isConflict())
-                    .andExpect(jsonPath("$.message").value(PlaybackErrorCode.CURRENT_PLAYBACK_NOT_FOUND.getMessage()));
+                    .andExpect(jsonPath("$.message").value(PlaybackErrorCode.CURRENT_PLAYBACK_NOT_FOUND.getMessage()))
+                    .andDo(document("playback-pause-current-not-found",
+                            requestFields(
+                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
         }
     }
 
@@ -289,6 +409,7 @@ class PlaybackControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playbacks/skip")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
@@ -296,7 +417,28 @@ class PlaybackControllerTest {
                     .andExpect(jsonPath("$.message").value("곡 건너뛰기 성공"))
                     .andExpect(jsonPath("$.data.id").value(2L))
                     .andExpect(jsonPath("$.data.trackId").value(20L))
-                    .andExpect(jsonPath("$.data.status").value("PLAYING"));
+                    .andExpect(jsonPath("$.data.status").value("PLAYING"))
+                    .andDo(document("playback-skip",
+                            requestFields(
+                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    fieldWithPath("data.id").type(NUMBER).description("재생 기록 ID"),
+                                    fieldWithPath("data.playlistId").type(NUMBER).description("플레이리스트 ID"),
+                                    fieldWithPath("data.trackId").type(NUMBER).description("트랙 ID"),
+                                    fieldWithPath("data.userId").type(NUMBER).description("유저 ID"),
+                                    fieldWithPath("data.sessionId").type(STRING).description("세션 ID"),
+                                    fieldWithPath("data.deviceId").type(STRING).description("디바이스 ID"),
+                                    fieldWithPath("data.status").type(STRING).description("재생 상태"),
+                                    fieldWithPath("data.playedDuration").type(NUMBER).description("누적 재생 시간(초)"),
+                                    fieldWithPath("data.startedAt").type(STRING).description("재생 시작 시각"),
+                                    fieldWithPath("data.lastPlayedAt").type(STRING).description("마지막 재생 시각"),
+                                    fieldWithPath("data.endedAt").type(NULL).description("재생 종료 시각")
+                            )
+                    ));
         }
 
         @Test
@@ -307,9 +449,20 @@ class PlaybackControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playbacks/skip")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(request))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andDo(document("playback-skip-invalid",
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지"),
+                                    fieldWithPath("data").type(ARRAY).description("상세 에러 내역"),
+                                    fieldWithPath("data[].field").type(STRING).description("에러가 발생한 필드명"),
+                                    fieldWithPath("data[].message").type(STRING).description("에러 상세 사유")
+                            )
+                    ));
         }
 
         @Test
@@ -323,10 +476,21 @@ class PlaybackControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playbacks/skip")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.message").value(PlaybackErrorCode.PLAYBACK_NOT_FOUND.getMessage()));
+                    .andExpect(jsonPath("$.message").value(PlaybackErrorCode.PLAYBACK_NOT_FOUND.getMessage()))
+                    .andDo(document("playback-skip-not-found",
+                            requestFields(
+                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
         }
 
         @Test
@@ -340,10 +504,21 @@ class PlaybackControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playbacks/skip")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isConflict())
-                    .andExpect(jsonPath("$.message").value(PlaybackErrorCode.INVALID_PLAYBACK_STATE.getMessage()));
+                    .andExpect(jsonPath("$.message").value(PlaybackErrorCode.INVALID_PLAYBACK_STATE.getMessage()))
+                    .andDo(document("playback-skip-invalid-state",
+                            requestFields(
+                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
         }
 
         @Test
@@ -357,10 +532,21 @@ class PlaybackControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playbacks/skip")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.message").value(PlaybackErrorCode.PLAYLIST_TRACK_NOT_FOUND.getMessage()));
+                    .andExpect(jsonPath("$.message").value(PlaybackErrorCode.PLAYLIST_TRACK_NOT_FOUND.getMessage()))
+                    .andDo(document("playback-skip-playlist-track-not-found",
+                            requestFields(
+                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
         }
 
         @Test
@@ -374,10 +560,21 @@ class PlaybackControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playbacks/skip")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isConflict())
-                    .andExpect(jsonPath("$.message").value(PlaybackErrorCode.PLAYBACK_TRACK_MISMATCH.getMessage()));
+                    .andExpect(jsonPath("$.message").value(PlaybackErrorCode.PLAYBACK_TRACK_MISMATCH.getMessage()))
+                    .andDo(document("playback-skip-track-mismatch",
+                            requestFields(
+                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
         }
     }
 
@@ -409,12 +606,34 @@ class PlaybackControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playbacks/stop")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("곡 정지 성공"))
-                    .andExpect(jsonPath("$.data.status").value("STOPPED"));
+                    .andExpect(jsonPath("$.data.status").value("STOPPED"))
+                    .andDo(document("playback-stop",
+                            requestFields(
+                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    fieldWithPath("data.id").type(NUMBER).description("재생 기록 ID"),
+                                    fieldWithPath("data.playlistId").type(NUMBER).description("플레이리스트 ID"),
+                                    fieldWithPath("data.trackId").type(NUMBER).description("트랙 ID"),
+                                    fieldWithPath("data.userId").type(NUMBER).description("유저 ID"),
+                                    fieldWithPath("data.sessionId").type(STRING).description("세션 ID"),
+                                    fieldWithPath("data.deviceId").type(STRING).description("디바이스 ID"),
+                                    fieldWithPath("data.status").type(STRING).description("재생 상태"),
+                                    fieldWithPath("data.playedDuration").type(NUMBER).description("누적 재생 시간(초)"),
+                                    fieldWithPath("data.startedAt").type(STRING).description("재생 시작 시각"),
+                                    fieldWithPath("data.lastPlayedAt").type(STRING).description("마지막 재생 시각"),
+                                    fieldWithPath("data.endedAt").type(STRING).description("재생 종료 시각")
+                            )
+                    ));
         }
 
         @Test
@@ -425,9 +644,20 @@ class PlaybackControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playbacks/stop")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(request))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andDo(document("playback-stop-invalid",
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지"),
+                                    fieldWithPath("data").type(ARRAY).description("상세 에러 내역"),
+                                    fieldWithPath("data[].field").type(STRING).description("에러가 발생한 필드명"),
+                                    fieldWithPath("data[].message").type(STRING).description("에러 상세 사유")
+                            )
+                    ));
         }
 
         @Test
@@ -441,10 +671,21 @@ class PlaybackControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playbacks/stop")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.message").value(PlaybackErrorCode.PLAYBACK_NOT_FOUND.getMessage()));
+                    .andExpect(jsonPath("$.message").value(PlaybackErrorCode.PLAYBACK_NOT_FOUND.getMessage()))
+                    .andDo(document("playback-stop-not-found",
+                            requestFields(
+                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
         }
 
         @Test
@@ -458,10 +699,21 @@ class PlaybackControllerTest {
 
             // when & then
             mockMvc.perform(post("/api/playbacks/stop")
+                            .with(csrf().asHeader())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isConflict())
-                    .andExpect(jsonPath("$.message").value(PlaybackErrorCode.INVALID_PLAYBACK_STATE.getMessage()));
+                    .andExpect(jsonPath("$.message").value(PlaybackErrorCode.INVALID_PLAYBACK_STATE.getMessage()))
+                    .andDo(document("playback-stop-invalid-state",
+                            requestFields(
+                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID")
+                            ),
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("에러 메시지")
+                            )
+                    ));
         }
     }
 
@@ -512,7 +764,26 @@ class PlaybackControllerTest {
                     .andExpect(jsonPath("$.data[0].id").value(2L))
                     .andExpect(jsonPath("$.data[0].status").value("SKIPPED"))
                     .andExpect(jsonPath("$.data[1].id").value(1L))
-                    .andExpect(jsonPath("$.data[1].status").value("COMPLETED"));
+                    .andExpect(jsonPath("$.data[1].status").value("COMPLETED"))
+                    .andDo(document("playback-history",
+                            responseFields(
+                                    fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
+                                    fieldWithPath("status").type(STRING).description("HTTP 상태 코드"),
+                                    fieldWithPath("message").type(STRING).description("응답 메시지"),
+                                    fieldWithPath("data").type(ARRAY).description("재생 기록 목록"),
+                                    fieldWithPath("data[].id").type(NUMBER).description("재생 기록 ID"),
+                                    fieldWithPath("data[].playlistId").type(NUMBER).description("플레이리스트 ID"),
+                                    fieldWithPath("data[].trackId").type(NUMBER).description("트랙 ID"),
+                                    fieldWithPath("data[].userId").type(NUMBER).description("유저 ID"),
+                                    fieldWithPath("data[].sessionId").type(STRING).description("세션 ID"),
+                                    fieldWithPath("data[].deviceId").type(STRING).description("디바이스 ID"),
+                                    fieldWithPath("data[].status").type(STRING).description("재생 상태"),
+                                    fieldWithPath("data[].playedDuration").type(NUMBER).description("누적 재생 시간(초)"),
+                                    fieldWithPath("data[].startedAt").type(STRING).description("재생 시작 시각"),
+                                    fieldWithPath("data[].lastPlayedAt").type(STRING).description("마지막 재생 시각"),
+                                    fieldWithPath("data[].endedAt").type(STRING).description("재생 종료 시각")
+                            )
+                    ));
         }
     }
 }
