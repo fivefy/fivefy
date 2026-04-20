@@ -19,6 +19,7 @@ import com.fivefy.domain.wallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -46,6 +47,7 @@ public class PointOrderService {
      */
     // CashOrder와 PointOrder 모두 wallet와  같은 Wallet ID 수정
     @RedissonLock(key = "'wallet:' + #userId")
+    @Transactional
     public SubscriptionResponse purchase(Long userId, PointOrderPurchaseRequest request) {
         SubscriptionPlanType planType = request.planType();
         Long price = planType.getPrice();
@@ -116,6 +118,7 @@ public class PointOrderService {
      */
     // CashOrder와 PointOrder 모두 wallet와  같은 Wallet ID 수정
     @RedissonLock(key = "'wallet:' + #userId")
+    @Transactional
     public SubscriptionResponse refund(Long userId, PointOrderRefundRequest request) {
         // 1. 구독 조회 및 검증
         Subscription subscription = subscriptionRepository.findById(request.subscriptionId())
