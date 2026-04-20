@@ -4,6 +4,7 @@ import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.notification.dto.response.NotificationGetResponse;
 import com.fivefy.domain.notification.entity.Notification;
 import com.fivefy.domain.notification.enums.NotificationChannel;
+import com.fivefy.domain.notification.enums.NotificationErrorCode;
 import com.fivefy.domain.notification.enums.NotificationStatus;
 import com.fivefy.domain.notification.enums.NotificationType;
 import com.fivefy.domain.notification.repository.NotificationRepository;
@@ -49,6 +50,8 @@ class NotificationServiceTest {
     private NotificationService notificationService;
 
     private static final Long USER_ID = 1L;
+    private static final Long OTHER_USER_ID = 2L;
+    private static final Long NOTIFICATION_ID = 10L;
 
     private Notification makeNotification(Long userId) {
         return Notification.create(userId, "테스트 알림", NotificationType.NEW_FOLLOWER, NotificationChannel.IN_APP);
@@ -167,6 +170,115 @@ class NotificationServiceTest {
             assertThatThrownBy(() -> notificationService.getNotifications(USER_ID, PageRequest.of(0, 20)))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(UserErrorCode.ERR_USER_NOT_FOUND.getMessage());
+        }
+    }
+
+    @Nested
+    @DisplayName("읽음 처리")
+    class MarkAsRead {
+
+        @Test
+        @DisplayName("단건 읽음 처리 성공 시 readAt이 설정된다")
+        void markAsRead_success() {
+            // given
+            Notification notification = makeNotification(USER_ID);
+            given(notificationRepository.findById(NOTIFICATION_ID)).willReturn(Optional.of(notification));
+
+            // when
+            notificationService.markAsRead(USER_ID, NOTIFICATION_ID);
+
+            // then
+            assertThat(notification.isRead()).isTrue();
+            assertThat(notification.getReadAt()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 알림 읽음 처리 시 예외가 발생한다")
+        void markAsRead_notFound_throwsException() {
+            // given
+            given(notificationRepository.findById(any())).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> notificationService.markAsRead(USER_ID, NOTIFICATION_ID))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(NotificationErrorCode.ERR_NOTIFICATION_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("다른 유저의 알림 읽음 처리 시 예외가 발생한다")
+        void markAsRead_unauthorized_throwsException() {
+            // given
+            Notification notification = makeNotification(USER_ID);
+            given(notificationRepository.findById(NOTIFICATION_ID)).willReturn(Optional.of(notification));
+
+            // when & then
+            assertThatThrownBy(() -> notificationService.markAsRead(OTHER_USER_ID, NOTIFICATION_ID))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(NotificationErrorCode.ERR_NOTIFICATION_UNAUTHORIZED.getMessage());
+        }
+
+        @Test
+        @DisplayName("전체 읽음 처리 시 markAllAsRead가 호출된다")
+        void markAllAsRead_success() {
+            // when
+            notificationService.markAllAsRead(USER_ID);
+
+            // then
+            verify(notificationRepository).markAllAsRead(USER_ID);
+        }
+    }
+
+    @Nested
+    @DisplayName("알림 삭제")
+    class DeleteNotification {
+
+        @Test
+        @DisplayName("단건 삭제 성공 시 delete가 호출된다")
+        void deleteNotification_success() {
+            // given
+            Notification notification = makeNotification(USER_ID);
+            given(notificationRepository.findById(NOTIFICATION_ID)).willReturn(Optional.of(notification));
+
+            // when
+            notificationService.deleteNotification(USER_ID, NOTIFICATION_ID);
+
+            // then
+            verify(notificationRepository).delete(notification);
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 알림 삭제 시 예외가 발생한다")
+        void deleteNotification_notFound_throwsException() {
+            // given
+            given(notificationRepository.findById(any())).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> notificationService.deleteNotification(USER_ID, NOTIFICATION_ID))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(NotificationErrorCode.ERR_NOTIFICATION_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("다른 유저의 알림 삭제 시 예외가 발생한다")
+        void deleteNotification_unauthorized_throwsException() {
+            // given
+            Notification notification = makeNotification(USER_ID);
+            given(notificationRepository.findById(NOTIFICATION_ID)).willReturn(Optional.of(notification));
+
+            // when & then
+            assertThatThrownBy(() -> notificationService.deleteNotification(OTHER_USER_ID, NOTIFICATION_ID))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(NotificationErrorCode.ERR_NOTIFICATION_UNAUTHORIZED.getMessage());
+        }
+
+        @Test
+        @DisplayName("전체 삭제 시 deleteAllByUserId가 호출된다")
+        void deleteAllNotifications_success() {
+            // when
+            notificationService.deleteAllNotifications(USER_ID);
+
+            // then
+            verify(notificationRepository).deleteAllByUserId(USER_ID);
         }
     }
 }
