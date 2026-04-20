@@ -12,7 +12,7 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
 @Entity
 @Getter
-@Table(name = "orders")
+@Table(name = "point_orders")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PointOrder extends BaseEntity {
 
@@ -25,10 +25,10 @@ public class PointOrder extends BaseEntity {
 
     /**
      * 구독 플랜 타입
-     * MONTH        : 1달
-     * YEAR         : 1년
-     * FREE         : 무료(1회 한정)
-     * RECURRING    : 정기 구독(3개월 이후부터 구독 취소 가능)
+     * MONTH        : 50P   : 1달
+     * YEAR         : 500P  : 1년
+     * FREE         : 0P    : 무료(1회 한정)
+     * RECURRING    : 45P   : 정기 구독(3개월 이후부터 구독 취소 가능)
      */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -39,9 +39,7 @@ public class PointOrder extends BaseEntity {
 
     /**
      * 구독 패키지 상품 번호(상점이 없으니 자체적으로 진행)
-     * 1번 : 50 포인트 = 1달 이용
-     * 2번 : 500포인트 = 1년 이용
-     * 3번 : 0포인트 = 3일 이용(계정당 1회 한정)
+     * 자체 주문번호 ("SUB-" + UUID 앞 8자리)
      */
     @Column(nullable = false)
     private String orderNumber;
@@ -50,6 +48,14 @@ public class PointOrder extends BaseEntity {
     @Column(nullable = false)
     private PointOrderStatus status;
 
+    /**
+     * 구독 주문 생성 매서드
+     *
+     * @param userId
+     * @param planType
+     * @param orderNumber
+     * @return
+     */
     public static PointOrder create(Long userId, SubscriptionPlanType planType, String orderNumber) {
         validateNonNull(userId, "userId");
         validateNonNull(planType, "planType");
@@ -58,13 +64,17 @@ public class PointOrder extends BaseEntity {
         PointOrder pointOrder = new PointOrder();
             pointOrder.userId = userId;
             pointOrder.planType = planType;
-            pointOrder.subscriptionAmount = planType.getPrice();
+            pointOrder.subscriptionAmount = planType.getPrice(); // 구매 시점 가격 확정
             pointOrder.orderNumber = orderNumber;
             pointOrder.status = PointOrderStatus.PENDING;
 
         return pointOrder;
     }
 
+    /**
+     * 주문 완료 처리 (PENDING → SUCCESS)
+     * 외부 PG 없이 내부 처리이므로 PENDING → SUCCESS 즉시 전환
+     */
     public void success() {
         if (this.status != PointOrderStatus.PENDING) {
             throw new IllegalStateException("PENDING 상태에서만 성공 처리할 수 있습니다.");
@@ -72,6 +82,10 @@ public class PointOrder extends BaseEntity {
         this.status = PointOrderStatus.SUCCESS;
     }
 
+    /**
+     * 주문 환불 처리 (SUCCESS → REFUNDED)
+     * PointOrderService.refund()에서 subscription.refund() 후 호출
+     */
     public void refund() {
         if (this.status != PointOrderStatus.SUCCESS) {
             throw new IllegalStateException("SUCCESS 상태에서만 환불 처리할 수 있습니다.");

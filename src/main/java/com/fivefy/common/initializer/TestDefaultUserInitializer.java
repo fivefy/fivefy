@@ -39,7 +39,7 @@ import java.time.LocalDateTime;
  *
  * 로 설정되어 있을 경우 test 데이터를 추가해 줍니다
  */
-@Component
+// @Component
 @ConditionalOnProperty(name = "app.add-wallet-dummy-test-data", havingValue = "true", matchIfMissing = false)
 @Profile("!prod")
 @RequiredArgsConstructor

@@ -845,7 +845,7 @@
     if (!jwtToken) { log('error', '먼저 로그인하세요'); return; }
     log('info', `구독 구매: ${planType}`);
     try {
-      const data = await apiFetch('/api/me/subscriptions/purchases', 'POST', { planType });
+      const data = await apiFetch('/api/me/point-orders/purchases', 'POST', { planType });
       log('success', `구독 구매 완료: ${planType}`);
       setResult('subResult', data);
     } catch (e) {
@@ -899,7 +899,7 @@
 
     log('info', `구독 환불: ID ${subId}`);
     try {
-      const data = await apiFetch('/api/me/subscriptions/refunds', 'POST', {
+      const data = await apiFetch('/api/me/point-orders/refunds', 'POST', {
         subscriptionId: Number(subId)
       });
       log('success', '구독 환불 완료');
