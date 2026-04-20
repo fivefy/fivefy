@@ -1,8 +1,10 @@
 package com.fivefy.domain.notification.controller;
 
 import com.fivefy.common.config.security.JwtUtil;
+import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.notification.dto.response.NotificationGetResponse;
 import com.fivefy.domain.notification.enums.NotificationChannel;
+import com.fivefy.domain.notification.enums.NotificationErrorCode;
 import com.fivefy.domain.notification.enums.NotificationStatus;
 import com.fivefy.domain.notification.enums.NotificationType;
 import com.fivefy.domain.notification.service.NotificationService;
@@ -25,10 +27,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(NotificationController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -46,6 +50,7 @@ class NotificationControllerTest {
     @MockitoBean
     private StringRedisTemplate stringRedisTemplate;
 
+    private static final Long USER_ID = 1L;
     private static final Long NOTIFICATION_ID = 10L;
 
     private NotificationGetResponse makeResponse() {
@@ -128,6 +133,130 @@ class NotificationControllerTest {
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("읽지 않은 알림 수 조회 성공"))
                     .andExpect(jsonPath("$.data").value(5));
+        }
+    }
+
+    @Nested
+    @DisplayName("단건 읽음 처리")
+    class MarkAsRead {
+
+        @Test
+        @DisplayName("읽음 처리 성공 시 200을 반환한다")
+        void markAsRead_returns200() throws Exception {
+            // given
+            doNothing().when(notificationService).markAsRead(any(), eq(NOTIFICATION_ID));
+
+            // when & then
+            mockMvc.perform(patch("/api/notifications/{notificationId}/read", NOTIFICATION_ID))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("알림 읽음 처리 성공"));
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 알림 읽음 처리 시 404를 반환한다")
+        void markAsRead_notFound_returns404() throws Exception {
+            // given
+            doThrow(new BusinessException(NotificationErrorCode.ERR_NOTIFICATION_NOT_FOUND))
+                    .when(notificationService).markAsRead(any(), eq(NOTIFICATION_ID));
+
+            // when & then
+            mockMvc.perform(patch("/api/notifications/{notificationId}/read", NOTIFICATION_ID))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.message").value(NotificationErrorCode.ERR_NOTIFICATION_NOT_FOUND.getMessage()));
+        }
+
+        @Test
+        @DisplayName("다른 유저의 알림 읽음 처리 시 403을 반환한다")
+        void markAsRead_unauthorized_returns403() throws Exception {
+            // given
+            doThrow(new BusinessException(NotificationErrorCode.ERR_NOTIFICATION_UNAUTHORIZED))
+                    .when(notificationService).markAsRead(any(), eq(NOTIFICATION_ID));
+
+            // when & then
+            mockMvc.perform(patch("/api/notifications/{notificationId}/read", NOTIFICATION_ID))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.message").value(NotificationErrorCode.ERR_NOTIFICATION_UNAUTHORIZED.getMessage()));
+        }
+    }
+
+    @Nested
+    @DisplayName("전체 읽음 처리")
+    class MarkAllAsRead {
+
+        @Test
+        @DisplayName("전체 읽음 처리 성공 시 200을 반환한다")
+        void markAllAsRead_returns200() throws Exception {
+            // given
+            doNothing().when(notificationService).markAllAsRead(any());
+
+            // when & then
+            mockMvc.perform(patch("/api/notifications/read-all"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("전체 알림 읽음 처리 성공"));
+        }
+    }
+
+    @Nested
+    @DisplayName("단건 알림 삭제")
+    class DeleteNotification {
+
+        @Test
+        @DisplayName("단건 삭제 성공 시 200을 반환한다")
+        void deleteNotification_returns200() throws Exception {
+            // given
+            doNothing().when(notificationService).deleteNotification(any(), eq(NOTIFICATION_ID));
+
+            // when & then
+            mockMvc.perform(delete("/api/notifications/{notificationId}", NOTIFICATION_ID))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("알림 삭제 성공"));
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 알림 삭제 시 404를 반환한다")
+        void deleteNotification_notFound_returns404() throws Exception {
+            // given
+            doThrow(new BusinessException(NotificationErrorCode.ERR_NOTIFICATION_NOT_FOUND))
+                    .when(notificationService).deleteNotification(any(), eq(NOTIFICATION_ID));
+
+            // when & then
+            mockMvc.perform(delete("/api/notifications/{notificationId}", NOTIFICATION_ID))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.message").value(NotificationErrorCode.ERR_NOTIFICATION_NOT_FOUND.getMessage()));
+        }
+
+        @Test
+        @DisplayName("다른 유저의 알림 삭제 시 403을 반환한다")
+        void deleteNotification_unauthorized_returns403() throws Exception {
+            // given
+            doThrow(new BusinessException(NotificationErrorCode.ERR_NOTIFICATION_UNAUTHORIZED))
+                    .when(notificationService).deleteNotification(any(), eq(NOTIFICATION_ID));
+
+            // when & then
+            mockMvc.perform(delete("/api/notifications/{notificationId}", NOTIFICATION_ID))
+                    .andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.message").value(NotificationErrorCode.ERR_NOTIFICATION_UNAUTHORIZED.getMessage()));
+        }
+    }
+
+    @Nested
+    @DisplayName("전체 알림 삭제")
+    class DeleteAllNotifications {
+
+        @Test
+        @DisplayName("전체 삭제 성공 시 200을 반환한다")
+        void deleteAllNotifications_returns200() throws Exception {
+            // given
+            doNothing().when(notificationService).deleteAllNotifications(any());
+
+            // when & then
+            mockMvc.perform(delete("/api/notifications"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success").value(true))
+                    .andExpect(jsonPath("$.message").value("전체 알림 삭제 성공"));
         }
     }
 }
