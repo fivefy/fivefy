@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -27,6 +28,7 @@ class CashOrderServiceTest {
     private static final Long USER_ID = 99998L;
 
     @AfterEach
+    @Transactional
     void tearDown() {
         cashOrderRepository.findAll().stream()
             .filter(o -> o.getUserId().equals(USER_ID))
