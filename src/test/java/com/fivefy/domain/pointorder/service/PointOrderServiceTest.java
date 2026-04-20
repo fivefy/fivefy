@@ -13,6 +13,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,14 +44,16 @@ class PointOrderServiceTest {
     private static final Long USER_ID = 99999L;
     private static final Long INITIAL_BALANCE = 200L;  // 200P
     private static final Long MONTH_PRICE = 50L;       // MONTH 플랜 가격
+    @Autowired JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void setUp() {
+        // JdbcTemplate으로 직접 SQL 실행 — 트랜잭션 불필요
+        jdbcTemplate.update("DELETE FROM subscriptions WHERE user_id = ?", USER_ID);
+        jdbcTemplate.update("DELETE FROM point_orders WHERE user_id = ?", USER_ID);
+        jdbcTemplate.update("DELETE FROM point_histories WHERE wallet_id IN (SELECT id FROM wallets WHERE user_id = ?)", USER_ID);
+        jdbcTemplate.update("DELETE FROM wallets WHERE user_id = ?", USER_ID);
         // 기존 지갑 삭제 후 새로 생성
-        // walletRepository.findByUserId(USER_ID).ifPresent(walletRepository::delete);
-        // ifPresent 대신 직접 삭제
-        walletRepository.deleteAll(walletRepository.findByUserId(USER_ID).stream().toList());
-
         Wallet wallet = Wallet.create(USER_ID);
         wallet.chargeBalance(INITIAL_BALANCE);  // 200P 충전
         walletRepository.save(wallet);
@@ -59,12 +62,10 @@ class PointOrderServiceTest {
     // 테스트 정리 코드
     @AfterEach
     void tearDown() {
-        subscriptionRepository.deleteAllByUserId(USER_ID);
-        walletRepository.findByUserId(USER_ID).ifPresent(w ->
-            pointHistoryRepository.deleteAllByWalletId(w.getId())
-        );
-        pointOrderRepository.deleteAllByUserId(USER_ID);
-        walletRepository.deleteAll(walletRepository.findByUserId(USER_ID).stream().toList());
+        jdbcTemplate.update("DELETE FROM subscriptions WHERE user_id = ?", USER_ID);
+        jdbcTemplate.update("DELETE FROM point_orders WHERE user_id = ?", USER_ID);
+        jdbcTemplate.update("DELETE FROM point_histories WHERE wallet_id IN (SELECT id FROM wallets WHERE user_id = ?)", USER_ID);
+        jdbcTemplate.update("DELETE FROM wallets WHERE user_id = ?", USER_ID);
     }
 
     @Test
