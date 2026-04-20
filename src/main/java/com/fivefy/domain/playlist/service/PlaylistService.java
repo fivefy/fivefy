@@ -104,7 +104,7 @@ public class PlaylistService {
         // TRIAL(체험), ACTIVE(유료) 상태인 경우 유효한 구독으로 판단
         boolean hasValidSubscription = subscriptionRepository.existsByUserIdAndStatusIn(
                 userId,
-                List.of(SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE)
+                List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
         );
 
         // 유효한 구독이 없으면 플레이리스트 생성 불가
