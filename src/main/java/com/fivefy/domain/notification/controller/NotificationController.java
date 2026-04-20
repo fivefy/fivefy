@@ -13,9 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RequestMapping("/api")
@@ -39,5 +37,33 @@ public class NotificationController {
         return ResponseEntity.status(HttpStatus.OK)
                         .body(BaseResponse.success(
                                 HttpStatus.OK, "알림 목록 조회 성공", PageResponse.from(response)));
+    }
+
+    @GetMapping("/notifications/unread-count")
+    public ResponseEntity<BaseResponse<Long>> getUnreadCount(
+            @AuthenticationPrincipal Long userId) {
+        long count = notificationService.getUnreadCount(userId);
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(BaseResponse.success(HttpStatus.OK, "읽지 않은 알림 수 조회 성공", count));
+    }
+
+    @PatchMapping("/notifications/{notificationId}/read")
+    public ResponseEntity<BaseResponse<Void>> markAsRead(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long notificationId) {
+        notificationService.markAsRead(userId, notificationId);
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(BaseResponse.success(HttpStatus.OK, "알림 읽음 처리 성공", null));
+    }
+
+    @PatchMapping("/notifications/read-all")
+    public ResponseEntity<BaseResponse<Void>> markAllAsRead(
+            @AuthenticationPrincipal Long userId) {
+        notificationService.markAllAsRead(userId);
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(BaseResponse.success(HttpStatus.OK, "전체 알림 읽음 처리 성공", null));
     }
 }

@@ -66,4 +66,12 @@ public class Notification extends BaseEntity {
     public void markAsFailed() {
         this.status = NotificationStatus.FAILED;
     }
+
+    public void markAsRead() {
+        this.readAt = LocalDateTime.now();
+    }
+
+    public boolean isRead() {
+        return this.readAt != null;
+    }
 }

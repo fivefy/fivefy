@@ -4,6 +4,7 @@ import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.notification.dto.response.NotificationGetResponse;
 import com.fivefy.domain.notification.entity.Notification;
 import com.fivefy.domain.notification.enums.NotificationChannel;
+import com.fivefy.domain.notification.enums.NotificationErrorCode;
 import com.fivefy.domain.notification.enums.NotificationType;
 import com.fivefy.domain.notification.event.NotificationEvent;
 import com.fivefy.domain.notification.repository.NotificationRepository;
@@ -64,6 +65,7 @@ public class NotificationService {
         return emitter;
     }
 
+    // 알림 발송 (수신 -> 저장 -> sse push)
     @Async
     @EventListener
     public void handleBotificationEvent(NotificationEvent event) {
@@ -89,12 +91,36 @@ public class NotificationService {
         });
     }
 
+    // 알림 목록 조회
     @Transactional(readOnly = true)
     public Page<NotificationGetResponse> getNotifications(Long userId, Pageable pageable) {
         User user = getUser(userId);
 
         return notificationRepository.findAllByUserId(user.getId(), pageable)
                 .map(NotificationGetResponse::from);
+    }
+
+    @Transactional(readOnly = true)
+    public long getUnreadCount(Long userId) {
+        return notificationRepository.countByUserIdAndReadAtIsNull(userId);
+    }
+
+    // 읽음 처리
+    @Transactional
+    public void markAsRead(Long userId, Long notificationId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new BusinessException(NotificationErrorCode.ERR_NOTIFICATION_NOT_FOUND));
+
+        if (!notification.getUserId().equals(userId)) {
+            throw new BusinessException(NotificationErrorCode.ERR_NOTIFICATION_UNAUTHORIZED);
+        }
+
+        notification.markAsRead();
+    }
+
+    @Transactional
+    public void markAllAsRead(Long userId) {
+        notificationRepository.markAllAsRead(userId);
     }
 
     private User getUser(Long userId) {
