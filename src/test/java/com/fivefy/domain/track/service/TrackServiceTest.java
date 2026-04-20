@@ -1066,12 +1066,14 @@ class TrackServiceTest {
         void approveTrackApplication_success_whenImmediatePublish() {
             Long adminId = 1L;
             Long applicationId = 10L;
+            Long artistId = 100L;
+            Long albumId = 200L;
 
             TrackApplication application = TrackApplication.create(
                     2L,
                     TrackType.OFFICIAL_RELEASE,
-                    100L,
-                    200L,
+                    artistId,
+                    albumId,
                     1L,
                     "밤편지",
                     "가사",
@@ -1082,6 +1084,24 @@ class TrackServiceTest {
                     0
             );
             ReflectionTestUtils.setField(application, "id", applicationId);
+
+            Artist artist = Artist.create(
+                    application.getRequesterUserId(),
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/artist.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+
+            Album album = Album.create(
+                    artistId,
+                    "Palette",
+                    "정규 앨범",
+                    "https://example.com/cover.jpg",
+                    null
+            );
+            ReflectionTestUtils.setField(album, "id", albumId);
 
             Track savedTrack = Track.createOfficialRelease(
                     application.getRequesterUserId(),
@@ -1100,6 +1120,8 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(savedTrack, "id", 1000L);
 
             when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
+            when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
             when(trackRepository.save(any(Track.class))).thenReturn(savedTrack);
 
             TrackApplicationApproveResponse response =
@@ -1117,12 +1139,14 @@ class TrackServiceTest {
         void approveTrackApplication_success_whenScheduledPublish() {
             Long adminId = 1L;
             Long applicationId = 10L;
+            Long artistId = 100L;
+            Long albumId = 200L;
 
             TrackApplication application = TrackApplication.create(
                     2L,
                     TrackType.OFFICIAL_RELEASE,
-                    100L,
-                    200L,
+                    artistId,
+                    albumId,
                     1L,
                     "밤편지",
                     "가사",
@@ -1133,6 +1157,24 @@ class TrackServiceTest {
                     3
             );
             ReflectionTestUtils.setField(application, "id", applicationId);
+
+            Artist artist = Artist.create(
+                    application.getRequesterUserId(),
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/artist.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+
+            Album album = Album.create(
+                    artistId,
+                    "Palette",
+                    "정규 앨범",
+                    "https://example.com/cover.jpg",
+                    null
+            );
+            ReflectionTestUtils.setField(album, "id", albumId);
 
             Track savedTrack = Track.createOfficialRelease(
                     application.getRequesterUserId(),
@@ -1150,6 +1192,8 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(savedTrack, "id", 1000L);
 
             when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
+            when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
             when(trackRepository.save(any(Track.class))).thenReturn(savedTrack);
 
             TrackApplicationApproveResponse response =
@@ -1180,12 +1224,14 @@ class TrackServiceTest {
         void approveTrackApplication_fail_whenAlreadyProcessed() {
             Long adminId = 1L;
             Long applicationId = 10L;
+            Long artistId = 100L;
+            Long albumId = 200L;
 
             TrackApplication application = TrackApplication.create(
                     2L,
                     TrackType.OFFICIAL_RELEASE,
-                    100L,
-                    200L,
+                    artistId,
+                    albumId,
                     1L,
                     "밤편지",
                     "가사",
@@ -1198,7 +1244,27 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(application, "id", applicationId);
             application.approve(adminId);
 
+            Artist artist = Artist.create(
+                    application.getRequesterUserId(),
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/artist.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+
+            Album album = Album.create(
+                    artistId,
+                    "Palette",
+                    "정규 앨범",
+                    "https://example.com/cover.jpg",
+                    null
+            );
+            ReflectionTestUtils.setField(album, "id", albumId);
+
             when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
+            when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
 
             assertThatThrownBy(() -> trackService.approveTrackApplication(adminId, applicationId))
                     .isInstanceOf(BusinessException.class)
@@ -1248,6 +1314,201 @@ class TrackServiceTest {
             assertThat(response.status()).isEqualTo(ApplicationStatus.APPROVED);
             assertThat(response.reviewedByAdminId()).isEqualTo(adminId);
             assertThat(response.reviewedAt()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("승인 시점에 삭제된 아티스트면 승인 실패")
+        void approveTrackApplication_fail_whenArtistDeletedAtApproval() {
+            Long adminId = 1L;
+            Long applicationId = 10L;
+            Long artistId = 100L;
+            Long albumId = 200L;
+
+            TrackApplication application = TrackApplication.create(
+                    2L,
+                    TrackType.OFFICIAL_RELEASE,
+                    artistId,
+                    albumId,
+                    1L,
+                    "밤편지",
+                    "가사",
+                    "BALLAD",
+                    "https://example.com/audio.mp3",
+                    230L,
+                    "feat. 10cm",
+                    0
+            );
+            ReflectionTestUtils.setField(application, "id", applicationId);
+
+            Artist artist = Artist.create(
+                    application.getRequesterUserId(),
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/artist.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+            ReflectionTestUtils.setField(
+                    artist,
+                    "deletedAt",
+                    LocalDateTime.of(2026, 4, 20, 12, 0, 0)
+            );
+
+            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
+
+            assertThatThrownBy(() -> trackService.approveTrackApplication(adminId, applicationId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("승인 시점에 비활성화된 아티스트면 승인 실패")
+        void approveTrackApplication_fail_whenArtistInactiveAtApproval() {
+            Long adminId = 1L;
+            Long applicationId = 10L;
+            Long artistId = 100L;
+            Long albumId = 200L;
+
+            TrackApplication application = TrackApplication.create(
+                    2L,
+                    TrackType.OFFICIAL_RELEASE,
+                    artistId,
+                    albumId,
+                    1L,
+                    "밤편지",
+                    "가사",
+                    "BALLAD",
+                    "https://example.com/audio.mp3",
+                    230L,
+                    "feat. 10cm",
+                    0
+            );
+            ReflectionTestUtils.setField(application, "id", applicationId);
+
+            Artist artist = Artist.create(
+                    application.getRequesterUserId(),
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/artist.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+            artist.deactivate();
+
+            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
+
+            assertThatThrownBy(() -> trackService.approveTrackApplication(adminId, applicationId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackApplicationErrorCode.ERR_INACTIVE_ARTIST_CANNOT_REQUEST_OFFICIAL_RELEASE.getMessage());
+        }
+
+        @Test
+        @DisplayName("승인 시점에 삭제된 앨범이면 승인 실패")
+        void approveTrackApplication_fail_whenAlbumDeletedAtApproval() {
+            Long adminId = 1L;
+            Long applicationId = 10L;
+            Long artistId = 100L;
+            Long albumId = 200L;
+
+            TrackApplication application = TrackApplication.create(
+                    2L,
+                    TrackType.OFFICIAL_RELEASE,
+                    artistId,
+                    albumId,
+                    1L,
+                    "밤편지",
+                    "가사",
+                    "BALLAD",
+                    "https://example.com/audio.mp3",
+                    230L,
+                    "feat. 10cm",
+                    0
+            );
+            ReflectionTestUtils.setField(application, "id", applicationId);
+
+            Artist artist = Artist.create(
+                    application.getRequesterUserId(),
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/artist.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+
+            Album album = Album.create(
+                    artistId,
+                    "Palette",
+                    "정규 앨범",
+                    "https://example.com/cover.jpg",
+                    null
+            );
+            ReflectionTestUtils.setField(album, "id", albumId);
+            ReflectionTestUtils.setField(
+                    album,
+                    "deletedAt",
+                    LocalDateTime.of(2026, 4, 20, 12, 0, 0)
+            );
+
+            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
+            when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
+
+            assertThatThrownBy(() -> trackService.approveTrackApplication(adminId, applicationId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(AlbumErrorCode.ERR_ALBUM_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("승인 시점에 앨범과 아티스트 정보가 일치하지 않으면 승인 실패")
+        void approveTrackApplication_fail_whenAlbumArtistMismatchAtApproval() {
+            Long adminId = 1L;
+            Long applicationId = 10L;
+            Long artistId = 100L;
+            Long albumId = 200L;
+
+            TrackApplication application = TrackApplication.create(
+                    2L,
+                    TrackType.OFFICIAL_RELEASE,
+                    artistId,
+                    albumId,
+                    1L,
+                    "밤편지",
+                    "가사",
+                    "BALLAD",
+                    "https://example.com/audio.mp3",
+                    230L,
+                    "feat. 10cm",
+                    0
+            );
+            ReflectionTestUtils.setField(application, "id", applicationId);
+
+            Artist artist = Artist.create(
+                    application.getRequesterUserId(),
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/artist.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+
+            Album album = Album.create(
+                    999L,
+                    "Palette",
+                    "정규 앨범",
+                    "https://example.com/cover.jpg",
+                    null
+            );
+            ReflectionTestUtils.setField(album, "id", albumId);
+
+            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
+            when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
+
+            assertThatThrownBy(() -> trackService.approveTrackApplication(adminId, applicationId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackApplicationErrorCode.ERR_ALBUM_ARTIST_MISMATCH.getMessage());
         }
     }
 

@@ -189,10 +189,19 @@ public class TrackService {
     public TrackApplicationApproveResponse approveTrackApplication(Long adminId, Long applicationId) {
         TrackApplication application = findTrackApplication(applicationId);
 
-        // 상태 전이는 엔티티에 위임
+        // OFFICIAL_RELEASE는 승인 시점에도 연관 리소스 유효성 재확인
+        if (application.getTrackType() == TrackType.OFFICIAL_RELEASE) {
+            Artist artist = findNotDeletedArtist(application.getArtistId());
+            validateArtistActive(artist);
+
+            Album album = findNotDeletedAlbum(application.getAlbumId());
+            validateAlbumArtistMatch(album, application.getArtistId());
+        }
+
+        // 이미 처리된 신청은 엔티티에서 상태 전이 불가 처리
         application.approve(adminId);
 
-        // 승인된 신청 기반 트랙 생성
+        // 승인된 신청 기반으로 트랙 생성
         Track savedTrack = trackRepository.save(createTrack(application));
 
         return TrackApplicationApproveResponse.from(application, savedTrack.getId());
