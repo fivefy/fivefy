@@ -55,7 +55,7 @@ class PlaylistServiceTest {
 
             given(subscriptionRepository.existsByUserIdAndStatusIn(
                     userId,
-                    List.of(SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE)
+                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
             )).willReturn(true);
 
             Playlist playlist = Playlist.create(userId, request.title(), request.description());
@@ -88,7 +88,7 @@ class PlaylistServiceTest {
 
             given(subscriptionRepository.existsByUserIdAndStatusIn(
                     userId,
-                    List.of(SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE)
+                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
             )).willReturn(true);
 
             given(playlistRepository.existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title()))
@@ -111,7 +111,7 @@ class PlaylistServiceTest {
 
             given(subscriptionRepository.existsByUserIdAndStatusIn(
                     userId,
-                    List.of(SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE)
+                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
             )).willReturn(false);
 
             // when & then

@@ -4,6 +4,8 @@ import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.album.entity.Album;
 import com.fivefy.domain.album.enums.AlbumErrorCode;
 import com.fivefy.domain.album.repository.AlbumRepository;
+import com.fivefy.domain.artist.entity.Artist;
+import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.like.dto.response.LikeCreateResponse;
 import com.fivefy.domain.like.dto.response.LikeGetResponse;
 import com.fivefy.domain.like.entity.Like;
@@ -24,6 +26,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -51,6 +54,10 @@ class LikeServiceTest {
     private TrackRepository trackRepository;
     @Mock
     private AlbumRepository albumRepository;
+    @Mock
+    private ArtistRepository artistRepository;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private LikeService likeService;
@@ -70,9 +77,11 @@ class LikeServiceTest {
         mockUser = mock(User.class);
         mockTrack = mock(Track.class);
         mockAlbum = mock(Album.class);
+        Artist mockArtist = mock(Artist.class);
         mockLike = Like.create(USER_ID, TRACK_ID, TargetType.TRACK);
 
         lenient().when(mockUser.getId()).thenReturn(USER_ID);
+        lenient().when(mockUser.getName()).thenReturn("테스트유저");
         lenient().when(mockTrack.getId()).thenReturn(TRACK_ID);
         lenient().when(mockAlbum.getId()).thenReturn(ALBUM_ID);
     }
