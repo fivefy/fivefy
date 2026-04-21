@@ -16,8 +16,12 @@ import com.fivefy.domain.track.dto.response.*;
 import com.fivefy.domain.track.entity.Track;
 import com.fivefy.domain.track.entity.TrackApplication;
 import com.fivefy.domain.track.enums.TrackApplicationErrorCode;
+import com.fivefy.domain.track.enums.TrackErrorCode;
+import com.fivefy.domain.track.enums.TrackStatus;
 import com.fivefy.domain.track.enums.TrackType;
+import com.fivefy.domain.track.repository.PublicTrackListProjection;
 import com.fivefy.domain.track.repository.TrackApplicationRepository;
+import com.fivefy.domain.track.repository.TrackDetailProjection;
 import com.fivefy.domain.track.repository.TrackRepository;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
@@ -189,10 +193,19 @@ public class TrackService {
     public TrackApplicationApproveResponse approveTrackApplication(Long adminId, Long applicationId) {
         TrackApplication application = findTrackApplication(applicationId);
 
-        // 상태 전이는 엔티티에 위임
+        // OFFICIAL_RELEASE는 승인 시점에도 연관 리소스 유효성 재확인
+        if (application.getTrackType() == TrackType.OFFICIAL_RELEASE) {
+            Artist artist = findNotDeletedArtist(application.getArtistId());
+            validateArtistActive(artist);
+
+            Album album = findNotDeletedAlbum(application.getAlbumId());
+            validateAlbumArtistMatch(album, application.getArtistId());
+        }
+
+        // 이미 처리된 신청은 엔티티에서 상태 전이 불가 처리
         application.approve(adminId);
 
-        // 승인된 신청 기반 트랙 생성
+        // 승인된 신청 기반으로 트랙 생성
         Track savedTrack = trackRepository.save(createTrack(application));
 
         return TrackApplicationApproveResponse.from(application, savedTrack.getId());
@@ -213,6 +226,69 @@ public class TrackService {
         application.reject(adminId, rejectionReason);
 
         return TrackApplicationRejectResponse.from(application);
+    }
+
+    /**
+     * 트랙 상세 조회
+     */
+    @Transactional(readOnly = true)
+    public TrackDetailResponse getTrack(Long trackId) {
+        Track track = findPublishedTrack(trackId);
+        TrackDetailProjection projection = trackRepository.findTrackDetailById(trackId);
+
+        String artistName = projection == null ? null : projection.artistName();
+        String albumTitle = projection == null ? null : projection.albumTitle();
+
+        return TrackDetailResponse.of(track, artistName, albumTitle);
+    }
+
+    /**
+     * 공개 트랙 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<PublicTrackListResponse> getPublicTracks(Pageable pageable) {
+
+        // 공개 트랙 목록 조회 (Querydsl)
+        Page<PublicTrackListProjection> page =
+                trackRepository.searchPublicTracks(pageable);
+
+        // Projection → 응답 DTO 변환
+        return PageResponse.from(
+                page.map(projection -> PublicTrackListResponse.of(
+                        projection.trackId(),
+                        projection.trackType(),
+                        projection.title(),
+                        projection.artistId(),
+                        projection.artistName(),
+                        projection.albumId(),
+                        projection.albumTitle(),
+                        projection.durationSec(),
+                        projection.playCount(),
+                        projection.publishedAt()
+                ))
+        );
+    }
+
+    /**
+     * 아티스트별 자유 창작 트랙 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<ArtistFreeCreationTrackResponse> getArtistFreeCreations(
+            Long artistId,
+            Pageable pageable
+    ) {
+
+        // 삭제되지 않은 아티스트 확인
+        Artist artist = findNotDeletedArtist(artistId);
+
+        // 아티스트 소유 유저의 공개 자유 창작 트랙 목록 조회
+        Page<Track> page =
+                trackRepository.searchArtistFreeCreations(artist.getOwnerUserId(), pageable);
+
+        // 엔티티 → 응답 DTO 변환
+        return PageResponse.from(
+                page.map(ArtistFreeCreationTrackResponse::from)
+        );
     }
 
     // =========================
@@ -264,6 +340,23 @@ public class TrackService {
         return trackApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new BusinessException(
                         TrackApplicationErrorCode.ERR_TRACK_APPLICATION_NOT_FOUND));
+    }
+
+    // 트랙 조회
+    private Track findTrack(Long trackId) {
+        return trackRepository.findById(trackId)
+                .orElseThrow(() -> new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND));
+    }
+
+    // 공개 가능한 트랙 조회
+    private Track findPublishedTrack(Long trackId) {
+        Track track = findTrack(trackId);
+
+        if (track.getDeletedAt() != null || track.getStatus() != TrackStatus.PUBLISHED) {
+            throw new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND);
+        }
+
+        return track;
     }
 
     // =========================
@@ -357,8 +450,8 @@ public class TrackService {
     }
 
     // =========================
-// 생성 / 후처리
-// =========================
+    // 생성 / 후처리
+    // =========================
 
     // 승인된 신청 기반 트랙 생성
     private Track createTrack(TrackApplication application) {

@@ -709,6 +709,56 @@ include::{snippets}/admin-track-applications-reject-not-found/response-fields.ad
 
 ---
 
+=== 트랙 상세 조회
+
+include::{snippets}/tracks-get/http-request.adoc[]
+include::{snippets}/tracks-get/http-response.adoc[]
+include::{snippets}/tracks-get/response-fields.adoc[]
+
+==== 에러 케이스 - 트랙 없음
+
+include::{snippets}/tracks-get-not-found/http-request.adoc[]
+include::{snippets}/tracks-get-not-found/http-response.adoc[]
+include::{snippets}/tracks-get-not-found/response-fields.adoc[]
+
+---
+
+==== 에러 케이스 - 비공개 트랙
+
+include::{snippets}/tracks-get-unpublished/http-request.adoc[]
+include::{snippets}/tracks-get-unpublished/http-response.adoc[]
+include::{snippets}/tracks-get-unpublished/response-fields.adoc[]
+
+---
+
+=== 공개 트랙 목록 조회
+
+include::{snippets}/tracks-get-list/http-request.adoc[]
+include::{snippets}/tracks-get-list/http-response.adoc[]
+include::{snippets}/tracks-get-list/response-fields.adoc[]
+
+---
+
+=== 아티스트별 자유 창작 트랙 목록 조회
+
+include::{snippets}/artists-free-creations-get/http-request.adoc[]
+include::{snippets}/artists-free-creations-get/http-response.adoc[]
+include::{snippets}/artists-free-creations-get/response-fields.adoc[]
+
+==== 에러 케이스 - 아티스트 없음
+
+include::{snippets}/artists-free-creations-get-not-found/http-request.adoc[]
+include::{snippets}/artists-free-creations-get-not-found/http-response.adoc[]
+include::{snippets}/artists-free-creations-get-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 삭제된 아티스트
+
+include::{snippets}/artists-free-creations-get-deleted-artist/http-request.adoc[]
+include::{snippets}/artists-free-creations-get-deleted-artist/http-response.adoc[]
+include::{snippets}/artists-free-creations-get-deleted-artist/response-fields.adoc[]
+
+---
+
 == Playlist API
 
 === 플레이리스트 생성
