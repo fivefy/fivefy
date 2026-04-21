@@ -639,7 +639,11 @@ class AlbumControllerTest extends RestDocsSupport {
                     "https://example.com/album.jpg",
                     10L,
                     2100L,
-                    LocalDateTime.of(2026, 5, 1, 18, 0, 0)
+                    LocalDateTime.of(2026, 5, 1, 18, 0, 0),
+                    List.of(
+                            new AlbumTrackResponse(1000L, 1L, "이름에게", 245L),
+                            new AlbumTrackResponse(1001L, 2L, "밤편지", 230L)
+                    )
             );
 
             given(albumService.getAlbum(albumId)).willReturn(response);
@@ -650,6 +654,8 @@ class AlbumControllerTest extends RestDocsSupport {
                     .andExpect(jsonPath("$.message").value("앨범 상세 조회 성공"))
                     .andExpect(jsonPath("$.data.albumId").value(albumId))
                     .andExpect(jsonPath("$.data.artistName").value("아이유"))
+                    .andExpect(jsonPath("$.data.tracks[0].trackId").value(1000L))
+                    .andExpect(jsonPath("$.data.tracks[0].trackNumber").value(1L))
                     .andDo(document("albums-get",
                             pathParameters(
                                     parameterWithName("albumId").description("앨범 ID")
@@ -835,7 +841,12 @@ class AlbumControllerTest extends RestDocsSupport {
                 fieldWithPath("data.coverImageUrl").type(STRING).description("커버 이미지 URL"),
                 fieldWithPath("data.trackCount").type(NUMBER).description("트랙 수"),
                 fieldWithPath("data.totalDurationSec").type(NUMBER).description("총 재생 시간(초)"),
-                fieldWithPath("data.publishedAt").type(STRING).description("공개 시각")
+                fieldWithPath("data.publishedAt").type(STRING).description("공개 시각"),
+                fieldWithPath("data.tracks").type(ARRAY).description("수록곡 목록"),
+                fieldWithPath("data.tracks[].trackId").type(NUMBER).description("트랙 ID"),
+                fieldWithPath("data.tracks[].trackNumber").type(NUMBER).description("트랙 번호"),
+                fieldWithPath("data.tracks[].title").type(STRING).description("트랙 제목"),
+                fieldWithPath("data.tracks[].durationSec").type(NUMBER).description("재생 시간(초)")
         };
     }
 

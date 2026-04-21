@@ -3,6 +3,7 @@ package com.fivefy.domain.album.dto.response;
 import com.fivefy.domain.album.entity.Album;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 앨범 상세 조회 응답 DTO
@@ -16,9 +17,13 @@ public record AlbumDetailResponse(
         String coverImageUrl,
         Long trackCount,
         Long totalDurationSec,
-        LocalDateTime publishedAt
+        LocalDateTime publishedAt,
+        List<AlbumTrackResponse> tracks
 ) {
-    public static AlbumDetailResponse of(Album album, String artistName) {
+    public static AlbumDetailResponse of(
+            Album album,
+            String artistName,
+            List<AlbumTrackResponse> tracks) {
         return new AlbumDetailResponse(
                 album.getId(),
                 album.getArtistId(),
@@ -28,7 +33,8 @@ public record AlbumDetailResponse(
                 album.getCoverImageUrl(),
                 album.getTrackCount(),
                 album.getTotalDurationSec(),
-                album.getPublishedAt()
+                album.getPublishedAt(),
+                tracks
         );
     }
 }

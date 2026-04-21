@@ -721,8 +721,6 @@ include::{snippets}/tracks-get-not-found/http-request.adoc[]
 include::{snippets}/tracks-get-not-found/http-response.adoc[]
 include::{snippets}/tracks-get-not-found/response-fields.adoc[]
 
----
-
 ==== 에러 케이스 - 비공개 트랙
 
 include::{snippets}/tracks-get-unpublished/http-request.adoc[]
