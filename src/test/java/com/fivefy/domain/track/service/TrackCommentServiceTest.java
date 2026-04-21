@@ -12,6 +12,7 @@ import com.fivefy.domain.track.dto.request.TrackCommentCreateRequest;
 import com.fivefy.domain.track.dto.response.TrackCommentResponse;
 import com.fivefy.domain.track.entity.Track;
 import com.fivefy.domain.track.entity.TrackComment;
+import com.fivefy.domain.track.enums.TrackCommentErrorCode;
 import com.fivefy.domain.track.enums.TrackErrorCode;
 import com.fivefy.domain.track.enums.TrackStatus;
 import com.fivefy.domain.track.enums.TrackType;
@@ -331,6 +332,138 @@ class TrackCommentServiceTest {
 
             assertThatThrownBy(() ->
                     trackCommentService.getTrackComments(trackId, pageable)
+            )
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackErrorCode.ERR_TRACK_NOT_FOUND.getMessage());
+        }
+    }
+
+    @Nested
+    @DisplayName("트랙 댓글 수정")
+    class UpdateTrackComment {
+
+        @Test
+        @DisplayName("트랙 댓글 수정 성공")
+        void updateTrackComment_success() {
+            Long userId = 1L;
+            Long trackId = 1L;
+            Long commentId = 10L;
+
+            TrackCommentCreateRequest request =
+                    new TrackCommentCreateRequest("수정된 댓글");
+
+            // 공개된 자유 창작 트랙 조회 mock 구성
+            stubPublishedFreeCreationTrack(trackId);
+
+            TrackComment comment = mock(TrackComment.class);
+            when(comment.getUserId()).thenReturn(userId);
+            when(comment.getTrackId()).thenReturn(trackId);
+            when(comment.getDeletedAt()).thenReturn(null);
+
+            when(trackCommentRepository.findById(commentId))
+                    .thenReturn(Optional.of(comment));
+
+            // 수정 동작 mock
+            when(comment.getContent()).thenReturn("수정된 댓글");
+
+            TrackCommentResponse response =
+                    trackCommentService.updateTrackComment(userId, trackId, commentId, request);
+
+            assertThat(response.content()).isEqualTo("수정된 댓글");
+            assertThat(response.userId()).isEqualTo(userId);
+            assertThat(response.trackId()).isEqualTo(trackId);
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 댓글이면 수정 실패")
+        void updateTrackComment_fail_whenCommentNotFound() {
+            Long userId = 1L;
+            Long trackId = 1L;
+            Long commentId = 10L;
+
+            TrackCommentCreateRequest request =
+                    new TrackCommentCreateRequest("수정된 댓글");
+
+            stubPublishedFreeCreationTrack(trackId);
+
+            when(trackCommentRepository.findById(commentId))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(() ->
+                    trackCommentService.updateTrackComment(userId, trackId, commentId, request)
+            )
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackCommentErrorCode.ERR_TRACK_COMMENT_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("삭제된 댓글이면 수정 실패")
+        void updateTrackComment_fail_whenDeletedComment() {
+            Long userId = 1L;
+            Long trackId = 1L;
+            Long commentId = 10L;
+
+            TrackCommentCreateRequest request =
+                    new TrackCommentCreateRequest("수정된 댓글");
+
+            stubPublishedFreeCreationTrack(trackId);
+
+            TrackComment comment = mock(TrackComment.class);
+            when(comment.getDeletedAt()).thenReturn(LocalDateTime.now());
+
+            when(trackCommentRepository.findById(commentId))
+                    .thenReturn(Optional.of(comment));
+
+            assertThatThrownBy(() ->
+                    trackCommentService.updateTrackComment(userId, trackId, commentId, request)
+            )
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackCommentErrorCode.ERR_DELETED_TRACK_COMMENT_CANNOT_BE_UPDATED.getMessage());
+        }
+
+        @Test
+        @DisplayName("작성자가 아니면 수정 실패")
+        void updateTrackComment_fail_whenNotOwner() {
+            Long userId = 1L;
+            Long trackId = 1L;
+            Long commentId = 10L;
+
+            TrackCommentCreateRequest request =
+                    new TrackCommentCreateRequest("수정된 댓글");
+
+            stubPublishedFreeCreationTrack(trackId);
+
+            TrackComment comment = mock(TrackComment.class);
+            when(comment.getUserId()).thenReturn(999L); // 다른 사용자
+            when(comment.getDeletedAt()).thenReturn(null);
+
+            when(trackCommentRepository.findById(commentId))
+                    .thenReturn(Optional.of(comment));
+
+            assertThatThrownBy(() ->
+                    trackCommentService.updateTrackComment(userId, trackId, commentId, request)
+            )
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackCommentErrorCode.ERR_FORBIDDEN_TRACK_COMMENT_UPDATE.getMessage());
+        }
+
+        @Test
+        @DisplayName("비공개 트랙이면 수정 실패")
+        void updateTrackComment_fail_whenTrackUnpublished() {
+            Long userId = 1L;
+            Long trackId = 1L;
+            Long commentId = 10L;
+
+            TrackCommentCreateRequest request =
+                    new TrackCommentCreateRequest("수정된 댓글");
+
+            Track track = mock(Track.class);
+            when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
+            when(track.getDeletedAt()).thenReturn(null);
+            when(track.getStatus()).thenReturn(TrackStatus.UNPUBLISHED);
+
+            assertThatThrownBy(() ->
+                    trackCommentService.updateTrackComment(userId, trackId, commentId, request)
             )
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackErrorCode.ERR_TRACK_NOT_FOUND.getMessage());

@@ -9,6 +9,7 @@ import com.fivefy.domain.track.dto.request.TrackCommentCreateRequest;
 import com.fivefy.domain.track.dto.response.TrackCommentResponse;
 import com.fivefy.domain.track.entity.Track;
 import com.fivefy.domain.track.entity.TrackComment;
+import com.fivefy.domain.track.enums.TrackCommentErrorCode;
 import com.fivefy.domain.track.enums.TrackErrorCode;
 import com.fivefy.domain.track.enums.TrackStatus;
 import com.fivefy.domain.track.enums.TrackType;
@@ -88,16 +89,18 @@ public class TrackCommentService {
 
         // 댓글 조회
         TrackComment comment = trackCommentRepository.findById(commentId)
-                .orElseThrow(() -> new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(
+                        TrackCommentErrorCode.ERR_TRACK_COMMENT_NOT_FOUND));
 
         // 삭제된 댓글 수정 불가
         if (comment.getDeletedAt() != null) {
-            throw new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND);
+            throw new BusinessException(
+                    TrackCommentErrorCode.ERR_DELETED_TRACK_COMMENT_CANNOT_BE_UPDATED);
         }
 
         // 작성자 검증
         if (!comment.getUserId().equals(userId)) {
-            throw new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND);
+            throw new BusinessException(TrackCommentErrorCode.ERR_FORBIDDEN_TRACK_COMMENT_UPDATE);
         }
 
         // 댓글 내용 수정
