@@ -3,6 +3,7 @@ package com.fivefy.domain.notification.service;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.follow.entity.Follow;
 import com.fivefy.domain.follow.repository.FollowRepository;
+import com.fivefy.domain.notification.dto.NotificationMessage;
 import com.fivefy.domain.notification.dto.response.NotificationGetResponse;
 import com.fivefy.domain.notification.entity.Notification;
 import com.fivefy.domain.notification.enums.NotificationChannel;
@@ -17,15 +18,16 @@ import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.List;
@@ -37,12 +39,14 @@ public class NotificationService {
 
     private static final long SSE_TIMEOUT = 60 * 60 * 1000L;
     private static final String SSE_EVENT_CONNECT = "connect";
-    private static final String SSE_EVENT_NOTIFICATION = "notification";
+    private static final String REDIS_NOTIFICATION_CHANNEL = "notification:";
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final SseEmitterRepository sseEmitterRepository;
     private final FollowRepository followRepository;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final ObjectMapper objectMapper;
 
     // 알림 구독
     public SseEmitter subscribe(Long userId) {
@@ -79,7 +83,7 @@ public class NotificationService {
         send(event.targetUserId(), event.type(), event.content());
     }
 
-    // 트랙 발행 → 알림 수신 동의 팔로워 전체 알림
+    // 트랙 발행 -> 알림 수신 동의 팔로워 전체 알림
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handlePublishTrackEvent(PublishTrackEvent event) {
@@ -99,31 +103,35 @@ public class NotificationService {
     }
 
     public void send(Long userId, NotificationType type, String content) {
-
-        // DB 저장 — save() 자체 트랜잭션으로 처리 후 커넥션 즉시 반환
+        // DB 저장
         Notification notification = Notification.create(userId, content, type, NotificationChannel.IN_APP);
         Notification saved = notificationRepository.save(notification);
 
-        // SSE 전송 — DB 커넥션 미점유 상태
-        List<SseEmitter> emitterList = sseEmitterRepository.findAllByUserId(userId);
-        int originalEmitterCount = emitterList.size();
-        boolean sent = false;
-
-        for (SseEmitter emitter : emitterList) {
-            try {
-                saved.markAsSent();
-                emitter.send(SseEmitter.event()
-                        .name(SSE_EVENT_NOTIFICATION)
-                        .data(NotificationGetResponse.from(saved)));
-                sent = true;
-            } catch (IOException e) {
-                log.warn("SSE 전송 실패: userId={}, type={}", userId, type);
-                saved.markAsFailed();
-                sseEmitterRepository.delete(userId, emitter);
-            }
+        // SE 미연결 시 QUEUED 유지
+        boolean hasConnection = !sseEmitterRepository.findAllByUserId(userId).isEmpty();
+        if (!hasConnection) {
+            return;
         }
 
-        if (sent || originalEmitterCount > 0) {
+        // Redis publish — 모든 서버의 Subscriber가 수신하여 로컬 SseEmitter로 전송
+        try {
+            saved.markAsSent();
+            NotificationMessage message = new NotificationMessage(
+                    saved.getId(),
+                    userId,
+                    type,
+                    content,
+                    saved.getStatus(),
+                    saved.getChannel(),
+                    saved.getCreatedAt()
+            );
+            String channel = REDIS_NOTIFICATION_CHANNEL + userId;
+            stringRedisTemplate.convertAndSend(channel, objectMapper.writeValueAsString(message));
+
+            notificationRepository.save(saved);
+        } catch (Exception e) {
+            log.error("알림 발송 실패: userId={}, type={}", userId, type);
+            saved.markAsFailed();
             notificationRepository.save(saved);
         }
     }
