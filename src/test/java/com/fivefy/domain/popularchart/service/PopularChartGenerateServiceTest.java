@@ -1,7 +1,7 @@
 package com.fivefy.domain.popularchart.service;
 
-import com.fivefy.domain.playback.dto.projection.TrackPlayCountDto;
 import com.fivefy.domain.playback.repository.PlaybackRepository;
+import com.fivefy.domain.popularchart.dto.projection.TrackPlayCountProjection;
 import com.fivefy.domain.popularchart.entity.PopularChart;
 import com.fivefy.domain.popularchart.repository.PopularChartRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -20,11 +20,15 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class PopularChartGenerateServiceTest {
+
+    private static final int MINIMUM_VALID_PLAY_SECONDS = 30;
 
     @InjectMocks
     private PopularChartGenerateService popularChartGenerateService;
@@ -41,20 +45,23 @@ class PopularChartGenerateServiceTest {
         void generateWeeklyChart_success() {
             // given
             LocalDate date = LocalDate.of(2026, 4, 16);
-            LocalDate snapshotDate = LocalDate.of(2026, 4, 13);
-            LocalDateTime snapshotDateTime = snapshotDate.atStartOfDay();
+            LocalDateTime snapshotDateTime = LocalDate.of(2026, 4, 13).atStartOfDay();
             LocalDateTime startDateTime = snapshotDateTime.minusWeeks(1);
 
-            List<TrackPlayCountDto> results = List.of(
-                    new TrackPlayCountDto(101L, 300L),
-                    new TrackPlayCountDto(102L, 250L),
-                    new TrackPlayCountDto(103L, 200L)
+            List<TrackPlayCountProjection> results = List.of(
+                    mockProjection(101L, 300L),
+                    mockProjection(102L, 250L),
+                    mockProjection(103L, 200L)
             );
 
-            given(playbackRepository.countWeeklyPlayByTrack(startDateTime, snapshotDateTime))
-                    .willReturn(results);
-            given(popularChartRepository.existsBySnapshotDate(snapshotDateTime))
-                    .willReturn(false);
+            given(playbackRepository.countWeeklyValidPlayByTrack(
+                    startDateTime,
+                    snapshotDateTime,
+                    MINIMUM_VALID_PLAY_SECONDS
+            )).willReturn(results);
+
+            lenient().when(popularChartRepository.existsBySnapshotDate(snapshotDateTime))
+                    .thenReturn(false);
 
             // when
             popularChartGenerateService.generateWeeklyChart(date);
@@ -73,11 +80,13 @@ class PopularChartGenerateServiceTest {
 
             assertThat(savedCharts.get(1).getTrackId()).isEqualTo(102L);
             assertThat(savedCharts.get(1).getChartRank()).isEqualTo(2);
+            assertThat(savedCharts.get(1).getPlayCount()).isEqualTo(250L);
 
             assertThat(savedCharts.get(2).getTrackId()).isEqualTo(103L);
             assertThat(savedCharts.get(2).getChartRank()).isEqualTo(3);
+            assertThat(savedCharts.get(2).getPlayCount()).isEqualTo(200L);
 
-            verify(popularChartRepository, never()).deleteAllBySnapshotDate(any());
+            verify(popularChartRepository, never()).deleteAllBySnapshotDate(any(LocalDateTime.class));
         }
 
         @Test
@@ -85,19 +94,21 @@ class PopularChartGenerateServiceTest {
         void generateWeeklyChart_emptyResult() {
             // given
             LocalDate date = LocalDate.of(2026, 4, 16);
-            LocalDate snapshotDate = LocalDate.of(2026, 4, 13);
-            LocalDateTime snapshotDateTime = snapshotDate.atStartOfDay();
+            LocalDateTime snapshotDateTime = LocalDate.of(2026, 4, 13).atStartOfDay();
             LocalDateTime startDateTime = snapshotDateTime.minusWeeks(1);
 
-            given(playbackRepository.countWeeklyPlayByTrack(startDateTime, snapshotDateTime))
-                    .willReturn(List.of());
+            given(playbackRepository.countWeeklyValidPlayByTrack(
+                    startDateTime,
+                    snapshotDateTime,
+                    MINIMUM_VALID_PLAY_SECONDS
+            )).willReturn(List.of());
 
             // when
             popularChartGenerateService.generateWeeklyChart(date);
 
             // then
-            verify(popularChartRepository, never()).existsBySnapshotDate(any());
-            verify(popularChartRepository, never()).deleteAllBySnapshotDate(any());
+            verify(popularChartRepository, never()).existsBySnapshotDate(any(LocalDateTime.class));
+            verify(popularChartRepository, never()).deleteAllBySnapshotDate(any(LocalDateTime.class));
             verify(popularChartRepository, never()).saveAllAndFlush(any());
         }
 
@@ -106,25 +117,28 @@ class PopularChartGenerateServiceTest {
         void generateWeeklyChart_deleteAndRegenerate() {
             // given
             LocalDate date = LocalDate.of(2026, 4, 16);
-            LocalDate snapshotDate = LocalDate.of(2026, 4, 13);
-            LocalDateTime snapshotDateTime = snapshotDate.atStartOfDay();
+            LocalDateTime snapshotDateTime = LocalDate.of(2026, 4, 13).atStartOfDay();
             LocalDateTime startDateTime = snapshotDateTime.minusWeeks(1);
 
-            List<TrackPlayCountDto> results = List.of(
-                    new TrackPlayCountDto(101L, 300L),
-                    new TrackPlayCountDto(102L, 250L)
+            List<TrackPlayCountProjection> results = List.of(
+                    mockProjection(101L, 300L),
+                    mockProjection(102L, 250L)
             );
 
-            given(playbackRepository.countWeeklyPlayByTrack(startDateTime, snapshotDateTime))
-                    .willReturn(results);
-            given(popularChartRepository.existsBySnapshotDate(snapshotDateTime))
-                    .willReturn(true);
+            given(playbackRepository.countWeeklyValidPlayByTrack(
+                    startDateTime,
+                    snapshotDateTime,
+                    30
+            )).willReturn(results);
+
+            lenient().when(popularChartRepository.existsBySnapshotDate(any(LocalDateTime.class)))
+                    .thenReturn(true);
 
             // when
             popularChartGenerateService.generateWeeklyChart(date);
 
             // then
-            verify(popularChartRepository).deleteAllBySnapshotDate(snapshotDateTime);
+            verify(popularChartRepository).deleteAllBySnapshotDate(any(LocalDateTime.class));
             verify(popularChartRepository).saveAllAndFlush(any());
         }
 
@@ -133,18 +147,21 @@ class PopularChartGenerateServiceTest {
         void generateWeeklyChart_saveOnlyTop100() {
             // given
             LocalDate date = LocalDate.of(2026, 4, 16);
-            LocalDate snapshotDate = LocalDate.of(2026, 4, 13);
-            LocalDateTime snapshotDateTime = snapshotDate.atStartOfDay();
+            LocalDateTime snapshotDateTime = LocalDate.of(2026, 4, 13).atStartOfDay();
             LocalDateTime startDateTime = snapshotDateTime.minusWeeks(1);
 
-            List<TrackPlayCountDto> results = java.util.stream.LongStream.rangeClosed(1, 120)
-                    .mapToObj(i -> new TrackPlayCountDto(i, 200L - i))
+            List<TrackPlayCountProjection> results = java.util.stream.LongStream.rangeClosed(1, 120)
+                    .mapToObj(i -> mockProjection(i, 200L - i))
                     .toList();
 
-            given(playbackRepository.countWeeklyPlayByTrack(startDateTime, snapshotDateTime))
-                    .willReturn(results);
-            given(popularChartRepository.existsBySnapshotDate(snapshotDateTime))
-                    .willReturn(false);
+            given(playbackRepository.countWeeklyValidPlayByTrack(
+                    startDateTime,
+                    snapshotDateTime,
+                    MINIMUM_VALID_PLAY_SECONDS
+            )).willReturn(results);
+
+            lenient().when(popularChartRepository.existsBySnapshotDate(snapshotDateTime))
+                    .thenReturn(false);
 
             // when
             popularChartGenerateService.generateWeeklyChart(date);
@@ -157,6 +174,13 @@ class PopularChartGenerateServiceTest {
             assertThat(savedCharts).hasSize(100);
             assertThat(savedCharts.get(0).getChartRank()).isEqualTo(1);
             assertThat(savedCharts.get(99).getChartRank()).isEqualTo(100);
+        }
+
+        private TrackPlayCountProjection mockProjection(Long trackId, Long playCount) {
+            TrackPlayCountProjection projection = mock(TrackPlayCountProjection.class);
+            lenient().when(projection.getTrackId()).thenReturn(trackId);
+            lenient().when(projection.getPlayCount()).thenReturn(playCount);
+            return projection;
         }
     }
 }
