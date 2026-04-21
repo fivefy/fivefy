@@ -3,17 +3,14 @@ package com.fivefy.domain.track.service;
 import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.album.entity.Album;
-import com.fivefy.domain.album.enums.AlbumErrorCode;
 import com.fivefy.domain.album.enums.AlbumStatus;
 import com.fivefy.domain.album.repository.AlbumRepository;
 import com.fivefy.domain.artist.entity.Artist;
-import com.fivefy.domain.artist.enums.ArtistErrorCode;
 import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.track.dto.request.TrackCommentCreateRequest;
 import com.fivefy.domain.track.dto.response.TrackCommentResponse;
 import com.fivefy.domain.track.entity.Track;
 import com.fivefy.domain.track.entity.TrackComment;
-import com.fivefy.domain.track.enums.TrackCommentErrorCode;
 import com.fivefy.domain.track.enums.TrackErrorCode;
 import com.fivefy.domain.track.enums.TrackStatus;
 import com.fivefy.domain.track.enums.TrackType;
@@ -23,6 +20,7 @@ import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -78,9 +76,10 @@ public class TrackCommentService {
             validateOfficialTrackVisibility(track);
         }
 
+        Page<TrackComment> page = trackCommentRepository.getTrackComments(trackId, pageable);
+
         return PageResponse.from(
-                trackCommentRepository.getTrackComments(trackId, pageable)
-                        .map(TrackCommentResponse::from)
+                page.map(TrackCommentResponse::from)
         );
     }
 
@@ -105,22 +104,10 @@ public class TrackCommentService {
         Track track = findTrack(trackId);
 
         if (track.getDeletedAt() != null || track.getStatus() != TrackStatus.PUBLISHED) {
-            throw new BusinessException(TrackCommentErrorCode.ERR_TRACK_COMMENT_NOT_WRITABLE);
+            throw new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND);
         }
 
         return track;
-    }
-
-    // 앨범 조회
-    private Album findAlbum(Long albumId) {
-        return albumRepository.findById(albumId)
-                .orElseThrow(() -> new BusinessException(AlbumErrorCode.ERR_ALBUM_NOT_FOUND));
-    }
-
-    // 아티스트 조회
-    private Artist findArtist(Long artistId) {
-        return artistRepository.findById(artistId)
-                .orElseThrow(() -> new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND));
     }
 
     // =========================
@@ -129,16 +116,12 @@ public class TrackCommentService {
 
     // 정식 발매 트랙 공개 가능 상태 검증
     private void validateOfficialTrackVisibility(Track track) {
-        Album album = findAlbum(track.getAlbumId());
+        albumRepository.findById(track.getAlbumId())
+                .filter(album -> album.getDeletedAt() == null && album.getStatus() == AlbumStatus.PUBLISHED)
+                .orElseThrow(() -> new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND));
 
-        if (album.getDeletedAt() != null || album.getStatus() != AlbumStatus.PUBLISHED) {
-            throw new BusinessException(TrackCommentErrorCode.ERR_TRACK_COMMENT_NOT_WRITABLE);
-        }
-
-        Artist artist = findArtist(track.getArtistId());
-
-        if (artist.isDeleted()) {
-            throw new BusinessException(TrackCommentErrorCode.ERR_TRACK_COMMENT_NOT_WRITABLE);
-        }
+        artistRepository.findById(track.getArtistId())
+                .filter(artist -> !artist.isDeleted())
+                .orElseThrow(() -> new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND));
     }
 }

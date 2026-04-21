@@ -11,7 +11,6 @@ public enum TrackCommentErrorCode implements ErrorCode {
     ERR_DELETED_TRACK_COMMENT_CANNOT_BE_UPDATED(HttpStatus.BAD_REQUEST, "삭제된 댓글은 수정할 수 없습니다"),
     ERR_FORBIDDEN_TRACK_COMMENT_UPDATE(HttpStatus.FORBIDDEN, "작성자만 댓글을 수정할 수 있습니다"),
     ERR_FORBIDDEN_TRACK_COMMENT_DELETE(HttpStatus.FORBIDDEN, "작성자 또는 관리자만 댓글을 삭제할 수 있습니다"),
-    ERR_TRACK_COMMENT_NOT_WRITABLE(HttpStatus.BAD_REQUEST, "댓글을 작성할 수 없는 트랙입니다"),
     ERR_INVALID_TRACK_COMMENT_LENGTH(HttpStatus.BAD_REQUEST, "댓글은 1000자 이하여야 합니다");
 
     private final HttpStatus httpStatus;
