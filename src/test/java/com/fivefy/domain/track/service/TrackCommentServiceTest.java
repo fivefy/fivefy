@@ -20,6 +20,7 @@ import com.fivefy.domain.track.repository.TrackCommentRepository;
 import com.fivefy.domain.track.repository.TrackRepository;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
+import com.fivefy.domain.user.enums.UserRole;
 import com.fivefy.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -358,7 +359,6 @@ class TrackCommentServiceTest {
             TrackComment comment = mock(TrackComment.class);
             when(comment.getUserId()).thenReturn(userId);
             when(comment.getTrackId()).thenReturn(trackId);
-            when(comment.getDeletedAt()).thenReturn(null);
 
             when(trackCommentRepository.findById(commentId))
                     .thenReturn(Optional.of(comment));
@@ -384,7 +384,11 @@ class TrackCommentServiceTest {
             TrackCommentCreateRequest request =
                     new TrackCommentCreateRequest("수정된 댓글");
 
-            stubPublishedFreeCreationTrack(trackId);
+            Track track = mock(Track.class);
+            when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
+            when(track.getDeletedAt()).thenReturn(null);
+            when(track.getStatus()).thenReturn(TrackStatus.PUBLISHED);
+            when(track.getTrackType()).thenReturn(TrackType.FREE_CREATION);
 
             when(trackCommentRepository.findById(commentId))
                     .thenReturn(Optional.empty());
@@ -406,10 +410,15 @@ class TrackCommentServiceTest {
             TrackCommentCreateRequest request =
                     new TrackCommentCreateRequest("수정된 댓글");
 
-            stubPublishedFreeCreationTrack(trackId);
+            Track track = mock(Track.class);
+            when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
+            when(track.getDeletedAt()).thenReturn(null);
+            when(track.getStatus()).thenReturn(TrackStatus.PUBLISHED);
+            when(track.getTrackType()).thenReturn(TrackType.FREE_CREATION);
 
-            TrackComment comment = mock(TrackComment.class);
-            when(comment.getDeletedAt()).thenReturn(LocalDateTime.now());
+            TrackComment comment = TrackComment.create(userId, trackId, "댓글입니다");
+            ReflectionTestUtils.setField(comment, "id", commentId);
+            ReflectionTestUtils.setField(comment, "deletedAt", LocalDateTime.now());
 
             when(trackCommentRepository.findById(commentId))
                     .thenReturn(Optional.of(comment));
@@ -431,11 +440,13 @@ class TrackCommentServiceTest {
             TrackCommentCreateRequest request =
                     new TrackCommentCreateRequest("수정된 댓글");
 
-            stubPublishedFreeCreationTrack(trackId);
-
-            TrackComment comment = mock(TrackComment.class);
-            when(comment.getUserId()).thenReturn(999L); // 다른 사용자
-            when(comment.getDeletedAt()).thenReturn(null);
+            Track track = mock(Track.class);
+            when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
+            when(track.getDeletedAt()).thenReturn(null);
+            when(track.getStatus()).thenReturn(TrackStatus.PUBLISHED);
+            when(track.getTrackType()).thenReturn(TrackType.FREE_CREATION);
+            TrackComment comment = TrackComment.create(999L, trackId, "댓글입니다");
+            ReflectionTestUtils.setField(comment, "id", commentId);
 
             when(trackCommentRepository.findById(commentId))
                     .thenReturn(Optional.of(comment));
@@ -470,18 +481,167 @@ class TrackCommentServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("트랙 댓글 삭제")
+    class DeleteTrackComment {
+
+        @Test
+        @DisplayName("트랙 댓글 삭제 성공 - 작성자")
+        void deleteTrackComment_success_writer() {
+            Long userId = 1L;
+            Long trackId = 1L;
+            Long commentId = 10L;
+
+            User user = mock(User.class);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId))
+                    .thenReturn(Optional.of(user));
+            when(user.getId()).thenReturn(userId);
+            when(user.getRole()).thenReturn(UserRole.USER);
+
+            // 공개된 자유 창작 트랙 조회 mock 구성
+            stubPublishedFreeCreationTrack(trackId);
+
+            TrackComment comment = TrackComment.create(userId, trackId, "댓글입니다");
+            ReflectionTestUtils.setField(comment, "id", commentId);
+
+            when(trackCommentRepository.findById(commentId))
+                    .thenReturn(Optional.of(comment));
+
+            trackCommentService.deleteTrackComment(userId, trackId, commentId);
+
+            assertThat(comment.getDeletedAt()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("트랙 댓글 삭제 성공 - 관리자")
+        void deleteTrackComment_success_admin() {
+            Long userId = 1L;
+            Long trackId = 1L;
+            Long commentId = 10L;
+
+            User user = mock(User.class);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId))
+                    .thenReturn(Optional.of(user));
+            when(user.getId()).thenReturn(userId);
+            when(user.getRole()).thenReturn(UserRole.ADMIN);
+
+            // 공개된 자유 창작 트랙 조회 mock 구성
+            stubPublishedFreeCreationTrack(trackId);
+
+            TrackComment comment = TrackComment.create(999L, trackId, "댓글입니다");
+            ReflectionTestUtils.setField(comment, "id", commentId);
+
+            when(trackCommentRepository.findById(commentId))
+                    .thenReturn(Optional.of(comment));
+
+            trackCommentService.deleteTrackComment(userId, trackId, commentId);
+
+            assertThat(comment.getDeletedAt()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("트랙 댓글 삭제 실패 - 댓글 없음")
+        void deleteTrackComment_fail_whenCommentNotFound() {
+            Long userId = 1L;
+            Long trackId = 1L;
+            Long commentId = 10L;
+
+            User user = mock(User.class);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId))
+                    .thenReturn(Optional.of(user));
+
+            Track track = mock(Track.class);
+            when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
+            when(track.getDeletedAt()).thenReturn(null);
+            when(track.getStatus()).thenReturn(TrackStatus.PUBLISHED);
+            when(track.getTrackType()).thenReturn(TrackType.FREE_CREATION);
+
+            when(trackCommentRepository.findById(commentId))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(() ->
+                    trackCommentService.deleteTrackComment(userId, trackId, commentId)
+            )
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackCommentErrorCode.ERR_TRACK_COMMENT_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("트랙 댓글 삭제 실패 - 권한 없음")
+        void deleteTrackComment_fail_whenForbidden() {
+            Long userId = 1L;
+            Long trackId = 1L;
+            Long commentId = 10L;
+
+            User user = mock(User.class);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId))
+                    .thenReturn(Optional.of(user));
+            when(user.getId()).thenReturn(userId);
+            when(user.getRole()).thenReturn(UserRole.USER);
+
+            Track track = mock(Track.class);
+            when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
+            when(track.getDeletedAt()).thenReturn(null);
+            when(track.getStatus()).thenReturn(TrackStatus.PUBLISHED);
+            when(track.getTrackType()).thenReturn(TrackType.FREE_CREATION);
+            TrackComment comment = TrackComment.create(999L, trackId, "댓글입니다");
+            ReflectionTestUtils.setField(comment, "id", commentId);
+
+            when(trackCommentRepository.findById(commentId))
+                    .thenReturn(Optional.of(comment));
+
+            assertThatThrownBy(() ->
+                    trackCommentService.deleteTrackComment(userId, trackId, commentId)
+            )
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackCommentErrorCode.ERR_FORBIDDEN_TRACK_COMMENT_DELETE.getMessage());
+        }
+
+        @Test
+        @DisplayName("트랙 댓글 삭제 실패 - 이미 삭제된 댓글")
+        void deleteTrackComment_fail_whenAlreadyDeleted() {
+            Long userId = 1L;
+            Long trackId = 1L;
+            Long commentId = 10L;
+
+            User user = mock(User.class);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId))
+                    .thenReturn(Optional.of(user));
+            when(user.getId()).thenReturn(userId);
+            when(user.getRole()).thenReturn(UserRole.USER);
+
+            Track track = mock(Track.class);
+            when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
+            when(track.getDeletedAt()).thenReturn(null);
+            when(track.getStatus()).thenReturn(TrackStatus.PUBLISHED);
+            when(track.getTrackType()).thenReturn(TrackType.FREE_CREATION);
+
+            TrackComment comment = TrackComment.create(userId, trackId, "댓글입니다");
+            ReflectionTestUtils.setField(comment, "id", commentId);
+            ReflectionTestUtils.setField(comment, "deletedAt", LocalDateTime.now());
+
+            when(trackCommentRepository.findById(commentId))
+                    .thenReturn(Optional.of(comment));
+
+            assertThatThrownBy(() ->
+                    trackCommentService.deleteTrackComment(userId, trackId, commentId)
+            )
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackCommentErrorCode.ERR_TRACK_COMMENT_ALREADY_DELETED.getMessage());
+        }
+    }
+
     // 공개된 자유 창작 트랙 조회 mock 구성
-    private Track stubPublishedFreeCreationTrack(Long trackId) {
+    private void stubPublishedFreeCreationTrack(Long trackId) {
         Track track = mock(Track.class);
         when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
         when(track.getDeletedAt()).thenReturn(null);
         when(track.getStatus()).thenReturn(TrackStatus.PUBLISHED);
         when(track.getTrackType()).thenReturn(TrackType.FREE_CREATION);
-        return track;
     }
 
     // 공개된 정식 발매 트랙 조회 mock 구성
-    private Track stubPublishedOfficialReleaseTrack(Long trackId, Long artistId, Long albumId) {
+    private void stubPublishedOfficialReleaseTrack(Long trackId, Long artistId, Long albumId) {
         Track track = mock(Track.class);
         when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
         when(track.getDeletedAt()).thenReturn(null);
@@ -489,7 +649,6 @@ class TrackCommentServiceTest {
         when(track.getTrackType()).thenReturn(TrackType.OFFICIAL_RELEASE);
         when(track.getArtistId()).thenReturn(artistId);
         when(track.getAlbumId()).thenReturn(albumId);
-        return track;
     }
 
     // 공개된 앨범 조회 mock 구성
@@ -520,6 +679,4 @@ class TrackCommentServiceTest {
 
         when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
     }
-
-
 }
