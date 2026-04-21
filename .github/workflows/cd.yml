@@ -9,7 +9,12 @@ jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true
+    # 머지된 PR만 실행 + 브랜치 승격 체인 강제 (dev→stage, stage→main)
+    if: |
+      github.event.pull_request.merged == true && (
+        (github.base_ref == 'stage' && github.head_ref == 'dev') ||
+        (github.base_ref == 'main'  && github.head_ref == 'stage')
+      )
 
     steps:
       - name: Checkout
@@ -37,24 +42,28 @@ jobs:
       - name: Build JAR
         run: ./gradlew bootJar -x test --no-daemon
 
-      # 배포 환경 결정
+      # 배포 환경 결정 + 환경별 시크릿 분기
       - name: Set deploy environment
         id: env
         run: |
           if [ "${{ github.base_ref }}" = "main" ]; then
-            echo "name=prod" >> $GITHUB_OUTPUT
-            echo "port=8081" >> $GITHUB_OUTPUT
-            echo "db_url=${{ secrets.DB_URL_PROD }}" >> $GITHUB_OUTPUT
-            echo "db_username=${{ secrets.DB_USERNAME_PROD }}" >> $GITHUB_OUTPUT
-            echo "db_password=${{ secrets.DB_PASSWORD_PROD }}" >> $GITHUB_OUTPUT
-            echo "jwt_secret=${{ secrets.JWT_SECRET_PROD }}" >> $GITHUB_OUTPUT
+            echo "name=prod"                                        >> $GITHUB_OUTPUT
+            echo "port=8081"                                        >> $GITHUB_OUTPUT
+            echo "db_url=${{ secrets.DB_URL_PROD }}"               >> $GITHUB_OUTPUT
+            echo "db_username=${{ secrets.DB_USERNAME_PROD }}"     >> $GITHUB_OUTPUT
+            echo "db_password=${{ secrets.DB_PASSWORD_PROD }}"     >> $GITHUB_OUTPUT
+            echo "redis_host=${{ secrets.REDIS_HOST_PROD }}"       >> $GITHUB_OUTPUT
+            echo "kafka_servers=${{ secrets.KAFKA_SERVERS_PROD }}" >> $GITHUB_OUTPUT
+            echo "jwt_secret=${{ secrets.JWT_SECRET_PROD }}"       >> $GITHUB_OUTPUT
           else
-            echo "name=stage" >> $GITHUB_OUTPUT
-            echo "port=8080" >> $GITHUB_OUTPUT
-            echo "db_url=${{ secrets.DB_URL_STAGE }}" >> $GITHUB_OUTPUT
-            echo "db_username=${{ secrets.DB_USERNAME_STAGE }}" >> $GITHUB_OUTPUT
-            echo "db_password=${{ secrets.DB_PASSWORD_STAGE }}" >> $GITHUB_OUTPUT
-            echo "jwt_secret=${{ secrets.JWT_SECRET_STAGE }}" >> $GITHUB_OUTPUT
+            echo "name=stage"                                       >> $GITHUB_OUTPUT
+            echo "port=8080"                                        >> $GITHUB_OUTPUT
+            echo "db_url=${{ secrets.DB_URL_STAGE }}"              >> $GITHUB_OUTPUT
+            echo "db_username=${{ secrets.DB_USERNAME_STAGE }}"    >> $GITHUB_OUTPUT
+            echo "db_password=${{ secrets.DB_PASSWORD_STAGE }}"    >> $GITHUB_OUTPUT
+            echo "redis_host=${{ secrets.REDIS_HOST_STAGE }}"      >> $GITHUB_OUTPUT
+            echo "kafka_servers=${{ secrets.KAFKA_SERVERS_STAGE }}" >> $GITHUB_OUTPUT
+            echo "jwt_secret=${{ secrets.JWT_SECRET_STAGE }}"      >> $GITHUB_OUTPUT
           fi
 
       # JAR → NCP Object Storage 업로드 (S3 호환 API)
@@ -69,14 +78,21 @@ jobs:
             s3://${{ secrets.NCP_BUCKET_DEPLOY }}/deploy/$DEPLOY_ENV/app.jar \
             --endpoint-url=https://kr.object.ncloudstorage.com
 
-      # SSH 키 설정
+      # SSH 키 설정 + known_hosts 사전 등록 (StrictHostKeyChecking 유지)
       - name: Setup SSH keys
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.BASTION_SSH_KEY }}" > ~/.ssh/bastion_key
-          echo "${{ secrets.SERVER_SSH_KEY }}" > ~/.ssh/server_key
+          echo "${{ secrets.SERVER_SSH_KEY }}"  > ~/.ssh/server_key
           chmod 600 ~/.ssh/bastion_key ~/.ssh/server_key
+
+          # Bastion known_hosts 등록
           ssh-keyscan -H ${{ secrets.BASTION_HOST }} >> ~/.ssh/known_hosts
+
+          # App Server known_hosts 등록 (Bastion 경유)
+          ssh -i ~/.ssh/bastion_key \
+            ${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }} \
+            "ssh-keyscan -H ${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
 
       # Bastion 경유 App Server 배포
       - name: Deploy via Bastion
@@ -86,19 +102,16 @@ jobs:
           DB_URL: ${{ steps.env.outputs.db_url }}
           DB_USERNAME: ${{ steps.env.outputs.db_username }}
           DB_PASSWORD: ${{ steps.env.outputs.db_password }}
+          REDIS_HOST: ${{ steps.env.outputs.redis_host }}
+          KAFKA_SERVERS: ${{ steps.env.outputs.kafka_servers }}
           JWT_SECRET: ${{ steps.env.outputs.jwt_secret }}
-          REDIS_HOST: ${{ secrets.REDIS_HOST_STAGE }}
-          KAFKA_SERVERS: ${{ secrets.KAFKA_SERVERS_STAGE }}
           NCP_ACCESS_KEY: ${{ secrets.NCP_ACCESS_KEY }}
           NCP_SECRET_KEY: ${{ secrets.NCP_SECRET_KEY }}
           NCP_BUCKET: ${{ secrets.NCP_BUCKET_DEPLOY }}
         run: |
-          # Bastion 경유 App Server에서 배포 실행
           ssh -i ~/.ssh/bastion_key \
-            -o StrictHostKeyChecking=no \
             ${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }} \
             "ssh -i /root/fivefy-app-key.pem \
-              -o StrictHostKeyChecking=no \
               ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
               'set -e
 
@@ -108,19 +121,24 @@ jobs:
 
               echo ===== [$DEPLOY_ENV] 배포 시작 =====
 
-              # Object Storage에서 JAR 다운로드
+              # Object Storage에서 새 JAR 다운로드
               AWS_ACCESS_KEY_ID=$NCP_ACCESS_KEY \
               AWS_SECRET_ACCESS_KEY=$NCP_SECRET_KEY \
               aws s3 cp s3://$NCP_BUCKET/deploy/$DEPLOY_ENV/app.jar \
                 \$APP_DIR/app-new.jar \
                 --endpoint-url=https://kr.object.ncloudstorage.com
 
-              # 기존 앱 종료
-              pkill -f \"spring.profiles.active=\$DEPLOY_ENV\" || true
-              sleep 3
+              # 기존 JAR 백업 (롤백용)
+              if [ -f \$APP_DIR/app.jar ]; then
+                cp \$APP_DIR/app.jar \$APP_DIR/app-backup.jar
+              fi
 
               # 새 JAR 교체
               mv \$APP_DIR/app-new.jar \$APP_DIR/app.jar
+
+              # 기존 앱 종료
+              pkill -f "spring.profiles.active=\$DEPLOY_ENV" || true
+              sleep 3
 
               # 앱 실행
               nohup java \
@@ -137,9 +155,10 @@ jobs:
                 -jar \$APP_DIR/app.jar > \$APP_DIR/app.log 2>&1 &
 
               # 헬스체크 (최대 60초 대기)
+              STATUS=""
               for i in \$(seq 1 12); do
-                STATUS=\$(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:\$PORT/actuator/health)
-                if [ \"\$STATUS\" = \"200\" ]; then
+                STATUS=\$(curl -s -o /dev/null -w "%{http_code}" http://localhost:\$PORT/actuator/health)
+                if [ "\$STATUS" = "200" ]; then
                   echo 헬스체크 성공
                   break
                 fi
@@ -147,9 +166,30 @@ jobs:
                 sleep 5
               done
 
-              if [ \"\$STATUS\" != \"200\" ]; then
-                echo 헬스체크 실패 — 롤백
-                pkill -f \"spring.profiles.active=\$DEPLOY_ENV\" || true
+              # 헬스체크 실패 시 백업 JAR로 롤백
+              if [ "\$STATUS" != "200" ]; then
+                echo 헬스체크 실패 — 이전 버전으로 롤백
+                pkill -f "spring.profiles.active=\$DEPLOY_ENV" || true
+                sleep 2
+
+                if [ -f \$APP_DIR/app-backup.jar ]; then
+                  cp \$APP_DIR/app-backup.jar \$APP_DIR/app.jar
+                  nohup java \
+                    -XX:+UseContainerSupport \
+                    -XX:MaxRAMPercentage=75.0 \
+                    -Dspring.profiles.active=\$DEPLOY_ENV \
+                    -Dserver.port=\$PORT \
+                    -Dspring.datasource.url=$DB_URL \
+                    -Dspring.datasource.username=$DB_USERNAME \
+                    -Dspring.datasource.password=$DB_PASSWORD \
+                    -Dspring.data.redis.host=$REDIS_HOST \
+                    -Dspring.kafka.bootstrap-servers=$KAFKA_SERVERS \
+                    -Djwt.secret=$JWT_SECRET \
+                    -jar \$APP_DIR/app.jar > \$APP_DIR/app.log 2>&1 &
+                  echo 이전 버전으로 롤백 완료
+                else
+                  echo 백업 파일 없음 — 롤백 불가
+                fi
                 exit 1
               fi
 
