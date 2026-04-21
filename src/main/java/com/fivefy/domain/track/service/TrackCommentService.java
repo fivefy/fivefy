@@ -85,6 +85,9 @@ public class TrackCommentService {
             Long commentId,
             TrackCommentCreateRequest request
     ) {
+        // 유저 조회
+        User user = findUser(userId);
+
         // 트랙 접근 가능 여부 검증
         findAccessibleCommentTrack(trackId);
 
@@ -92,7 +95,7 @@ public class TrackCommentService {
         TrackComment comment = findTrackComment(trackId, commentId);
 
         // 작성자 검증
-        if (!comment.getUserId().equals(userId)) {
+        if (!comment.isWrittenBy(user.getId())) {
             throw new BusinessException(TrackCommentErrorCode.ERR_FORBIDDEN_TRACK_COMMENT_UPDATE);
         }
 

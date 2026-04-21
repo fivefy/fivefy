@@ -35,7 +35,7 @@ public class TrackComment extends BaseEntity {
     @Column(name = "track_id", nullable = false)
     private Long trackId;
 
-    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "content", nullable = false, length = 1000)
     private String content;
 
     @LastModifiedDate
