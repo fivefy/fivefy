@@ -88,10 +88,8 @@ public class TrackCommentService {
         // 트랙 접근 가능 여부 검증
         findAccessibleCommentTrack(trackId);
 
-        // 댓글 조회
-        TrackComment comment = trackCommentRepository.findById(commentId)
-                .orElseThrow(() -> new BusinessException(
-                        TrackCommentErrorCode.ERR_TRACK_COMMENT_NOT_FOUND));
+        // 트랙 댓글 조회
+        TrackComment comment = findTrackComment(trackId, commentId);
 
         // 작성자 검증
         if (!comment.getUserId().equals(userId)) {
@@ -119,10 +117,8 @@ public class TrackCommentService {
         // 유저 조회
         User user = findUser(userId);
 
-        // 댓글 조회
-        TrackComment comment = trackCommentRepository.findById(commentId)
-                .orElseThrow(() -> new BusinessException(
-                        TrackCommentErrorCode.ERR_TRACK_COMMENT_NOT_FOUND));
+        // 트랙 댓글 조회
+        TrackComment comment = findTrackComment(trackId, commentId);
 
         // 작성자 또는 관리자만 삭제 가능
         validateCommentDeleteAccess(user, comment);
@@ -167,6 +163,17 @@ public class TrackCommentService {
         }
     }
 
+    // 트랙 댓글 조회
+    private TrackComment findTrackComment(Long trackId, Long commentId) {
+        TrackComment comment = trackCommentRepository.findById(commentId)
+                .orElseThrow(() -> new BusinessException(
+                        TrackCommentErrorCode.ERR_TRACK_COMMENT_NOT_FOUND));
+
+        validateCommentTrack(trackId, comment);
+
+        return comment;
+    }
+
 
     // =========================
     // 검증
@@ -192,6 +199,13 @@ public class TrackCommentService {
             throw new BusinessException(
                     TrackCommentErrorCode.ERR_FORBIDDEN_TRACK_COMMENT_DELETE
             );
+        }
+    }
+
+    // 댓글이 해당 트랙에 속하는지 검증
+    private void validateCommentTrack(Long trackId, TrackComment comment) {
+        if (!comment.getTrackId().equals(trackId)) {
+            throw new BusinessException(TrackCommentErrorCode.ERR_TRACK_COMMENT_NOT_FOUND);
         }
     }
 }
