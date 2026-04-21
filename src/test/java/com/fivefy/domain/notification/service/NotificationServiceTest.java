@@ -1,6 +1,7 @@
 package com.fivefy.domain.notification.service;
 
 import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.follow.repository.FollowRepository;
 import com.fivefy.domain.notification.dto.response.NotificationGetResponse;
 import com.fivefy.domain.notification.entity.Notification;
 import com.fivefy.domain.notification.enums.NotificationChannel;
@@ -23,7 +24,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.List;
@@ -41,10 +44,21 @@ class NotificationServiceTest {
 
     @Mock
     private NotificationRepository notificationRepository;
+
     @Mock
     private UserRepository userRepository;
+
     @Mock
     private SseEmitterRepository sseEmitterRepository;
+
+    @Mock
+    private FollowRepository followRepository;
+
+    @Mock
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Mock
+    private ObjectMapper objectMapper;
 
     @InjectMocks
     private NotificationService notificationService;
@@ -93,8 +107,9 @@ class NotificationServiceTest {
             notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림");
 
             // then
-            verify(notificationRepository, times(1)).save(any()); // 첫 저장만 호출
+            verify(notificationRepository, times(1)).save(any());
             assertThat(notification.getStatus()).isEqualTo(NotificationStatus.QUEUED);
+            verify(stringRedisTemplate, never()).convertAndSend(any(), any(String.class));
         }
 
         @Test
@@ -106,33 +121,34 @@ class NotificationServiceTest {
 
             given(notificationRepository.save(any())).willReturn(notification);
             given(sseEmitterRepository.findAllByUserId(USER_ID)).willReturn(List.of(mockEmitter));
+            given(objectMapper.writeValueAsString(any())).willReturn("{}");
 
             // when
             notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림");
 
             // then
             assertThat(notification.getStatus()).isEqualTo(NotificationStatus.SENT);
-            verify(notificationRepository, times(2)).save(any()); // 첫 저장 + SENT 업데이트
+            verify(stringRedisTemplate).convertAndSend(any(), any(String.class));
+            verify(notificationRepository, times(2)).save(any());
         }
 
         @Test
-        @DisplayName("SSE 전송 실패 시 FAILED 상태로 저장하고 emitter를 제거한다")
-        void send_ioException_marksAsFailedAndDeletesEmitter() throws Exception {
+        @DisplayName("Redis publish 실패 시 FAILED 상태로 저장된다")
+        void send_redisPublishFails_marksAsFailed() throws Exception {
             // given
             Notification notification = makeNotification(USER_ID);
             SseEmitter mockEmitter = mock(SseEmitter.class);
 
             given(notificationRepository.save(any())).willReturn(notification);
             given(sseEmitterRepository.findAllByUserId(USER_ID)).willReturn(List.of(mockEmitter));
-            doThrow(new IOException("전송 실패")).when(mockEmitter).send(any(SseEmitter.SseEventBuilder.class));
+            given(objectMapper.writeValueAsString(any())).willThrow(new RuntimeException("직렬화 실패"));
 
             // when
             notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림");
 
             // then
             assertThat(notification.getStatus()).isEqualTo(NotificationStatus.FAILED);
-            verify(notificationRepository, times(2)).save(any()); // 첫 저장 + FAILED 업데이트
-            verify(sseEmitterRepository).delete(eq(USER_ID), eq(mockEmitter));
+            verify(notificationRepository, times(2)).save(any());
         }
     }
 
