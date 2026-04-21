@@ -164,4 +164,54 @@ public class PointOrderService {
 
         return SubscriptionResponse.from(subscription);
     }
+
+    /**
+     * 정기 구독(RECURRING) 자동 결제 처리
+     * RecurringPaymentScheduler에서 호출
+     * 잔액 부족 시 구독 만료 처리
+     *      미구현 문제1 : 3개월 이상 구독인데, 2개월차에 부족하면?
+     *              해결 방안 1 : 3개월치 미리 구독비를 낸다. 이러면 정기 구독 취소도 문제 없음
+     */
+    @RedissonLock(key = "'cashOrder:' + #userId")
+    public void processRecurringPayment(Subscription subscription) {
+        Long userId = subscription.getUserId();
+        Long price = SubscriptionPlanType.RECURRING.getPrice();
+
+        Wallet wallet = walletRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("지갑 없음"));
+
+        // 잔액 부족 시 구독 만료
+        if (wallet.getTotalBalance() < price) {
+            log.warn("정기 구독 잔액 부족 — userId={}, 필요={}, 보유={}",
+                   userId, price, wallet.getTotalBalance());
+            subscription.expire();
+            subscriptionRepository.save(subscription);
+            return;
+        }
+
+        // PointOrder 생성 (정기 결제 이력)
+        String orderNumber = "REC-" + UUID.randomUUID().toString().substring(0, 8);
+        PointOrder pointOrder = PointOrder.create(userId, SubscriptionPlanType.RECURRING, orderNumber);
+        pointOrder.success();
+        pointOrderRepository.save(pointOrder);
+
+        // 포인트 차감 (무료 → 유료 순서)
+        wallet.useBalanceWithPriority(price);
+
+        // PointHistory 기록
+        pointHistoryRepository.save(PointHistory.create(
+                wallet.getId(),
+                PointType.PAID,
+                PointHistoryType.USE,
+                price,
+                wallet.getBalance(),
+                "정기 구독 자동 결제 (RECURRING)"
+        ));
+
+        // 구독 갱신 (nextBillingDate + 1개월, expiryDate + 1개월)
+        subscription.renew();
+        subscriptionRepository.save(subscription);
+
+        log.info("정기 구독 결제 완료 — userId={}, orderNumber={}", userId, orderNumber);
+    }
 }

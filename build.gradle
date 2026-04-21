@@ -103,6 +103,9 @@ dependencies {
 
     // rabbitMQ
     implementation 'org.springframework.boot:spring-boot-starter-amqp'
+
+    //
+    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
 }
 
 tasks.named('test') {
