@@ -1,0 +1,1168 @@
+= Fivefy API Document
+:doctype: book
+:icons: font
+:source-highlighter: highlightjs
+:toc: left
+:toc-title: 목차
+:toclevels: 3
+:sectlinks:
+:snippets: ../../../build/generated-snippets
+
+== 개요
+
+Fivefy의 음악 스트리밍 서비스 REST API 문서입니다.
+
+=== 기본 정보
+
+|===
+| 항목 | 내용
+| Base URL (Stage) | `https://api-stage.fivefy.com`
+| Base URL (Prod)  | `https://api.fivefy.com`
+| Content-Type     | `application/json`
+|===
+
+=== 공통 응답 형식
+
+모든 API는 아래의 공통 형식으로 응답합니다.
+
+[source,json]
+----
+{
+  "success": true,
+  "status": "200 OK",
+  "message": "응답 메시지",
+  "data": { }
+}
+----
+
+=== 공통 에러 코드
+
+|===
+| HTTP 상태 | 설명
+| 400 Bad Request    | 요청 값 검증 실패
+| 401 Unauthorized   | 인증 실패 또는 토큰 만료
+| 403 Forbidden      | 권한 없음
+| 404 Not Found      | 리소스 없음
+| 409 Conflict       | 중복 데이터
+| 500 Internal Error | 서버 오류
+|===
+
+=== 인증
+
+로그인 이후 발급받은 Access Token을 `Authorization` 헤더에 포함합니다.
+
+[source]
+----
+Authorization: Bearer {accessToken}
+----
+
+Refresh Token은 HttpOnly 쿠키(`refreshToken`)로 관리됩니다.
+
+---
+
+== User API
+
+=== 회원가입
+
+include::{snippets}/user-signup/http-request.adoc[]
+include::{snippets}/user-signup/request-fields.adoc[]
+include::{snippets}/user-signup/http-response.adoc[]
+include::{snippets}/user-signup/response-fields.adoc[]
+
+==== 에러 케이스 — 요청 검증 실패
+
+include::{snippets}/user-signup-invalid/http-request.adoc[]
+include::{snippets}/user-signup-invalid/request-fields.adoc[]
+include::{snippets}/user-signup-invalid/http-response.adoc[]
+include::{snippets}/user-signup-invalid/response-fields.adoc[]
+
+==== 에러 케이스 — 중복 이메일
+
+include::{snippets}/user-signup-duplicate/http-request.adoc[]
+include::{snippets}/user-signup-duplicate/request-fields.adoc[]
+include::{snippets}/user-signup-duplicate/http-response.adoc[]
+include::{snippets}/user-signup-duplicate/response-fields.adoc[]
+
+---
+
+=== 로그인
+
+include::{snippets}/user-login/http-request.adoc[]
+include::{snippets}/user-login/request-fields.adoc[]
+include::{snippets}/user-login/http-response.adoc[]
+include::{snippets}/user-login/response-headers.adoc[]
+include::{snippets}/user-login/response-cookies.adoc[]
+include::{snippets}/user-login/response-fields.adoc[]
+
+==== 에러 케이스 — 요청 검증 실패
+
+include::{snippets}/user-login-invalid/http-request.adoc[]
+include::{snippets}/user-login-invalid/request-fields.adoc[]
+include::{snippets}/user-login-invalid/http-response.adoc[]
+include::{snippets}/user-login-invalid/response-fields.adoc[]
+
+==== 에러 케이스 — 로그인 실패
+
+include::{snippets}/user-login-fail/http-request.adoc[]
+include::{snippets}/user-login-fail/request-fields.adoc[]
+include::{snippets}/user-login-fail/http-response.adoc[]
+include::{snippets}/user-login-fail/response-fields.adoc[]
+
+---
+
+=== 토큰 재발급
+
+include::{snippets}/user-reissue/http-request.adoc[]
+include::{snippets}/user-reissue/request-cookies.adoc[]
+include::{snippets}/user-reissue/http-response.adoc[]
+include::{snippets}/user-reissue/response-headers.adoc[]
+include::{snippets}/user-reissue/response-cookies.adoc[]
+include::{snippets}/user-reissue/response-fields.adoc[]
+
+==== 에러 케이스 - RT 쿠키 누락
+
+include::{snippets}/user-reissue-missing-rt/http-request.adoc[]
+include::{snippets}/user-reissue-missing-rt/http-response.adoc[]
+include::{snippets}/user-reissue-missing-rt/response-fields.adoc[]
+
+==== 에러 케이스 - 유효하지 않은 RT
+
+include::{snippets}/user-reissue-invalid-rt/http-request.adoc[]
+include::{snippets}/user-reissue-invalid-rt/request-cookies.adoc[]
+include::{snippets}/user-reissue-invalid-rt/http-response.adoc[]
+include::{snippets}/user-reissue-invalid-rt/response-fields.adoc[]
+
+---
+
+=== 로그아웃
+
+include::{snippets}/user-logout/http-request.adoc[]
+include::{snippets}/user-logout/http-response.adoc[]
+include::{snippets}/user-logout/response-cookies.adoc[]
+include::{snippets}/user-logout/response-fields.adoc[]
+
+---
+
+=== 내 프로필 조회
+
+include::{snippets}/user-get-profile/http-request.adoc[]
+include::{snippets}/user-get-profile/http-response.adoc[]
+include::{snippets}/user-get-profile/response-fields.adoc[]
+
+---
+
+=== 내 프로필 수정
+
+include::{snippets}/user-update-profile/http-request.adoc[]
+include::{snippets}/user-update-profile/request-fields.adoc[]
+include::{snippets}/user-update-profile/http-response.adoc[]
+include::{snippets}/user-update-profile/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/user-update-profile-invalid/http-request.adoc[]
+include::{snippets}/user-update-profile-invalid/request-fields.adoc[]
+include::{snippets}/user-update-profile-invalid/http-response.adoc[]
+include::{snippets}/user-update-profile-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 비밀번호 불일치
+
+include::{snippets}/user-update-profile-mismatch-password/http-request.adoc[]
+include::{snippets}/user-update-profile-mismatch-password/request-fields.adoc[]
+include::{snippets}/user-update-profile-mismatch-password/http-response.adoc[]
+include::{snippets}/user-update-profile-mismatch-password/response-fields.adoc[]
+
+---
+
+=== 회원 탈퇴
+
+include::{snippets}/user-delete/http-request.adoc[]
+include::{snippets}/user-delete/request-fields.adoc[]
+include::{snippets}/user-delete/http-response.adoc[]
+include::{snippets}/user-delete/response-cookies.adoc[]
+include::{snippets}/user-delete/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/user-delete-invalid/http-request.adoc[]
+include::{snippets}/user-delete-invalid/http-response.adoc[]
+include::{snippets}/user-delete-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 비밀번호 불일치
+
+include::{snippets}/user-delete-mismatch-password/http-request.adoc[]
+include::{snippets}/user-delete-mismatch-password/request-fields.adoc[]
+include::{snippets}/user-delete-mismatch-password/http-response.adoc[]
+include::{snippets}/user-delete-mismatch-password/response-fields.adoc[]
+
+---
+
+== Artist API
+
+=== 아티스트 등록 신청 생성
+
+include::{snippets}/artist-applications-create/http-request.adoc[]
+include::{snippets}/artist-applications-create/request-fields.adoc[]
+include::{snippets}/artist-applications-create/http-response.adoc[]
+include::{snippets}/artist-applications-create/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/artist-applications-create-invalid/http-request.adoc[]
+include::{snippets}/artist-applications-create-invalid/request-fields.adoc[]
+include::{snippets}/artist-applications-create-invalid/http-response.adoc[]
+include::{snippets}/artist-applications-create-invalid/response-fields.adoc[]
+
+
+==== 에러 케이스 - 중복 신청
+
+include::{snippets}/artist-applications-create-duplicate/http-request.adoc[]
+include::{snippets}/artist-applications-create-duplicate/request-fields.adoc[]
+include::{snippets}/artist-applications-create-duplicate/http-response.adoc[]
+include::{snippets}/artist-applications-create-duplicate/response-fields.adoc[]
+
+---
+
+=== 내 아티스트 등록 신청 목록 조회
+
+include::{snippets}/artist-applications-me/http-request.adoc[]
+include::{snippets}/artist-applications-me/http-response.adoc[]
+include::{snippets}/artist-applications-me/response-fields.adoc[]
+
+---
+
+=== 아티스트 등록 신청 상세 조회
+
+include::{snippets}/artist-applications-get/http-request.adoc[]
+include::{snippets}/artist-applications-get/path-parameters.adoc[]
+include::{snippets}/artist-applications-get/http-response.adoc[]
+include::{snippets}/artist-applications-get/response-fields.adoc[]
+
+==== 에러 케이스 - 조회 권한 없음
+
+include::{snippets}/artist-applications-get-forbidden/http-request.adoc[]
+include::{snippets}/artist-applications-get-forbidden/http-response.adoc[]
+include::{snippets}/artist-applications-get-forbidden/path-parameters.adoc[]
+include::{snippets}/artist-applications-get-forbidden/response-fields.adoc[]
+
+==== 에러 케이스 - 신청 없음
+
+include::{snippets}/artist-applications-get-not-found/http-request.adoc[]
+include::{snippets}/artist-applications-get-not-found/path-parameters.adoc[]
+include::{snippets}/artist-applications-get-not-found/http-response.adoc[]
+include::{snippets}/artist-applications-get-not-found/response-fields.adoc[]
+
+---
+
+=== 아티스트 등록 신청 목록 조회
+
+include::{snippets}/admin-artist-applications/http-request.adoc[]
+include::{snippets}/admin-artist-applications/http-response.adoc[]
+include::{snippets}/admin-artist-applications/response-fields.adoc[]
+
+---
+
+=== 아티스트 등록 신청 승인
+
+include::{snippets}/admin-artist-applications-approve/http-request.adoc[]
+include::{snippets}/admin-artist-applications-approve/path-parameters.adoc[]
+include::{snippets}/admin-artist-applications-approve/http-response.adoc[]
+include::{snippets}/admin-artist-applications-approve/response-fields.adoc[]
+
+==== 에러 케이스 - 이미 처리된 신청
+
+include::{snippets}/admin-artist-applications-approve-already-processed/http-request.adoc[]
+include::{snippets}/admin-artist-applications-approve-already-processed/path-parameters.adoc[]
+include::{snippets}/admin-artist-applications-approve-already-processed/http-response.adoc[]
+include::{snippets}/admin-artist-applications-approve-already-processed/response-fields.adoc[]
+
+---
+
+=== 아티스트 등록 신청 거절
+
+include::{snippets}/admin-artist-applications-reject/http-request.adoc[]
+include::{snippets}/admin-artist-applications-reject/path-parameters.adoc[]
+include::{snippets}/admin-artist-applications-reject/request-fields.adoc[]
+include::{snippets}/admin-artist-applications-reject/http-response.adoc[]
+include::{snippets}/admin-artist-applications-reject/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/admin-artist-applications-reject-invalid/http-request.adoc[]
+include::{snippets}/admin-artist-applications-reject-invalid/request-fields.adoc[]
+include::{snippets}/admin-artist-applications-reject-invalid/http-response.adoc[]
+include::{snippets}/admin-artist-applications-reject-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 이미 처리된 신청
+
+include::{snippets}/admin-artist-applications-reject-already-processed/http-request.adoc[]
+include::{snippets}/admin-artist-applications-reject-already-processed/path-parameters.adoc[]
+include::{snippets}/admin-artist-applications-reject-already-processed/request-fields.adoc[]
+include::{snippets}/admin-artist-applications-reject-already-processed/http-response.adoc[]
+include::{snippets}/admin-artist-applications-reject-already-processed/response-fields.adoc[]
+
+---
+
+=== 내 아티스트 목록 조회
+
+include::{snippets}/my-artists-get/http-request.adoc[]
+include::{snippets}/my-artists-get/http-response.adoc[]
+include::{snippets}/my-artists-get/response-fields.adoc[]
+
+---
+
+=== 아티스트 상세 조회
+
+include::{snippets}/artists-get/http-request.adoc[]
+include::{snippets}/artists-get/path-parameters.adoc[]
+include::{snippets}/artists-get/http-response.adoc[]
+include::{snippets}/artists-get/response-fields.adoc[]
+
+==== 에러 케이스 - 아티스트 없음
+
+include::{snippets}/artists-get-not-found/http-request.adoc[]
+include::{snippets}/artists-get-not-found/path-parameters.adoc[]
+include::{snippets}/artists-get-not-found/http-response.adoc[]
+include::{snippets}/artists-get-not-found/response-fields.adoc[]
+
+---
+
+=== 아티스트 프로필 수정
+
+include::{snippets}/artists-update/http-request.adoc[]
+include::{snippets}/artists-update/path-parameters.adoc[]
+include::{snippets}/artists-update/request-fields.adoc[]
+include::{snippets}/artists-update/http-response.adoc[]
+include::{snippets}/artists-update/response-fields.adoc[]
+
+==== 에러 케이스 - 수정 권한 없음
+
+include::{snippets}/artists-update-forbidden/http-request.adoc[]
+include::{snippets}/artists-update-forbidden/path-parameters.adoc[]
+include::{snippets}/artists-update-forbidden/request-fields.adoc[]
+include::{snippets}/artists-update-forbidden/http-response.adoc[]
+include::{snippets}/artists-update-forbidden/response-fields.adoc[]
+
+---
+
+=== 아티스트 삭제
+
+include::{snippets}/artists-delete/http-request.adoc[]
+include::{snippets}/artists-delete/path-parameters.adoc[]
+include::{snippets}/artists-delete/http-response.adoc[]
+include::{snippets}/artists-delete/response-fields.adoc[]
+
+==== 에러 케이스 - 아티스트 없음
+
+include::{snippets}/artists-delete-not-found/http-request.adoc[]
+include::{snippets}/artists-delete-not-found/path-parameters.adoc[]
+include::{snippets}/artists-delete-not-found/http-response.adoc[]
+include::{snippets}/artists-delete-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 삭제 권한 없음
+
+include::{snippets}/artists-delete-forbidden/http-request.adoc[]
+include::{snippets}/artists-delete-forbidden/path-parameters.adoc[]
+include::{snippets}/artists-delete-forbidden/http-response.adoc[]
+include::{snippets}/artists-delete-forbidden/response-fields.adoc[]
+
+---
+
+=== 아티스트 활성화
+
+include::{snippets}/artists-activate/http-request.adoc[]
+include::{snippets}/artists-activate/path-parameters.adoc[]
+include::{snippets}/artists-activate/http-response.adoc[]
+include::{snippets}/artists-activate/response-fields.adoc[]
+
+==== 에러 케이스 - 아티스트 없음
+
+include::{snippets}/artists-activate-not-found/http-request.adoc[]
+include::{snippets}/artists-activate-not-found/path-parameters.adoc[]
+include::{snippets}/artists-activate-not-found/http-response.adoc[]
+include::{snippets}/artists-activate-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 이미 활성화된 아티스트
+
+include::{snippets}/artists-activate-already-activated/http-request.adoc[]
+include::{snippets}/artists-activate-already-activated/path-parameters.adoc[]
+include::{snippets}/artists-activate-already-activated/http-response.adoc[]
+include::{snippets}/artists-activate-already-activated/response-fields.adoc[]
+
+==== 에러 케이스 - 활성화 권한 없음
+
+include::{snippets}/artists-activate-forbidden/http-request.adoc[]
+include::{snippets}/artists-activate-forbidden/path-parameters.adoc[]
+include::{snippets}/artists-activate-forbidden/http-response.adoc[]
+include::{snippets}/artists-activate-forbidden/response-fields.adoc[]
+
+---
+
+=== 아티스트 비활성화
+
+include::{snippets}/artists-deactivate/http-request.adoc[]
+include::{snippets}/artists-deactivate/path-parameters.adoc[]
+include::{snippets}/artists-deactivate/http-response.adoc[]
+include::{snippets}/artists-deactivate/response-fields.adoc[]
+
+==== 에러 케이스 - 아티스트 없음
+
+include::{snippets}/artists-deactivate-not-found/http-request.adoc[]
+include::{snippets}/artists-deactivate-not-found/path-parameters.adoc[]
+include::{snippets}/artists-deactivate-not-found/http-response.adoc[]
+include::{snippets}/artists-deactivate-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 이미 비활성화된 아티스트
+
+include::{snippets}/artists-deactivate-already-inactive/http-request.adoc[]
+include::{snippets}/artists-deactivate-already-inactive/path-parameters.adoc[]
+include::{snippets}/artists-deactivate-already-inactive/http-response.adoc[]
+include::{snippets}/artists-deactivate-already-inactive/response-fields.adoc[]
+
+==== 에러 케이스 - 비활성화 권한 없음
+
+include::{snippets}/artists-deactivate-forbidden/http-request.adoc[]
+include::{snippets}/artists-deactivate-forbidden/path-parameters.adoc[]
+include::{snippets}/artists-deactivate-forbidden/http-response.adoc[]
+include::{snippets}/artists-deactivate-forbidden/response-fields.adoc[]
+
+---
+
+== Album API
+
+=== 앨범 등록 신청 생성
+
+include::{snippets}/album-applications-create/http-request.adoc[]
+include::{snippets}/album-applications-create/request-fields.adoc[]
+include::{snippets}/album-applications-create/http-response.adoc[]
+include::{snippets}/album-applications-create/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/album-applications-create-invalid/http-request.adoc[]
+include::{snippets}/album-applications-create-invalid/request-fields.adoc[]
+include::{snippets}/album-applications-create-invalid/http-response.adoc[]
+include::{snippets}/album-applications-create-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 중복 신청
+
+include::{snippets}/album-applications-create-duplicate/http-request.adoc[]
+include::{snippets}/album-applications-create-duplicate/request-fields.adoc[]
+include::{snippets}/album-applications-create-duplicate/http-response.adoc[]
+include::{snippets}/album-applications-create-duplicate/response-fields.adoc[]
+
+---
+
+=== 내 앨범 등록 신청 목록 조회
+
+include::{snippets}/album-applications-me-get/http-request.adoc[]
+include::{snippets}/album-applications-me-get/http-response.adoc[]
+include::{snippets}/album-applications-me-get/response-fields.adoc[]
+
+---
+
+=== 앨범 등록 신청 상세 조회
+
+include::{snippets}/album-applications-get/http-request.adoc[]
+include::{snippets}/album-applications-get/path-parameters.adoc[]
+include::{snippets}/album-applications-get/http-response.adoc[]
+include::{snippets}/album-applications-get/response-fields.adoc[]
+
+==== 에러 케이스 - 조회 권한 없음
+
+include::{snippets}/album-applications-get-forbidden/http-request.adoc[]
+include::{snippets}/album-applications-get-forbidden/path-parameters.adoc[]
+include::{snippets}/album-applications-get-forbidden/http-response.adoc[]
+include::{snippets}/album-applications-get-forbidden/response-fields.adoc[]
+
+==== 에러 케이스 - 신청 없음
+
+include::{snippets}/album-applications-get-not-found/http-request.adoc[]
+include::{snippets}/album-applications-get-not-found/path-parameters.adoc[]
+include::{snippets}/album-applications-get-not-found/http-response.adoc[]
+include::{snippets}/album-applications-get-not-found/response-fields.adoc[]
+
+---
+
+=== 앨범 등록 신청 목록 조회
+
+include::{snippets}/admin-album-applications-get/http-request.adoc[]
+include::{snippets}/admin-album-applications-get/http-response.adoc[]
+include::{snippets}/admin-album-applications-get/response-fields.adoc[]
+
+---
+
+=== 앨범 등록 신청 승인
+
+include::{snippets}/admin-album-applications-approve/http-request.adoc[]
+include::{snippets}/admin-album-applications-approve/path-parameters.adoc[]
+include::{snippets}/admin-album-applications-approve/http-response.adoc[]
+include::{snippets}/admin-album-applications-approve/response-fields.adoc[]
+
+==== 에러 케이스 - 이미 처리된 신청
+
+include::{snippets}/admin-album-applications-approve-already-processed/http-request.adoc[]
+include::{snippets}/admin-album-applications-approve-already-processed/http-response.adoc[]
+include::{snippets}/admin-album-applications-approve-already-processed/response-fields.adoc[]
+
+==== 에러 케이스 - 신청 없음
+
+include::{snippets}/admin-album-applications-approve-not-found/http-request.adoc[]
+include::{snippets}/admin-album-applications-approve-not-found/http-response.adoc[]
+include::{snippets}/admin-album-applications-approve-not-found/response-fields.adoc[]
+
+---
+
+=== 앨범 등록 신청 거절
+
+include::{snippets}/admin-album-applications-reject/http-request.adoc[]
+include::{snippets}/admin-album-applications-reject/path-parameters.adoc[]
+include::{snippets}/admin-album-applications-reject/request-fields.adoc[]
+include::{snippets}/admin-album-applications-reject/http-response.adoc[]
+include::{snippets}/admin-album-applications-reject/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/admin-album-applications-reject-invalid/http-request.adoc[]
+include::{snippets}/admin-album-applications-reject-invalid/request-fields.adoc[]
+include::{snippets}/admin-album-applications-reject-invalid/http-response.adoc[]
+include::{snippets}/admin-album-applications-reject-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 이미 처리된 신청
+
+include::{snippets}/admin-album-applications-reject-already-processed/http-request.adoc[]
+include::{snippets}/admin-album-applications-reject-already-processed/http-response.adoc[]
+include::{snippets}/admin-album-applications-reject-already-processed/response-fields.adoc[]
+
+==== 에러 케이스 - 신청 없음
+
+include::{snippets}/admin-album-applications-reject-not-found/http-request.adoc[]
+include::{snippets}/admin-album-applications-reject-not-found/http-response.adoc[]
+include::{snippets}/admin-album-applications-reject-not-found/response-fields.adoc[]
+
+---
+
+=== 앨범 상세 조회
+
+include::{snippets}/albums-get/http-request.adoc[]
+include::{snippets}/albums-get/path-parameters.adoc[]
+include::{snippets}/albums-get/http-response.adoc[]
+include::{snippets}/albums-get/response-fields.adoc[]
+
+==== 에러 케이스 - 앨범 없음
+
+include::{snippets}/albums-get-not-found/http-request.adoc[]
+include::{snippets}/albums-get-not-found/http-response.adoc[]
+include::{snippets}/albums-get-not-found/response-fields.adoc[]
+
+---
+
+=== 아티스트별 앨범 목록 조회
+
+include::{snippets}/artists-albums-get/http-request.adoc[]
+include::{snippets}/artists-albums-get/path-parameters.adoc[]
+include::{snippets}/artists-albums-get/http-response.adoc[]
+include::{snippets}/artists-albums-get/response-fields.adoc[]
+
+==== 에러 케이스 - 아티스트 없음
+
+include::{snippets}/albums-by-artist-not-found/http-request.adoc[]
+include::{snippets}/albums-by-artist-not-found/http-response.adoc[]
+include::{snippets}/albums-by-artist-not-found/response-fields.adoc[]
+
+---
+
+== Track API
+
+=== 자유 창작 트랙 등록 신청 생성
+
+include::{snippets}/track-applications-free-creations-create/http-request.adoc[]
+include::{snippets}/track-applications-free-creations-create/request-fields.adoc[]
+include::{snippets}/track-applications-free-creations-create/http-response.adoc[]
+include::{snippets}/track-applications-free-creations-create/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/track-applications-free-creations-create-invalid/http-request.adoc[]
+include::{snippets}/track-applications-free-creations-create-invalid/request-fields.adoc[]
+include::{snippets}/track-applications-free-creations-create-invalid/http-response.adoc[]
+include::{snippets}/track-applications-free-creations-create-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 중복 신청
+
+include::{snippets}/track-applications-free-creations-create-duplicate/http-request.adoc[]
+include::{snippets}/track-applications-free-creations-create-duplicate/request-fields.adoc[]
+include::{snippets}/track-applications-free-creations-create-duplicate/http-response.adoc[]
+include::{snippets}/track-applications-free-creations-create-duplicate/response-fields.adoc[]
+
+---
+
+=== 정식 발매 트랙 등록 신청 생성
+
+include::{snippets}/track-applications-official-releases-create/http-request.adoc[]
+include::{snippets}/track-applications-official-releases-create/request-fields.adoc[]
+include::{snippets}/track-applications-official-releases-create/http-response.adoc[]
+include::{snippets}/track-applications-official-releases-create/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/track-applications-official-releases-create-invalid/http-request.adoc[]
+include::{snippets}/track-applications-official-releases-create-invalid/request-fields.adoc[]
+include::{snippets}/track-applications-official-releases-create-invalid/http-response.adoc[]
+include::{snippets}/track-applications-official-releases-create-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 중복 신청
+
+include::{snippets}/track-applications-official-releases-create-duplicate/http-request.adoc[]
+include::{snippets}/track-applications-official-releases-create-duplicate/request-fields.adoc[]
+include::{snippets}/track-applications-official-releases-create-duplicate/http-response.adoc[]
+include::{snippets}/track-applications-official-releases-create-duplicate/response-fields.adoc[]
+
+---
+
+=== 내 트랙 등록 신청 목록 조회
+
+include::{snippets}/track-applications-me-get/http-request.adoc[]
+include::{snippets}/track-applications-me-get/http-response.adoc[]
+include::{snippets}/track-applications-me-get/response-fields.adoc[]
+
+---
+
+=== 트랙 등록 신청 상세 조회
+
+include::{snippets}/track-applications-get/http-request.adoc[]
+include::{snippets}/track-applications-get/path-parameters.adoc[]
+include::{snippets}/track-applications-get/http-response.adoc[]
+include::{snippets}/track-applications-get/response-fields.adoc[]
+
+==== 에러 케이스 - 조회 권한 없음
+
+include::{snippets}/track-applications-get-forbidden/http-request.adoc[]
+include::{snippets}/track-applications-get-forbidden/path-parameters.adoc[]
+include::{snippets}/track-applications-get-forbidden/http-response.adoc[]
+include::{snippets}/track-applications-get-forbidden/response-fields.adoc[]
+
+==== 에러 케이스 - 신청 없음
+
+include::{snippets}/track-applications-get-not-found/http-request.adoc[]
+include::{snippets}/track-applications-get-not-found/path-parameters.adoc[]
+include::{snippets}/track-applications-get-not-found/http-response.adoc[]
+include::{snippets}/track-applications-get-not-found/response-fields.adoc[]
+
+---
+
+=== 트랙 등록 신청 목록 조회
+
+include::{snippets}/admin-track-applications-get/http-request.adoc[]
+include::{snippets}/admin-track-applications-get/http-response.adoc[]
+include::{snippets}/admin-track-applications-get/response-fields.adoc[]
+
+---
+
+=== 트랙 등록 신청 승인
+
+include::{snippets}/admin-track-applications-approve/http-request.adoc[]
+include::{snippets}/admin-track-applications-approve/path-parameters.adoc[]
+include::{snippets}/admin-track-applications-approve/http-response.adoc[]
+include::{snippets}/admin-track-applications-approve/response-fields.adoc[]
+
+==== 에러 케이스 - 이미 처리된 신청
+
+include::{snippets}/admin-track-applications-approve-already-processed/http-request.adoc[]
+include::{snippets}/admin-track-applications-approve-already-processed/http-response.adoc[]
+include::{snippets}/admin-track-applications-approve-already-processed/response-fields.adoc[]
+
+==== 에러 케이스 - 신청 없음
+
+include::{snippets}/admin-track-applications-approve-not-found/http-request.adoc[]
+include::{snippets}/admin-track-applications-approve-not-found/http-response.adoc[]
+include::{snippets}/admin-track-applications-approve-not-found/response-fields.adoc[]
+
+---
+
+=== 트랙 등록 신청 거절
+
+include::{snippets}/admin-track-applications-reject/http-request.adoc[]
+include::{snippets}/admin-track-applications-reject/path-parameters.adoc[]
+include::{snippets}/admin-track-applications-reject/request-fields.adoc[]
+include::{snippets}/admin-track-applications-reject/http-response.adoc[]
+include::{snippets}/admin-track-applications-reject/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/admin-track-applications-reject-invalid/http-request.adoc[]
+include::{snippets}/admin-track-applications-reject-invalid/request-fields.adoc[]
+include::{snippets}/admin-track-applications-reject-invalid/http-response.adoc[]
+include::{snippets}/admin-track-applications-reject-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 이미 처리된 신청
+
+include::{snippets}/admin-track-applications-reject-already-processed/http-request.adoc[]
+include::{snippets}/admin-track-applications-reject-already-processed/http-response.adoc[]
+include::{snippets}/admin-track-applications-reject-already-processed/response-fields.adoc[]
+
+==== 에러 케이스 - 신청 없음
+
+include::{snippets}/admin-track-applications-reject-not-found/http-request.adoc[]
+include::{snippets}/admin-track-applications-reject-not-found/http-response.adoc[]
+include::{snippets}/admin-track-applications-reject-not-found/response-fields.adoc[]
+
+---
+
+=== 트랙 상세 조회
+
+include::{snippets}/tracks-get/http-request.adoc[]
+include::{snippets}/tracks-get/http-response.adoc[]
+include::{snippets}/tracks-get/response-fields.adoc[]
+
+==== 에러 케이스 - 트랙 없음
+
+include::{snippets}/tracks-get-not-found/http-request.adoc[]
+include::{snippets}/tracks-get-not-found/http-response.adoc[]
+include::{snippets}/tracks-get-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 비공개 트랙
+
+include::{snippets}/tracks-get-unpublished/http-request.adoc[]
+include::{snippets}/tracks-get-unpublished/http-response.adoc[]
+include::{snippets}/tracks-get-unpublished/response-fields.adoc[]
+
+---
+
+=== 공개 트랙 목록 조회
+
+include::{snippets}/tracks-get-list/http-request.adoc[]
+include::{snippets}/tracks-get-list/http-response.adoc[]
+include::{snippets}/tracks-get-list/response-fields.adoc[]
+
+---
+
+=== 아티스트별 자유 창작 트랙 목록 조회
+
+include::{snippets}/artists-free-creations-get/http-request.adoc[]
+include::{snippets}/artists-free-creations-get/http-response.adoc[]
+include::{snippets}/artists-free-creations-get/response-fields.adoc[]
+
+==== 에러 케이스 - 아티스트 없음
+
+include::{snippets}/artists-free-creations-get-not-found/http-request.adoc[]
+include::{snippets}/artists-free-creations-get-not-found/http-response.adoc[]
+include::{snippets}/artists-free-creations-get-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 삭제된 아티스트
+
+include::{snippets}/artists-free-creations-get-deleted-artist/http-request.adoc[]
+include::{snippets}/artists-free-creations-get-deleted-artist/http-response.adoc[]
+include::{snippets}/artists-free-creations-get-deleted-artist/response-fields.adoc[]
+
+---
+
+== Playlist API
+
+=== 플레이리스트 생성
+
+include::{snippets}/playlist-create/http-request.adoc[]
+include::{snippets}/playlist-create/request-fields.adoc[]
+include::{snippets}/playlist-create/http-response.adoc[]
+include::{snippets}/playlist-create/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/playlist-create-invalid/http-request.adoc[]
+include::{snippets}/playlist-create-invalid/request-fields.adoc[]
+include::{snippets}/playlist-create-invalid/http-response.adoc[]
+include::{snippets}/playlist-create-invalid/response-fields.adoc[]
+
+==== 에러 케이스 — 유효한 구독 없음
+
+include::{snippets}/playlist-create-subscription-required/http-request.adoc[]
+include::{snippets}/playlist-create-subscription-required/request-fields.adoc[]
+include::{snippets}/playlist-create-subscription-required/http-response.adoc[]
+include::{snippets}/playlist-create-subscription-required/response-fields.adoc[]
+
+==== 에러 케이스 - 중복 제목
+
+include::{snippets}/playlist-create-duplicate/http-request.adoc[]
+include::{snippets}/playlist-create-duplicate/request-fields.adoc[]
+include::{snippets}/playlist-create-duplicate/http-response.adoc[]
+include::{snippets}/playlist-create-duplicate/response-fields.adoc[]
+
+---
+
+=== 플레이리스트 목록 조회
+
+include::{snippets}/playlist-get-list/http-request.adoc[]
+include::{snippets}/playlist-get-list/http-response.adoc[]
+include::{snippets}/playlist-get-list/response-fields.adoc[]
+
+---
+
+=== 플레이리스트 단건 조회
+
+include::{snippets}/playlist-get/http-request.adoc[]
+include::{snippets}/playlist-get/http-response.adoc[]
+include::{snippets}/playlist-get/response-fields.adoc[]
+
+==== 에러 케이스 - 플레이리스트 없음
+
+include::{snippets}/playlist-get-not-found/http-request.adoc[]
+include::{snippets}/playlist-get-not-found/http-response.adoc[]
+include::{snippets}/playlist-get-not-found/response-fields.adoc[]
+
+---
+
+=== 플레이리스트 수정
+
+include::{snippets}/playlist-update/http-request.adoc[]
+include::{snippets}/playlist-update/request-fields.adoc[]
+include::{snippets}/playlist-update/http-response.adoc[]
+include::{snippets}/playlist-update/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/playlist-update-invalid/http-request.adoc[]
+include::{snippets}/playlist-update-invalid/request-fields.adoc[]
+include::{snippets}/playlist-update-invalid/http-response.adoc[]
+include::{snippets}/playlist-update-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 수정 권한 없음
+
+include::{snippets}/playlist-update-forbidden/http-request.adoc[]
+include::{snippets}/playlist-update-forbidden/request-fields.adoc[]
+include::{snippets}/playlist-update-forbidden/http-response.adoc[]
+include::{snippets}/playlist-update-forbidden/response-fields.adoc[]
+
+==== 에러 케이스 - 플레이리스트 없음
+
+include::{snippets}/playlist-update-not-found/http-request.adoc[]
+include::{snippets}/playlist-update-not-found/request-fields.adoc[]
+include::{snippets}/playlist-update-not-found/http-response.adoc[]
+include::{snippets}/playlist-update-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 중복 제목
+
+include::{snippets}/playlist-update-duplicate/http-request.adoc[]
+include::{snippets}/playlist-update-duplicate/request-fields.adoc[]
+include::{snippets}/playlist-update-duplicate/http-response.adoc[]
+include::{snippets}/playlist-update-duplicate/response-fields.adoc[]
+
+---
+
+=== 플레이리스트 삭제
+
+include::{snippets}/playlist-delete/http-request.adoc[]
+include::{snippets}/playlist-delete/http-response.adoc[]
+include::{snippets}/playlist-delete/response-fields.adoc[]
+
+==== 에러 케이스 - 삭제 권한 없음
+
+include::{snippets}/playlist-delete-forbidden/http-request.adoc[]
+include::{snippets}/playlist-delete-forbidden/http-response.adoc[]
+include::{snippets}/playlist-delete-forbidden/response-fields.adoc[]
+
+==== 에러 케이스 - 플레이리스트 없음
+
+include::{snippets}/playlist-delete-not-found/http-request.adoc[]
+include::{snippets}/playlist-delete-not-found/http-response.adoc[]
+include::{snippets}/playlist-delete-not-found/response-fields.adoc[]
+
+---
+
+== PlaylistTrack API
+
+=== 플레이리스트 트랙 추가
+
+include::{snippets}/playlist-track-add/http-request.adoc[]
+include::{snippets}/playlist-track-add/request-fields.adoc[]
+include::{snippets}/playlist-track-add/http-response.adoc[]
+include::{snippets}/playlist-track-add/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/playlist-track-add-invalid/http-request.adoc[]
+include::{snippets}/playlist-track-add-invalid/http-response.adoc[]
+include::{snippets}/playlist-track-add-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 플레이리스트 접근 권한 없음
+
+include::{snippets}/playlist-track-add-forbidden/http-request.adoc[]
+include::{snippets}/playlist-track-add-forbidden/request-fields.adoc[]
+include::{snippets}/playlist-track-add-forbidden/http-response.adoc[]
+include::{snippets}/playlist-track-add-forbidden/response-fields.adoc[]
+
+==== 에러 케이스 - 플레이리스트 없음
+
+include::{snippets}/playlist-track-add-not-found/http-request.adoc[]
+include::{snippets}/playlist-track-add-not-found/request-fields.adoc[]
+include::{snippets}/playlist-track-add-not-found/http-response.adoc[]
+include::{snippets}/playlist-track-add-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 트랙 없음
+
+include::{snippets}/playlist-track-add-track-not-found/http-request.adoc[]
+include::{snippets}/playlist-track-add-track-not-found/request-fields.adoc[]
+include::{snippets}/playlist-track-add-track-not-found/http-response.adoc[]
+include::{snippets}/playlist-track-add-track-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 이미 추가된 트랙
+
+include::{snippets}/playlist-track-add-duplicate/http-request.adoc[]
+include::{snippets}/playlist-track-add-duplicate/request-fields.adoc[]
+include::{snippets}/playlist-track-add-duplicate/http-response.adoc[]
+include::{snippets}/playlist-track-add-duplicate/response-fields.adoc[]
+
+---
+
+=== 플레이리스트 트랙 목록 조회
+
+include::{snippets}/playlist-track-get-list/http-request.adoc[]
+include::{snippets}/playlist-track-get-list/http-response.adoc[]
+include::{snippets}/playlist-track-get-list/response-fields.adoc[]
+
+==== 에러 케이스 - 플레이리스트 없음
+
+include::{snippets}/playlist-track-get-list-not-found/http-request.adoc[]
+include::{snippets}/playlist-track-get-list-not-found/http-response.adoc[]
+include::{snippets}/playlist-track-get-list-not-found/response-fields.adoc[]
+
+---
+
+=== 플레이리스트 트랙 순서 변경
+
+include::{snippets}/playlist-track-update-order/http-request.adoc[]
+include::{snippets}/playlist-track-update-order/request-fields.adoc[]
+include::{snippets}/playlist-track-update-order/http-response.adoc[]
+include::{snippets}/playlist-track-update-order/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/playlist-track-update-order-invalid/http-request.adoc[]
+include::{snippets}/playlist-track-update-order-invalid/request-fields.adoc[]
+include::{snippets}/playlist-track-update-order-invalid/http-response.adoc[]
+include::{snippets}/playlist-track-update-order-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 수정 권한 없음
+
+include::{snippets}/playlist-track-update-order-forbidden/http-request.adoc[]
+include::{snippets}/playlist-track-update-order-forbidden/request-fields.adoc[]
+include::{snippets}/playlist-track-update-order-forbidden/http-response.adoc[]
+include::{snippets}/playlist-track-update-order-forbidden/response-fields.adoc[]
+
+==== 에러 케이스 - 플레이리스트 없음
+
+include::{snippets}/playlist-track-update-order-not-found/http-request.adoc[]
+include::{snippets}/playlist-track-update-order-not-found/request-fields.adoc[]
+include::{snippets}/playlist-track-update-order-not-found/http-response.adoc[]
+include::{snippets}/playlist-track-update-order-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 순서 충돌
+
+include::{snippets}/playlist-track-update-order-conflict/http-request.adoc[]
+include::{snippets}/playlist-track-update-order-conflict/request-fields.adoc[]
+include::{snippets}/playlist-track-update-order-conflict/http-response.adoc[]
+include::{snippets}/playlist-track-update-order-conflict/response-fields.adoc[]
+
+---
+
+=== 플레이리스트 트랙 삭제
+
+include::{snippets}/playlist-track-delete/http-request.adoc[]
+include::{snippets}/playlist-track-delete/http-response.adoc[]
+include::{snippets}/playlist-track-delete/response-fields.adoc[]
+
+==== 에러 케이스 - 삭제 권한 없음
+
+include::{snippets}/playlist-track-delete-forbidden/http-request.adoc[]
+include::{snippets}/playlist-track-delete-forbidden/http-response.adoc[]
+include::{snippets}/playlist-track-delete-forbidden/response-fields.adoc[]
+
+==== 에러 케이스 - 삭제할 트랙 없음
+
+include::{snippets}/playlist-track-delete-not-found/http-request.adoc[]
+include::{snippets}/playlist-track-delete-not-found/http-response.adoc[]
+include::{snippets}/playlist-track-delete-not-found/response-fields.adoc[]
+
+---
+
+== Playback API
+
+=== 재생 시작
+
+include::{snippets}/playback-play/http-request.adoc[]
+include::{snippets}/playback-play/request-fields.adoc[]
+include::{snippets}/playback-play/http-response.adoc[]
+include::{snippets}/playback-play/response-fields.adoc[]
+
+==== 에러 케이스 - playlistId 누락
+
+include::{snippets}/playback-play-invalid-playlist-id/http-request.adoc[]
+include::{snippets}/playback-play-invalid-playlist-id/http-response.adoc[]
+include::{snippets}/playback-play-invalid-playlist-id/response-fields.adoc[]
+
+==== 에러 케이스 - 잘못된 재생 상태
+
+include::{snippets}/playback-play-invalid-state/http-request.adoc[]
+include::{snippets}/playback-play-invalid-state/request-fields.adoc[]
+include::{snippets}/playback-play-invalid-state/http-response.adoc[]
+include::{snippets}/playback-play-invalid-state/response-fields.adoc[]
+
+==== 에러 케이스 - 플레이리스트에 포함되지 않은 트랙
+
+include::{snippets}/playback-play-track-not-included/http-request.adoc[]
+include::{snippets}/playback-play-track-not-included/request-fields.adoc[]
+include::{snippets}/playback-play-track-not-included/http-response.adoc[]
+include::{snippets}/playback-play-track-not-included/response-fields.adoc[]
+
+---
+
+=== 재생 일시정지
+
+include::{snippets}/playback-pause/http-request.adoc[]
+include::{snippets}/playback-pause/request-fields.adoc[]
+include::{snippets}/playback-pause/http-response.adoc[]
+include::{snippets}/playback-pause/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/playback-pause-invalid/http-request.adoc[]
+include::{snippets}/playback-pause-invalid/http-response.adoc[]
+include::{snippets}/playback-pause-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 재생 기록 없음
+
+include::{snippets}/playback-pause-not-found/http-request.adoc[]
+include::{snippets}/playback-pause-not-found/request-fields.adoc[]
+include::{snippets}/playback-pause-not-found/http-response.adoc[]
+include::{snippets}/playback-pause-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 현재 재생 중인 곡 없음
+
+include::{snippets}/playback-pause-current-not-found/http-request.adoc[]
+include::{snippets}/playback-pause-current-not-found/request-fields.adoc[]
+include::{snippets}/playback-pause-current-not-found/http-response.adoc[]
+include::{snippets}/playback-pause-current-not-found/response-fields.adoc[]
+
+---
+
+=== 곡 건너뛰기
+
+include::{snippets}/playback-skip/http-request.adoc[]
+include::{snippets}/playback-skip/request-fields.adoc[]
+include::{snippets}/playback-skip/http-response.adoc[]
+include::{snippets}/playback-skip/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/playback-skip-invalid/http-request.adoc[]
+include::{snippets}/playback-skip-invalid/http-response.adoc[]
+include::{snippets}/playback-skip-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 재생 기록 없음
+
+include::{snippets}/playback-skip-not-found/http-request.adoc[]
+include::{snippets}/playback-skip-not-found/request-fields.adoc[]
+include::{snippets}/playback-skip-not-found/http-response.adoc[]
+include::{snippets}/playback-skip-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 잘못된 재생 상태
+
+include::{snippets}/playback-skip-invalid-state/http-request.adoc[]
+include::{snippets}/playback-skip-invalid-state/request-fields.adoc[]
+include::{snippets}/playback-skip-invalid-state/http-response.adoc[]
+include::{snippets}/playback-skip-invalid-state/response-fields.adoc[]
+
+==== 에러 케이스 - 플레이리스트 트랙 정보 없음
+
+include::{snippets}/playback-skip-playlist-track-not-found/http-request.adoc[]
+include::{snippets}/playback-skip-playlist-track-not-found/request-fields.adoc[]
+include::{snippets}/playback-skip-playlist-track-not-found/http-response.adoc[]
+include::{snippets}/playback-skip-playlist-track-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 현재 재생 트랙 불일치
+
+include::{snippets}/playback-skip-track-mismatch/http-request.adoc[]
+include::{snippets}/playback-skip-track-mismatch/request-fields.adoc[]
+include::{snippets}/playback-skip-track-mismatch/http-response.adoc[]
+include::{snippets}/playback-skip-track-mismatch/response-fields.adoc[]
+
+---
+
+=== 곡 정지
+
+include::{snippets}/playback-stop/http-request.adoc[]
+include::{snippets}/playback-stop/request-fields.adoc[]
+include::{snippets}/playback-stop/http-response.adoc[]
+include::{snippets}/playback-stop/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/playback-stop-invalid/http-request.adoc[]
+include::{snippets}/playback-stop-invalid/http-response.adoc[]
+include::{snippets}/playback-stop-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 재생 기록 없음
+
+include::{snippets}/playback-stop-not-found/http-request.adoc[]
+include::{snippets}/playback-stop-not-found/request-fields.adoc[]
+include::{snippets}/playback-stop-not-found/http-response.adoc[]
+include::{snippets}/playback-stop-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 잘못된 재생 상태
+
+include::{snippets}/playback-stop-invalid-state/http-request.adoc[]
+include::{snippets}/playback-stop-invalid-state/request-fields.adoc[]
+include::{snippets}/playback-stop-invalid-state/http-response.adoc[]
+include::{snippets}/playback-stop-invalid-state/response-fields.adoc[]
+
+---
+
+=== 재생 기록 조회
+
+include::{snippets}/playback-history/http-request.adoc[]
+include::{snippets}/playback-history/http-response.adoc[]
+include::{snippets}/playback-history/response-fields.adoc[]
+
+---
+
+== PopularChart API
+
+=== 인기 차트 조회
+
+include::{snippets}/popular-chart-get-top100/http-request.adoc[]
+include::{snippets}/popular-chart-get-top100/http-response.adoc[]
+include::{snippets}/popular-chart-get-top100/response-fields.adoc[]
+
+=== snapshotDate로 인기 차트 조회
+
+include::{snippets}/popular-chart-get-top100-with-date/http-request.adoc[]
+include::{snippets}/popular-chart-get-top100-with-date/http-response.adoc[]
+include::{snippets}/popular-chart-get-top100-with-date/response-fields.adoc[]
+
+==== 에러 케이스 - 차트 데이터 없음
+
+include::{snippets}/popular-chart-get-top100-not-found/http-request.adoc[]
+include::{snippets}/popular-chart-get-top100-not-found/http-response.adoc[]
+include::{snippets}/popular-chart-get-top100-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 유효하지 않은 snapshotDate
+
+include::{snippets}/popular-chart-get-top100-invalid-date/http-request.adoc[]
+include::{snippets}/popular-chart-get-top100-invalid-date/http-response.adoc[]
+include::{snippets}/popular-chart-get-top100-invalid-date/response-fields.adoc[]
+
+---
+
+== PopularChart Test API
+
+=== 테스트용 인기 차트 생성
+
+include::{snippets}/popular-chart-test-generate/http-request.adoc[]
+include::{snippets}/popular-chart-test-generate/http-response.adoc[]
+
+---
+
+== 도메인 API
+
+=== 기능
+
+=== 에러 케이스

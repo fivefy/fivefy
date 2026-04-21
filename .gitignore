@@ -37,10 +37,18 @@ out/
 .vscode/
 
 ### macOS ###
-.idea/
+.DS_Store
 
 ### env ###
 .env
 
 ### yml ###
 application-local.yml
+docker-compose.override.yml
+application-test.yml
+
+### sh ###
+pull.sh
+
+### 메모장 ###
+대략적인가이드라인.txt

@@ -1,0 +1,164 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit 설정 파일 — 음악 스트리밍 서비스
+# 위치: 프로젝트 루트 .coderabbit.yml
+
+language: "ko-KR"
+early_access: false
+
+# ──────────────────────────────────────────────────
+# 리뷰 설정
+# ──────────────────────────────────────────────────
+reviews:
+  profile: "chill"           # chill | assertive — 경량 리뷰로 속도 개선
+  request_changes_workflow: false
+  high_level_summary: true       # PR 상단에 변경사항 요약
+  poem: false                    # 리뷰 마지막 시(poem) 비활성화
+  review_status: true            # 리뷰 진행 상태 표시
+  collapse_walkthrough: true     # 파일별 변경 내용 접어서 표시 (속도 개선)
+  sequence_diagrams: false       # 시퀀스 다이어그램 비활성화 (속도 개선)
+
+  auto_review:
+    enabled: true
+    drafts: false                # 드래프트 PR은 리뷰 제외
+    base_branches:
+      - "dev"
+      - "stage"
+      - "main"
+
+  # ── PR 타이틀 자동 생성 규칙 ──────────────────────
+  auto_title_instructions: >
+    형식: "<타입>: <제목>" 으로 작성해줘.
+    타입은 feat, fix, docs, style, refactor, perf, test, build, ci, chore 중 하나.
+    제목은 한국어로, 80자 이내로 작성.
+    예시: "feat: 트랙 재생 권한 체크 Redis 캐싱 적용"
+
+  # ── 머지 전 체크 항목 ─────────────────────────────
+  finishing_touches:
+    docstrings:
+      enabled: false             # 비활성화 (속도 개선)
+
+  abort_on_close: true           # PR 닫히면 진행 중인 리뷰 중단
+
+  # ── 경로별 커스텀 리뷰 지시 ──────────────────────
+  path_instructions:
+    # 전체 경로 공통 지시
+    - path: "**"
+      instructions: >
+        - 단순한 코드 스타일, 변수 네이밍 컨벤션, 들여쓰기 관련 지적은 절대 하지 마세요.
+        - 기능 동작에 지장이 없는 사소한 리팩토링 제안이나 '제안을 위한 제안'은 무시하세요.
+        - 치명적인 비즈니스 로직 결함, 보안 이슈, DB 성능(N+1 등) 문제에만 집중하세요.
+
+    # 인증/보안 관련
+    - path: "**/security/**"
+      instructions: >
+        보안 취약점을 최우선으로 확인해줘.
+        JWT 토큰 검증 누락, 인증 없는 엔드포인트 노출, 민감 정보 로그 출력 여부를 반드시 체크해줘.
+        AT 블랙리스트 미적용은 의도된 설계이므로 지적하지 않아도 돼.
+
+    - path: "**/config/SecurityConfig.java"
+      instructions: >
+        permitAll() 범위가 적절한지 확인해줘.
+        인증이 필요한 API가 실수로 열려있지 않은지 체크해줘.
+
+    # 컨트롤러 레이어
+    - path: "**/controller/**"
+      instructions: >
+        다음 항목을 확인해줘.
+        1. @Valid 또는 @Validated 어노테이션으로 입력값 검증이 되어 있는지
+        2. 응답 형식이 팀 컨벤션(BaseResponse 래퍼)을 따르는지
+        3. HTTP 상태 코드가 올바르게 사용되는지 (생성: 201, 삭제: 204 등)
+        4. Controller에 비즈니스 로직이 들어가 있지 않은지 (Service에 위임해야 함)
+
+    # 서비스 레이어
+    - path: "**/service/**"
+      instructions: >
+        다음 항목을 확인해줘.
+        1. @Transactional 범위가 적절한지 (읽기 전용은 readOnly=true)
+        2. N+1 쿼리가 발생할 수 있는 패턴이 있는지
+        3. 외부 API 호출(@HttpExchange)이 트랜잭션 내부에 있지 않은지
+        4. 비즈니스 로직이 Service에 있고 Repository를 직접 호출하는 구조인지
+
+    # 레포지토리/쿼리
+    - path: "**/repository/**"
+      instructions: >
+        다음 항목을 확인해줘.
+        1. QueryDSL 동적 쿼리에서 N+1 문제가 없는지 (fetchJoin 누락 체크)
+        2. 대용량 조회 시 페이징 처리(Pageable)가 적용되어 있는지
+        3. 인덱스를 활용하지 못하는 쿼리 패턴이 없는지 (LIKE '%keyword%' 등)
+
+    # 엔티티
+    - path: "**/entity/**"
+      instructions: >
+        다음 항목을 확인해줘.
+        1. 연관관계는 편의 메서드가 아닌 id만을 참조하는지
+        2. @Column 길이 제한이 ERD 스펙과 일치하는지
+        3. Lombok @Data 사용 금지 — @Getter, @Builder 등 분리 사용
+        4. equals/hashCode 오버라이드 시 id 필드만 사용하는지
+
+    # Kafka
+    - path: "**/kafka/**"
+      instructions: >
+        다음 항목을 확인해줘.
+        1. Consumer에 @KafkaListener의 groupId가 명시되어 있는지
+        2. 예외 처리 — 실패 시 Dead Letter Topic으로 넘어가는 구조인지
+        3. Producer에서 트랜잭션 처리가 필요한 경우 @Transactional과 Kafka 트랜잭션이 함께 처리되는지
+        4. 메시지 직렬화/역직렬화 설정이 일치하는지
+
+    # Redis
+    - path: "**/redis/**"
+      instructions: >
+        다음 항목을 확인해줘.
+        1. TTL 설정이 빠진 캐시 키가 없는지 (메모리 누수 위험)
+        2. Redis 장애 시 Fallback 처리가 있는지
+        3. 캐시 키 패턴이 팀 컨벤션({도메인}:{식별자})을 따르는지
+
+    # 테스트 코드
+    - path: "**/test/**"
+      instructions: >
+        다음 항목을 확인해줘.
+        1. 테스트 메서드명이 한국어 또는 given_when_then 형식인지
+        2. @SpringBootTest 남용 여부 — 단위 테스트는 @ExtendWith(MockitoExtension.class) 사용
+        3. Spring REST Docs 스니펫이 실제 응답 필드와 일치하는지
+        4. 테스트 격리 — 각 테스트가 독립적으로 실행 가능한지 (@Transactional 또는 @AfterEach 정리)
+
+    # CI/CD
+    - path: ".github/**"
+      instructions: >
+        다음 항목을 확인해줘.
+        1. Secrets 값이 하드코딩되어 있지 않은지
+        2. 브랜치 보호 규칙(feature→dev→stage→main)에 맞게 트리거가 설정됐는지
+
+    # SQL/마이그레이션
+    - path: "**/resources/db/**"
+      instructions: >
+        다음 항목을 확인해줘.
+        1. 인덱스 추가/삭제 시 CONCURRENTLY 옵션 또는 영향 범위 언급이 있는지
+        2. 롤백 스크립트가 함께 제공되는지
+        3. NOT NULL 컬럼 추가 시 DEFAULT 값이 지정되어 있는지
+
+  # ── 리뷰에서 제외할 경로 ────────────────────────
+  path_filters:
+    # lock 파일과 gradle-wrapper.properties 는 공급망 변경 검토를 위해 포함 권장
+    - "!**/gradle/wrapper/gradle-wrapper.jar"
+    - "!**/.gradle/**"
+    - "!**/build/**"
+    - "!**/.idea/**"
+    - "!**/generated/**"
+    - "!scripts/datasets/**"     # 대용량 데이터셋 제외
+    - "!scripts/csv_output/**"
+
+# ──────────────────────────────────────────────────
+# 채팅 설정
+# ──────────────────────────────────────────────────
+chat:
+  auto_reply: true               # 리뷰 댓글에 자동 응답
+
+# ──────────────────────────────────────────────────
+# 지식 베이스
+# ──────────────────────────────────────────────────
+knowledge_base:
+  opt_out: false
+  web_search:
+    enabled: false               # 비활성화 (속도 개선)
+  learnings:
+    scope: auto                  # PR 히스토리에서 자동 학습

@@ -1,0 +1,57 @@
+package com.fivefy.domain.popularchart.service;
+
+import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.popularchart.dto.response.PopularChartResponse;
+import com.fivefy.domain.popularchart.entity.PopularChart;
+import com.fivefy.domain.popularchart.enums.PopularChartErrorCode;
+import com.fivefy.domain.popularchart.repository.PopularChartRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class PopularChartService {
+
+    private final PopularChartRepository popularChartRepository;
+
+    public List<PopularChartResponse> getTop100(LocalDate snapshotDate) {
+        LocalDateTime targetDate;
+        // snapshotDate가 없으면 가장 최신 주간 차트를 조회
+        if (snapshotDate == null) {
+            targetDate = findLatestSnapshotDate();
+        } else {
+            validateSnapshotDate(snapshotDate);
+            targetDate = snapshotDate.atStartOfDay();
+        }
+
+        List<PopularChart> charts =
+                popularChartRepository.findTop100BySnapshotDateOrderByChartRankAsc(targetDate);
+        if (charts.isEmpty()) {
+            throw new BusinessException(PopularChartErrorCode.CHART_NOT_FOUND);
+        }
+
+        return charts.stream()
+                .map(PopularChartResponse::from)
+                .toList();
+    }
+
+    private void validateSnapshotDate(LocalDate snapshotDate) {
+        if (snapshotDate.getDayOfWeek() != DayOfWeek.MONDAY) {
+            throw new BusinessException(PopularChartErrorCode.INVALID_SNAPSHOT_DATE);
+        }
+    }
+
+    // 최신 snapshotDate 기준으로 차트 조회
+    private LocalDateTime findLatestSnapshotDate() {
+        return popularChartRepository.findFirstByOrderBySnapshotDateDesc()
+                .map(PopularChart::getSnapshotDate)
+                .orElseThrow(() -> new BusinessException(PopularChartErrorCode.CHART_NOT_FOUND));
+    }
+}
