@@ -17,6 +17,7 @@ import com.fivefy.domain.track.repository.TrackCommentRepository;
 import com.fivefy.domain.track.repository.TrackRepository;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
+import com.fivefy.domain.user.enums.UserRole;
 import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -92,12 +93,6 @@ public class TrackCommentService {
                 .orElseThrow(() -> new BusinessException(
                         TrackCommentErrorCode.ERR_TRACK_COMMENT_NOT_FOUND));
 
-        // 삭제된 댓글 수정 불가
-        if (comment.getDeletedAt() != null) {
-            throw new BusinessException(
-                    TrackCommentErrorCode.ERR_DELETED_TRACK_COMMENT_CANNOT_BE_UPDATED);
-        }
-
         // 작성자 검증
         if (!comment.getUserId().equals(userId)) {
             throw new BusinessException(TrackCommentErrorCode.ERR_FORBIDDEN_TRACK_COMMENT_UPDATE);
@@ -107,6 +102,33 @@ public class TrackCommentService {
         comment.updateContent(request.content());
 
         return TrackCommentResponse.from(comment);
+    }
+
+    /**
+     * 트랙 댓글 삭제
+     */
+    @Transactional
+    public void deleteTrackComment(
+            Long userId,
+            Long trackId,
+            Long commentId
+    ) {
+        // 댓글 접근 가능한 트랙 조회
+        findAccessibleCommentTrack(trackId);
+
+        // 유저 조회
+        User user = findUser(userId);
+
+        // 댓글 조회
+        TrackComment comment = trackCommentRepository.findById(commentId)
+                .orElseThrow(() -> new BusinessException(
+                        TrackCommentErrorCode.ERR_TRACK_COMMENT_NOT_FOUND));
+
+        // 작성자 또는 관리자만 삭제 가능
+        validateCommentDeleteAccess(user, comment);
+
+        // 댓글 삭제
+        comment.softDelete();
     }
 
     // =========================
@@ -136,6 +158,18 @@ public class TrackCommentService {
         return track;
     }
 
+    // 댓글 접근 가능한 트랙 조회
+    private Track findAccessibleCommentTrack(Long trackId) {
+        Track track = findPublishedTrack(trackId);
+
+        if (track.getTrackType() == TrackType.OFFICIAL_RELEASE) {
+            validateOfficialTrackVisibility(track);
+        }
+
+        return track;
+    }
+
+
     // =========================
     // 검증
     // =========================
@@ -151,14 +185,15 @@ public class TrackCommentService {
                 .orElseThrow(() -> new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND));
     }
 
-    // 댓글 접근 가능한 트랙 조회
-    private Track findAccessibleCommentTrack(Long trackId) {
-        Track track = findPublishedTrack(trackId);
+    // 댓글 삭제 권한 검증
+    private void validateCommentDeleteAccess(User user, TrackComment comment) {
+        boolean isWriter = comment.isWrittenBy(user.getId());
+        boolean isAdmin = user.getRole() == UserRole.ADMIN;
 
-        if (track.getTrackType() == TrackType.OFFICIAL_RELEASE) {
-            validateOfficialTrackVisibility(track);
+        if (!isWriter && !isAdmin) {
+            throw new BusinessException(
+                    TrackCommentErrorCode.ERR_FORBIDDEN_TRACK_COMMENT_DELETE
+            );
         }
-
-        return track;
     }
 }

@@ -77,4 +77,19 @@ public class TrackCommentController {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(BaseResponse.success(HttpStatus.OK, "트랙 댓글 수정 성공", response));
     }
+
+    /**
+     * 트랙 댓글 삭제 API
+     */
+    @DeleteMapping("/tracks/{trackId}/comments/{commentId}")
+    public ResponseEntity<BaseResponse<Void>> deleteTrackComment(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long trackId,
+            @PathVariable Long commentId
+    ) {
+        trackCommentService.deleteTrackComment(userId, trackId, commentId);
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(BaseResponse.success(HttpStatus.OK, "트랙 댓글 삭제 성공", null));
+    }
 }
