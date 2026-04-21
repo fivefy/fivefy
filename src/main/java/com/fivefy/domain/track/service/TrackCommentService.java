@@ -1,5 +1,6 @@
 package com.fivefy.domain.track.service;
 
+import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.album.entity.Album;
 import com.fivefy.domain.album.enums.AlbumErrorCode;
@@ -22,6 +23,7 @@ import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,18 +49,39 @@ public class TrackCommentService {
             Long trackId,
             TrackCommentCreateRequest request
     ) {
+        // 댓글 작성 유저 존재 확인
         findUser(userId);
 
-        Track track = findTrack(trackId);
+        Track track = findPublishedTrack(trackId);
 
-        // 현재 조회 가능한 트랙에만 댓글 작성 허용
-        validateTrackCommentWritable(track);
+        // 정식 발매 트랙은 연관 앨범/아티스트 공개 가능 상태까지 검증
+        if (track.getTrackType() == TrackType.OFFICIAL_RELEASE) {
+            validateOfficialTrackVisibility(track);
+        }
 
         TrackComment savedComment = trackCommentRepository.save(
                 TrackComment.create(userId, trackId, request.content())
         );
 
         return TrackCommentResponse.from(savedComment);
+    }
+
+    /**
+     * 트랙 댓글 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<TrackCommentResponse> getTrackComments(Long trackId, Pageable pageable) {
+        Track track = findPublishedTrack(trackId);
+
+        // 정식 발매 트랙은 연관 앨범/아티스트 공개 가능 상태까지 검증
+        if (track.getTrackType() == TrackType.OFFICIAL_RELEASE) {
+            validateOfficialTrackVisibility(track);
+        }
+
+        return PageResponse.from(
+                trackCommentRepository.getTrackComments(trackId, pageable)
+                        .map(TrackCommentResponse::from)
+        );
     }
 
     // =========================
@@ -77,6 +100,17 @@ public class TrackCommentService {
                 .orElseThrow(() -> new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND));
     }
 
+    // 공개 가능한 트랙 조회
+    private Track findPublishedTrack(Long trackId) {
+        Track track = findTrack(trackId);
+
+        if (track.getDeletedAt() != null || track.getStatus() != TrackStatus.PUBLISHED) {
+            throw new BusinessException(TrackCommentErrorCode.ERR_TRACK_COMMENT_NOT_WRITABLE);
+        }
+
+        return track;
+    }
+
     // 앨범 조회
     private Album findAlbum(Long albumId) {
         return albumRepository.findById(albumId)
@@ -93,20 +127,8 @@ public class TrackCommentService {
     // 검증
     // =========================
 
-    // 댓글 작성 가능한 트랙인지 검증
-    private void validateTrackCommentWritable(Track track) {
-        if (track.getDeletedAt() != null || track.getStatus() != TrackStatus.PUBLISHED) {
-            throw new BusinessException(TrackCommentErrorCode.ERR_TRACK_COMMENT_NOT_WRITABLE);
-        }
-
-        // 정식 발매 트랙은 연관 앨범/아티스트 공개 가능 상태까지 확인
-        if (track.getTrackType() == TrackType.OFFICIAL_RELEASE) {
-            validateOfficialReleaseTrackCommentWritable(track);
-        }
-    }
-
-    // 정식 발매 트랙 댓글 작성 가능 상태 검증
-    private void validateOfficialReleaseTrackCommentWritable(Track track) {
+    // 정식 발매 트랙 공개 가능 상태 검증
+    private void validateOfficialTrackVisibility(Track track) {
         Album album = findAlbum(track.getAlbumId());
 
         if (album.getDeletedAt() != null || album.getStatus() != AlbumStatus.PUBLISHED) {
