@@ -1,6 +1,8 @@
 package com.fivefy.domain.notification.service;
 
 import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.follow.entity.Follow;
+import com.fivefy.domain.follow.repository.FollowRepository;
 import com.fivefy.domain.notification.dto.response.NotificationGetResponse;
 import com.fivefy.domain.notification.entity.Notification;
 import com.fivefy.domain.notification.enums.NotificationChannel;
@@ -9,6 +11,7 @@ import com.fivefy.domain.notification.enums.NotificationType;
 import com.fivefy.domain.notification.event.NotificationEvent;
 import com.fivefy.domain.notification.repository.NotificationRepository;
 import com.fivefy.domain.notification.repository.SseEmitterRepository;
+import com.fivefy.domain.track.event.PublishTrackEvent;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.repository.UserRepository;
@@ -39,6 +42,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final SseEmitterRepository sseEmitterRepository;
+    private final FollowRepository followRepository;
 
     // 알림 구독
     public SseEmitter subscribe(Long userId) {
@@ -75,6 +79,25 @@ public class NotificationService {
         send(event.targetUserId(), event.type(), event.content());
     }
 
+    // 트랙 발행 → 알림 수신 동의 팔로워 전체 알림
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handlePublishTrackEvent(PublishTrackEvent event) {
+        List<Long> targetUserIds = followRepository
+                .findAllByArtistIdAndNotificationEnabledTrue(event.artistId())
+                .stream()
+                .map(Follow::getUserId)
+                .toList();
+
+        log.info("PUBLISH_TRACK 알림 발송: artistId={}, trackId={}, 대상 팔로워 수={}",
+                event.artistId(), event.trackId(), targetUserIds.size());
+
+        String content = "새 트랙 \"" + event.trackTitle() + "\"이 발매되었습니다";
+
+        targetUserIds.forEach(userId ->
+                send(userId, NotificationType.PUBLISH_TRACK, content));
+    }
+
     public void send(Long userId, NotificationType type, String content) {
 
         // DB 저장 — save() 자체 트랜잭션으로 처리 후 커넥션 즉시 반환
@@ -88,22 +111,18 @@ public class NotificationService {
 
         for (SseEmitter emitter : emitterList) {
             try {
+                saved.markAsSent();
                 emitter.send(SseEmitter.event()
                         .name(SSE_EVENT_NOTIFICATION)
                         .data(NotificationGetResponse.from(saved)));
                 sent = true;
             } catch (IOException e) {
                 log.warn("SSE 전송 실패: userId={}, type={}", userId, type);
+                saved.markAsFailed();
                 sseEmitterRepository.delete(userId, emitter);
             }
         }
 
-        if (sent) {
-            saved.markAsSent();
-        }
-        else if (originalEmitterCount > 0) {
-            saved.markAsFailed();
-        }
         if (sent || originalEmitterCount > 0) {
             notificationRepository.save(saved);
         }
