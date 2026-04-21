@@ -20,10 +20,7 @@ import com.fivefy.domain.track.enums.TrackApplicationErrorCode;
 import com.fivefy.domain.track.enums.TrackErrorCode;
 import com.fivefy.domain.track.enums.TrackStatus;
 import com.fivefy.domain.track.enums.TrackType;
-import com.fivefy.domain.track.repository.PublicTrackListProjection;
-import com.fivefy.domain.track.repository.TrackApplicationRepository;
-import com.fivefy.domain.track.repository.TrackDetailProjection;
-import com.fivefy.domain.track.repository.TrackRepository;
+import com.fivefy.domain.track.repository.*;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.enums.UserRole;
@@ -49,6 +46,7 @@ public class TrackService {
     private final AlbumRepository albumRepository;
     private final ArtistRepository artistRepository;
     private final TrackRepository trackRepository;
+    private final TrackCommentRepository trackCommentRepository;
 
     /**
      * 자유 창작 트랙 등록 신청
@@ -246,7 +244,13 @@ public class TrackService {
         String artistName = projection == null ? null : projection.artistName();
         String albumTitle = projection == null ? null : projection.albumTitle();
 
-        return TrackDetailResponse.of(track, artistName, albumTitle);
+        List<TrackCommentResponse> comments = trackCommentRepository
+                .getRecentTrackComments(trackId, 5)
+                .stream()
+                .map(TrackCommentResponse::from)
+                .toList();
+
+        return TrackDetailResponse.of(track, artistName, albumTitle, comments);
     }
 
     /**
