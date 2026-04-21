@@ -15,7 +15,6 @@ public record TrackCommentResponse(
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
-
     /**
      * TrackComment 엔티티 → 응답 DTO 변환
      */

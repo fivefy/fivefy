@@ -73,6 +73,39 @@ public class TrackCommentService {
         );
     }
 
+    /**
+     * 트랙 댓글 수정
+     */
+    @Transactional
+    public TrackCommentResponse updateTrackComment(
+            Long userId,
+            Long trackId,
+            Long commentId,
+            TrackCommentCreateRequest request
+    ) {
+        // 트랙 접근 가능 여부 검증
+        findAccessibleCommentTrack(trackId);
+
+        // 댓글 조회
+        TrackComment comment = trackCommentRepository.findById(commentId)
+                .orElseThrow(() -> new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND));
+
+        // 삭제된 댓글 수정 불가
+        if (comment.getDeletedAt() != null) {
+            throw new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND);
+        }
+
+        // 작성자 검증
+        if (!comment.getUserId().equals(userId)) {
+            throw new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND);
+        }
+
+        // 댓글 내용 수정
+        comment.updateContent(request.content());
+
+        return TrackCommentResponse.from(comment);
+    }
+
     // =========================
     // 조회
     // =========================

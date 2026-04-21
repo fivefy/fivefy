@@ -60,4 +60,21 @@ public class TrackCommentController {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(BaseResponse.success(HttpStatus.OK, "트랙 댓글 목록 조회 성공", response));
     }
+
+    /**
+     * 트랙 댓글 수정 API
+     */
+    @PatchMapping("/tracks/{trackId}/comments/{commentId}")
+    public ResponseEntity<BaseResponse<TrackCommentResponse>> updateTrackComment(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long trackId,
+            @PathVariable Long commentId,
+            @Valid @RequestBody TrackCommentCreateRequest request
+    ) {
+        TrackCommentResponse response =
+                trackCommentService.updateTrackComment(userId, trackId, commentId, request);
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(BaseResponse.success(HttpStatus.OK, "트랙 댓글 수정 성공", response));
+    }
 }
