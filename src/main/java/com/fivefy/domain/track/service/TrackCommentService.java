@@ -2,10 +2,8 @@ package com.fivefy.domain.track.service;
 
 import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.exception.BusinessException;
-import com.fivefy.domain.album.entity.Album;
 import com.fivefy.domain.album.enums.AlbumStatus;
 import com.fivefy.domain.album.repository.AlbumRepository;
-import com.fivefy.domain.artist.entity.Artist;
 import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.track.dto.request.TrackCommentCreateRequest;
 import com.fivefy.domain.track.dto.response.TrackCommentResponse;
@@ -50,12 +48,8 @@ public class TrackCommentService {
         // 댓글 작성 유저 존재 확인
         findUser(userId);
 
-        Track track = findPublishedTrack(trackId);
-
-        // 정식 발매 트랙은 연관 앨범/아티스트 공개 가능 상태까지 검증
-        if (track.getTrackType() == TrackType.OFFICIAL_RELEASE) {
-            validateOfficialTrackVisibility(track);
-        }
+        // 댓글 접근 가능한 트랙 조회
+        findAccessibleCommentTrack(trackId);
 
         TrackComment savedComment = trackCommentRepository.save(
                 TrackComment.create(userId, trackId, request.content())
@@ -69,12 +63,8 @@ public class TrackCommentService {
      */
     @Transactional(readOnly = true)
     public PageResponse<TrackCommentResponse> getTrackComments(Long trackId, Pageable pageable) {
-        Track track = findPublishedTrack(trackId);
-
-        // 정식 발매 트랙은 연관 앨범/아티스트 공개 가능 상태까지 검증
-        if (track.getTrackType() == TrackType.OFFICIAL_RELEASE) {
-            validateOfficialTrackVisibility(track);
-        }
+        // 댓글 접근 가능한 트랙 조회
+        findAccessibleCommentTrack(trackId);
 
         Page<TrackComment> page = trackCommentRepository.getTrackComments(trackId, pageable);
 
@@ -123,5 +113,16 @@ public class TrackCommentService {
         artistRepository.findById(track.getArtistId())
                 .filter(artist -> !artist.isDeleted())
                 .orElseThrow(() -> new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND));
+    }
+
+    // 댓글 접근 가능한 트랙 조회
+    private Track findAccessibleCommentTrack(Long trackId) {
+        Track track = findPublishedTrack(trackId);
+
+        if (track.getTrackType() == TrackType.OFFICIAL_RELEASE) {
+            validateOfficialTrackVisibility(track);
+        }
+
+        return track;
     }
 }
