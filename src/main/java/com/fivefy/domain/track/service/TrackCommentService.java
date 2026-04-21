@@ -159,14 +159,12 @@ public class TrackCommentService {
     }
 
     // 댓글 접근 가능한 트랙 조회
-    private Track findAccessibleCommentTrack(Long trackId) {
+    private void findAccessibleCommentTrack(Long trackId) {
         Track track = findPublishedTrack(trackId);
 
         if (track.getTrackType() == TrackType.OFFICIAL_RELEASE) {
             validateOfficialTrackVisibility(track);
         }
-
-        return track;
     }
 
 
