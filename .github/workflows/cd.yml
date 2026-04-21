@@ -53,6 +53,7 @@ jobs:
             echo "db_username=${{ secrets.DB_USERNAME_PROD }}"     >> $GITHUB_OUTPUT
             echo "db_password=${{ secrets.DB_PASSWORD_PROD }}"     >> $GITHUB_OUTPUT
             echo "redis_host=${{ secrets.REDIS_HOST_PROD }}"       >> $GITHUB_OUTPUT
+            echo "redis_password=${{ secrets.REDIS_PASSWORD_PROD }}" >> $GITHUB_OUTPUT
             echo "kafka_servers=${{ secrets.KAFKA_SERVERS_PROD }}" >> $GITHUB_OUTPUT
             echo "jwt_secret=${{ secrets.JWT_SECRET_PROD }}"       >> $GITHUB_OUTPUT
           else
@@ -62,6 +63,7 @@ jobs:
             echo "db_username=${{ secrets.DB_USERNAME_STAGE }}"    >> $GITHUB_OUTPUT
             echo "db_password=${{ secrets.DB_PASSWORD_STAGE }}"    >> $GITHUB_OUTPUT
             echo "redis_host=${{ secrets.REDIS_HOST_STAGE }}"      >> $GITHUB_OUTPUT
+            echo "redis_password=${{ secrets.REDIS_PASSWORD_STAGE }}" >> $GITHUB_OUTPUT
             echo "kafka_servers=${{ secrets.KAFKA_SERVERS_STAGE }}" >> $GITHUB_OUTPUT
             echo "jwt_secret=${{ secrets.JWT_SECRET_STAGE }}"      >> $GITHUB_OUTPUT
           fi
@@ -103,11 +105,17 @@ jobs:
           DB_USERNAME: ${{ steps.env.outputs.db_username }}
           DB_PASSWORD: ${{ steps.env.outputs.db_password }}
           REDIS_HOST: ${{ steps.env.outputs.redis_host }}
+          REDIS_PASSWORD: ${{ steps.env.outputs.redis_password }}
           KAFKA_SERVERS: ${{ steps.env.outputs.kafka_servers }}
           JWT_SECRET: ${{ steps.env.outputs.jwt_secret }}
           NCP_ACCESS_KEY: ${{ secrets.NCP_ACCESS_KEY }}
           NCP_SECRET_KEY: ${{ secrets.NCP_SECRET_KEY }}
           NCP_BUCKET: ${{ secrets.NCP_BUCKET_DEPLOY }}
+          PORTONE_API_SECRET: ${{ secrets.PORTONE_API_SECRET }}
+          PORTONE_STORE_ID: ${{ secrets.PORTONE_STORE_ID }}
+          PORTONE_API_URL: ${{ secrets.PORTONE_API_URL }}
+          PORTONE_CHANNEL_KEY: ${{ secrets.PORTONE_CHANNEL_KEY }}
+          PORTONE_WEBHOOK_SECRET: ${{ secrets.PORTONE_WEBHOOK_SECRET }}
         run: |
           ssh -i ~/.ssh/bastion_key \
             ${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }} \
@@ -150,8 +158,14 @@ jobs:
                 -Dspring.datasource.username=$DB_USERNAME \
                 -Dspring.datasource.password=$DB_PASSWORD \
                 -Dspring.data.redis.host=$REDIS_HOST \
+                -Dspring.data.redis.password=$REDIS_PASSWORD \
                 -Dspring.kafka.bootstrap-servers=$KAFKA_SERVERS \
                 -Djwt.secret=$JWT_SECRET \
+                -Dportone.api-secret=$PORTONE_API_SECRET \
+                -Dportone.store-id=$PORTONE_STORE_ID \
+                -Dportone.api-url=$PORTONE_API_URL \
+                -Dportone.channel-key=$PORTONE_CHANNEL_KEY \
+                -Dportone.webhook-secret=$PORTONE_WEBHOOK_SECRET \
                 -jar \$APP_DIR/app.jar > \$APP_DIR/app.log 2>&1 &
 
               # 헬스체크 (최대 60초 대기)
@@ -183,8 +197,14 @@ jobs:
                     -Dspring.datasource.username=$DB_USERNAME \
                     -Dspring.datasource.password=$DB_PASSWORD \
                     -Dspring.data.redis.host=$REDIS_HOST \
+                    -Dspring.data.redis.password=$REDIS_PASSWORD \
                     -Dspring.kafka.bootstrap-servers=$KAFKA_SERVERS \
                     -Djwt.secret=$JWT_SECRET \
+                    -Dportone.api-secret=$PORTONE_API_SECRET \
+                    -Dportone.store-id=$PORTONE_STORE_ID \
+                    -Dportone.api-url=$PORTONE_API_URL \
+                    -Dportone.channel-key=$PORTONE_CHANNEL_KEY \
+                    -Dportone.webhook-secret=$PORTONE_WEBHOOK_SECRET \
                     -jar \$APP_DIR/app.jar > \$APP_DIR/app.log 2>&1 &
                   echo 이전 버전으로 롤백 완료
                 else
