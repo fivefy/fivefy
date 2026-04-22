@@ -76,10 +76,10 @@ jobs:
           AWS_DEFAULT_REGION: kr
         run: |
           DEPLOY_ENV=${{ steps.env.outputs.name }}
+          aws configure set default.s3.multipart_threshold 200MB
           aws s3 cp build/libs/*.jar \
             s3://${{ secrets.NCP_BUCKET_DEPLOY }}/deploy/$DEPLOY_ENV/app.jar \
-            --endpoint-url=https://kr.object.ncloudstorage.com \
-            --threshold 150MB
+            --endpoint-url=https://kr.object.ncloudstorage.com
 
       # SSH 키 설정 + known_hosts 사전 등록 (StrictHostKeyChecking 유지)
       - name: Setup SSH keys
