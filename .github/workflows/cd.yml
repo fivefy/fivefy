@@ -169,7 +169,7 @@ jobs:
 
               # 헬스체크 (최대 60초 대기)
               sleep 10
-              STATUS=""
+              STATUS="000"
               for i in \$(seq 1 12); do
                 STATUS=\$(curl -s -o /dev/null -w "%{http_code}" http://localhost:\$PORT/actuator/health || echo "000")
                 if [ "\$STATUS" = "200" ]; then
