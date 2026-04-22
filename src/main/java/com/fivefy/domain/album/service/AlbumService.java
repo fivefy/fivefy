@@ -167,8 +167,8 @@ public class AlbumService {
     public AlbumDetailResponse getAlbum(Long albumId) {
         Album album = findPublishedAlbum(albumId);
 
-        // 공개 상세 조회에서는 삭제된 아티스트도 노출되면 안 되니까
-        Artist artist = findNotDeletedArtist(album.getArtistId());
+        // 공개 상세 조회에서 노출 가능한 아티스트만 조회
+        Artist artist = findVisibleArtist(album.getArtistId());
 
         // 앨범에 속한 공개 정식 발매 트랙 목록 조회
         List<AlbumTrackResponse> tracks = trackRepository.searchAlbumTracks(albumId).stream()
@@ -197,7 +197,7 @@ public class AlbumService {
 
     // 유저 조회
     private User findUser(Long userId) {
-        return userRepository.findById(userId)
+        return userRepository.findByIdAndDeletedAtIsNull(userId)
                 .orElseThrow(() -> new BusinessException(UserErrorCode.ERR_USER_NOT_FOUND));
     }
 
@@ -213,6 +213,18 @@ public class AlbumService {
 
         if (artist.isDeleted()) {
             throw new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND);
+        }
+
+        return artist;
+    }
+
+    // 공개 조회 가능한 아티스트 조회
+    private Artist findVisibleArtist(Long artistId) {
+        Artist artist = artistRepository.findById(artistId)
+                .orElseThrow(() -> new BusinessException(AlbumErrorCode.ERR_ALBUM_NOT_FOUND));
+
+        if (artist.isDeleted() || artist.getStatus() != ArtistStatus.ACTIVE) {
+            throw new BusinessException(AlbumErrorCode.ERR_ALBUM_NOT_FOUND);
         }
 
         return artist;

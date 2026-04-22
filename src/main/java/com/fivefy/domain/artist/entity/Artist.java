@@ -43,10 +43,10 @@ public class Artist extends BaseEntity {
     @Column(name = "artist_type", nullable = false, length = 20)
     private ArtistType artistType;
 
-    @Column(name = "bio", columnDefinition = "TEXT")
+    @Column(name = "bio", length = 1000)
     private String bio;
 
-    @Column(name = "profile_image_url", length = 255)
+    @Column(name = "profile_image_url", length = 256)
     private String profileImageUrl;
 
     @Enumerated(EnumType.STRING)
@@ -71,6 +71,8 @@ public class Artist extends BaseEntity {
         validateNonNull(name, "name");
         validateNonNull(artistType, "artistType");
 
+        validateName(name);
+
         Artist artist = new Artist();
 
         artist.ownerUserId = ownerUserId;
@@ -87,6 +89,7 @@ public class Artist extends BaseEntity {
         validateNotDeleted();
 
         if (name != null) {
+            validateName(name);
             this.name = name;
         }
         if (bio != null) {
@@ -122,18 +125,24 @@ public class Artist extends BaseEntity {
         this.deletedAt = LocalDateTime.now();
     }
 
-    public boolean isOwnedBy(Long userId) {
-        validateNonNull(userId, "userId");
-        return this.ownerUserId.equals(userId);
-    }
-
     private void validateNotDeleted() {
         if (this.deletedAt != null) {
-            throw new BusinessException(ArtistErrorCode.ERR_DELETED_ARTIST_CANNOT_BE_UPDATED);
+            throw new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND);
+        }
+    }
+
+    private static void validateName(String name) {
+        if (name.isBlank()) {
+            throw new BusinessException(ArtistErrorCode.ERR_INVALID_ARTIST_NAME);
         }
     }
 
     public boolean isDeleted() {
         return this.deletedAt != null;
+    }
+
+    public boolean isOwnedBy(Long userId) {
+        validateNonNull(userId, "userId");
+        return this.ownerUserId.equals(userId);
     }
 }

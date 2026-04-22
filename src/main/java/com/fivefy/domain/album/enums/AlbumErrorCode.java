@@ -12,6 +12,7 @@ public enum AlbumErrorCode implements ErrorCode {
     ERR_ALBUM_ALREADY_DELETED(HttpStatus.BAD_REQUEST, "이미 삭제된 앨범입니다"),
     ERR_DELETED_ALBUM_CANNOT_BE_UPDATED(HttpStatus.BAD_REQUEST, "삭제된 앨범은 수정할 수 없습니다"),
     ERR_INVALID_TRACK_COUNT(HttpStatus.BAD_REQUEST, "트랙 수는 0 이상이어야 합니다"),
+    ERR_INVALID_ALBUM_STATUS_TRANSITION(HttpStatus.BAD_REQUEST, "허용되지 않은 앨범 상태 변경입니다"),
     ERR_INVALID_TOTAL_DURATION_SEC(HttpStatus.BAD_REQUEST, "총 재생 시간은 0 이상이어야 합니다");
 
     private final HttpStatus httpStatus;

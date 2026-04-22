@@ -95,6 +95,11 @@ public class Album extends BaseEntity {
         if (status == AlbumStatus.PUBLISHED) {
             throw new BusinessException(AlbumErrorCode.ERR_ALBUM_ALREADY_PUBLISHED);
         }
+
+        if (status != AlbumStatus.UNPUBLISHED) {
+            throw new BusinessException(AlbumErrorCode.ERR_INVALID_ALBUM_STATUS_TRANSITION);
+        }
+
         this.status = AlbumStatus.PUBLISHED;
         this.publishedAt = LocalDateTime.now();
     }
@@ -105,6 +110,11 @@ public class Album extends BaseEntity {
         if (status == AlbumStatus.BLOCKED) {
             throw new BusinessException(AlbumErrorCode.ERR_ALBUM_ALREADY_BLOCKED);
         }
+
+        if (status != AlbumStatus.PUBLISHED) {
+            throw new BusinessException(AlbumErrorCode.ERR_INVALID_ALBUM_STATUS_TRANSITION);
+        }
+
         this.status = AlbumStatus.BLOCKED;
     }
 

@@ -329,6 +329,16 @@ public class TrackService {
         return artist;
     }
 
+    // 공개 조회 가능한 아티스트 조회
+    private void findVisibleArtist(Long artistId) {
+        Artist artist = artistRepository.findById(artistId)
+                .orElseThrow(() -> new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND));
+
+        if (artist.isDeleted() || artist.getStatus() != ArtistStatus.ACTIVE) {
+            throw new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND);
+        }
+    }
+
     // 앨범 조회
     private Album findAlbum(Long albumId) {
         return albumRepository.findById(albumId)
@@ -344,6 +354,16 @@ public class TrackService {
         }
 
         return album;
+    }
+
+    // 공개 조회 가능한 앨범 조회
+    private void findVisibleAlbum(Long albumId) {
+        Album album = albumRepository.findById(albumId)
+                .orElseThrow(() -> new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND));
+
+        if (album.getDeletedAt() != null || album.getStatus() != AlbumStatus.PUBLISHED) {
+            throw new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND);
+        }
     }
 
     // 트랙 등록 신청 조회
@@ -462,17 +482,8 @@ public class TrackService {
 
     // 정식 발매 트랙 공개 가능 상태 검증
     private void validateOfficialTrackVisibility(Track track) {
-        Album album = findAlbum(track.getAlbumId());
-
-        if (album.getDeletedAt() != null || album.getStatus() != AlbumStatus.PUBLISHED) {
-            throw new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND);
-        }
-
-        Artist artist = findArtist(track.getArtistId());
-
-        if (artist.isDeleted()) {
-            throw new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND);
-        }
+        findVisibleAlbum(track.getAlbumId());
+        findVisibleArtist(track.getArtistId());
     }
 
     // =========================

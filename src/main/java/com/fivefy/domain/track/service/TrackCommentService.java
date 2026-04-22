@@ -4,6 +4,8 @@ import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.album.enums.AlbumStatus;
 import com.fivefy.domain.album.repository.AlbumRepository;
+import com.fivefy.domain.artist.entity.Artist;
+import com.fivefy.domain.artist.enums.ArtistStatus;
 import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.track.dto.request.TrackCommentCreateRequest;
 import com.fivefy.domain.track.dto.response.TrackCommentResponse;
@@ -157,6 +159,22 @@ public class TrackCommentService {
         return track;
     }
 
+    // 공개 조회 가능한 앨범 조회
+    private void findVisibleAlbum(Long albumId) {
+        albumRepository.findById(albumId)
+                .filter(album -> album.getDeletedAt() == null
+                        && album.getStatus() == AlbumStatus.PUBLISHED)
+                .orElseThrow(() -> new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND));
+    }
+
+    // 공개 조회 가능한 아티스트 조회
+    private void findVisibleArtist(Long artistId) {
+        artistRepository.findById(artistId)
+                .filter(artist -> !artist.isDeleted()
+                        && artist.getStatus() == ArtistStatus.ACTIVE)
+                .orElseThrow(() -> new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND));
+    }
+
     // 댓글 접근 가능한 트랙 조회
     private void findAccessibleCommentTrack(Long trackId) {
         Track track = findPublishedTrack(trackId);
@@ -184,13 +202,8 @@ public class TrackCommentService {
 
     // 정식 발매 트랙 공개 가능 상태 검증
     private void validateOfficialTrackVisibility(Track track) {
-        albumRepository.findById(track.getAlbumId())
-                .filter(album -> album.getDeletedAt() == null && album.getStatus() == AlbumStatus.PUBLISHED)
-                .orElseThrow(() -> new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND));
-
-        artistRepository.findById(track.getArtistId())
-                .filter(artist -> !artist.isDeleted())
-                .orElseThrow(() -> new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND));
+        findVisibleAlbum(track.getAlbumId());
+        findVisibleArtist(track.getArtistId());
     }
 
     // 댓글 삭제 권한 검증

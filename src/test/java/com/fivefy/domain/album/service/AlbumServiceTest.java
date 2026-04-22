@@ -14,6 +14,7 @@ import com.fivefy.domain.album.repository.AlbumApplicationRepository;
 import com.fivefy.domain.album.repository.AlbumRepository;
 import com.fivefy.domain.artist.entity.Artist;
 import com.fivefy.domain.artist.enums.ArtistErrorCode;
+import com.fivefy.domain.artist.enums.ArtistStatus;
 import com.fivefy.domain.artist.enums.ArtistType;
 import com.fivefy.domain.artist.repository.ArtistRepository;
 import com.fivefy.domain.track.entity.Track;
@@ -97,7 +98,7 @@ class AlbumServiceTest {
             );
 
             User user = mock(User.class);
-            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
                     userId,
@@ -149,7 +150,7 @@ class AlbumServiceTest {
                     0
             );
 
-            when(userRepository.findById(userId)).thenReturn(Optional.empty());
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> albumService.createAlbumApplication(userId, request))
                     .isInstanceOf(BusinessException.class)
@@ -171,7 +172,7 @@ class AlbumServiceTest {
             );
 
             User user = mock(User.class);
-            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
             when(artistRepository.findById(artistId)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> albumService.createAlbumApplication(userId, request))
@@ -194,7 +195,7 @@ class AlbumServiceTest {
             );
 
             User user = mock(User.class);
-            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
                     userId,
@@ -228,7 +229,7 @@ class AlbumServiceTest {
             );
 
             User user = mock(User.class);
-            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
                     2L,
@@ -261,7 +262,7 @@ class AlbumServiceTest {
             );
 
             User user = mock(User.class);
-            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
                     userId,
@@ -295,7 +296,7 @@ class AlbumServiceTest {
             );
 
             User user = mock(User.class);
-            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
                     userId,
@@ -328,7 +329,7 @@ class AlbumServiceTest {
             );
 
             User user = mock(User.class);
-            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
                     userId,
@@ -360,7 +361,7 @@ class AlbumServiceTest {
             Long artistId = 10L;
 
             User user = mock(User.class);
-            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             AlbumApplication application1 = AlbumApplication.create(
                     userId,
@@ -403,7 +404,7 @@ class AlbumServiceTest {
             Long userId = 1L;
 
             User user = mock(User.class);
-            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
             when(albumApplicationRepository.searchMyAlbumApplications(userId))
                     .thenReturn(List.of());
 
@@ -418,7 +419,7 @@ class AlbumServiceTest {
         void getMyAlbumApplications_fail_whenUserNotFound() {
             Long userId = 1L;
 
-            when(userRepository.findById(userId)).thenReturn(Optional.empty());
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> albumService.getMyAlbumApplications(userId))
                     .isInstanceOf(BusinessException.class)
@@ -438,7 +439,7 @@ class AlbumServiceTest {
             Long artistId = 10L;
 
             User user = mock(User.class);
-            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             AlbumApplication application = AlbumApplication.create(
                     userId,
@@ -475,7 +476,7 @@ class AlbumServiceTest {
 
             User admin = mock(User.class);
             when(admin.getRole()).thenReturn(UserRole.ADMIN);
-            when(userRepository.findById(userId)).thenReturn(Optional.of(admin));
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(admin));
 
             AlbumApplication application = AlbumApplication.create(
                     requesterUserId,
@@ -508,7 +509,7 @@ class AlbumServiceTest {
 
             User user = mock(User.class);
             when(user.getRole()).thenReturn(UserRole.USER);
-            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             AlbumApplication application = AlbumApplication.create(
                     requesterUserId,
@@ -843,6 +844,7 @@ class AlbumServiceTest {
 
             Artist artist = mock(Artist.class);
             when(artist.getName()).thenReturn("아이유");
+            when(artist.getStatus()).thenReturn(ArtistStatus.ACTIVE);
 
             when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
             when(artistRepository.findById(10L)).thenReturn(Optional.of(artist));
@@ -962,7 +964,7 @@ class AlbumServiceTest {
 
             assertThatThrownBy(() -> albumService.getAlbum(albumId))
                     .isInstanceOf(BusinessException.class)
-                    .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
+                    .hasMessage(AlbumErrorCode.ERR_ALBUM_NOT_FOUND.getMessage());
         }
 
         @Test
@@ -982,6 +984,8 @@ class AlbumServiceTest {
 
             Artist artist = mock(Artist.class);
             when(artist.getName()).thenReturn("아이유");
+            when(artist.isDeleted()).thenReturn(false);
+            when(artist.getStatus()).thenReturn(ArtistStatus.ACTIVE);
 
             when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
             when(artistRepository.findById(10L)).thenReturn(Optional.of(artist));

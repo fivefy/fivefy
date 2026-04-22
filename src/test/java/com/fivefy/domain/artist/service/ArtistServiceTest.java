@@ -89,7 +89,7 @@ class ArtistServiceTest {
             );
 
             User user = mock(User.class);
-            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
             when(artistApplicationRepository.existsActiveApplication(
                     userId,
                     request.requestedName(),
@@ -137,7 +137,7 @@ class ArtistServiceTest {
                     "https://example.com/profile.jpg"
             );
 
-            when(userRepository.findById(userId)).thenReturn(Optional.empty());
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> artistService.createArtistApplication(userId, request))
                     .isInstanceOf(BusinessException.class)
@@ -157,7 +157,7 @@ class ArtistServiceTest {
             );
 
             User user = mock(User.class);
-            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
             when(artistApplicationRepository.existsActiveApplication(
                     userId,
                     request.requestedName(),
@@ -180,7 +180,7 @@ class ArtistServiceTest {
             Long userId = 1L;
 
             User user = mock(User.class);
-            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             ArtistApplication firstApplication = ArtistApplication.create(
                     userId,
@@ -229,7 +229,7 @@ class ArtistServiceTest {
             Long userId = 1L;
 
             User user = mock(User.class);
-            when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
             when(artistApplicationRepository.searchMyArtistApplications(userId))
                     .thenReturn(List.of());
 
@@ -244,7 +244,7 @@ class ArtistServiceTest {
         void getMyArtistApplications_fail_whenUserNotFound() {
             Long userId = 1L;
 
-            when(userRepository.findById(userId)).thenReturn(Optional.empty());
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> artistService.getMyArtistApplications(userId))
                     .isInstanceOf(BusinessException.class)
@@ -282,7 +282,7 @@ class ArtistServiceTest {
 
             when(artistApplicationRepository.findById(applicationId))
                     .thenReturn(java.util.Optional.of(application));
-            when(userRepository.findById(userId))
+            when(userRepository.findByIdAndDeletedAtIsNull(userId))
                     .thenReturn(java.util.Optional.of(user));
 
             // when
@@ -304,7 +304,7 @@ class ArtistServiceTest {
             assertThat(response.updatedAt()).isEqualTo(LocalDateTime.of(2026, 4, 14, 11, 0, 0));
 
             verify(artistApplicationRepository, times(1)).findById(applicationId);
-            verify(userRepository, times(1)).findById(userId);
+            verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
         }
 
         @Test
@@ -333,7 +333,7 @@ class ArtistServiceTest {
 
             when(artistApplicationRepository.findById(applicationId))
                     .thenReturn(java.util.Optional.of(application));
-            when(userRepository.findById(userId))
+            when(userRepository.findByIdAndDeletedAtIsNull(userId))
                     .thenReturn(java.util.Optional.of(adminUser));
 
             // when
@@ -348,7 +348,7 @@ class ArtistServiceTest {
             assertThat(response.status()).isEqualTo(ApplicationStatus.PENDING);
 
             verify(artistApplicationRepository, times(1)).findById(applicationId);
-            verify(userRepository, times(1)).findById(userId);
+            verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
         }
 
         @Test
@@ -371,7 +371,7 @@ class ArtistServiceTest {
 
             when(artistApplicationRepository.findById(applicationId))
                     .thenReturn(java.util.Optional.of(application));
-            when(userRepository.findById(userId))
+            when(userRepository.findByIdAndDeletedAtIsNull(userId))
                     .thenReturn(java.util.Optional.of(user));
 
             // when & then
@@ -380,7 +380,7 @@ class ArtistServiceTest {
                     .hasMessage(ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_DETAIL_FORBIDDEN.getMessage());
 
             verify(artistApplicationRepository, times(1)).findById(applicationId);
-            verify(userRepository, times(1)).findById(userId);
+            verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
         }
 
         @Test
@@ -687,7 +687,7 @@ class ArtistServiceTest {
             Long userId = 1L;
 
             User user = mock(User.class);
-            when(userRepository.findById(userId))
+            when(userRepository.findByIdAndDeletedAtIsNull(userId))
                     .thenReturn(java.util.Optional.of(user));
 
             Artist firstArtist = Artist.create(
@@ -741,7 +741,7 @@ class ArtistServiceTest {
             assertThat(response.get(1).createdAt()).isEqualTo(LocalDateTime.of(2026, 4, 14, 10, 0, 0));
             assertThat(response.get(1).updatedAt()).isEqualTo(LocalDateTime.of(2026, 4, 14, 11, 0, 0));
 
-            verify(userRepository, times(1)).findById(userId);
+            verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
             verify(artistRepository, times(1)).findMyArtists(userId);
         }
 
@@ -752,7 +752,7 @@ class ArtistServiceTest {
             Long userId = 1L;
 
             User user = mock(User.class);
-            when(userRepository.findById(userId))
+            when(userRepository.findByIdAndDeletedAtIsNull(userId))
                     .thenReturn(java.util.Optional.of(user));
 
             when(artistRepository.findMyArtists(userId))
@@ -764,7 +764,7 @@ class ArtistServiceTest {
             // then
             assertThat(response).isEmpty();
 
-            verify(userRepository, times(1)).findById(userId);
+            verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(userId);
             verify(artistRepository, times(1)).findMyArtists(userId);
         }
     }
