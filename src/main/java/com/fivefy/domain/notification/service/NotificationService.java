@@ -1,8 +1,7 @@
 package com.fivefy.domain.notification.service;
 
+import com.fivefy.common.config.rabbitmq.NotificationRabbitConfig;
 import com.fivefy.common.exception.BusinessException;
-import com.fivefy.domain.follow.entity.Follow;
-import com.fivefy.domain.follow.repository.FollowRepository;
 import com.fivefy.domain.notification.dto.NotificationMessage;
 import com.fivefy.domain.notification.dto.response.NotificationGetResponse;
 import com.fivefy.domain.notification.entity.Notification;
@@ -18,6 +17,7 @@ import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -30,7 +30,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.util.List;
 
 @Slf4j
 @Service
@@ -44,7 +43,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final SseEmitterRepository sseEmitterRepository;
-    private final FollowRepository followRepository;
+    private final RabbitTemplate rabbitTemplate;
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
 
@@ -87,33 +86,29 @@ public class NotificationService {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handlePublishTrackEvent(PublishTrackEvent event) {
-        List<Long> targetUserIds = followRepository
-                .findAllByArtistIdAndNotificationEnabledTrue(event.artistId())
-                .stream()
-                .map(Follow::getUserId)
-                .toList();
-
-        log.info("PUBLISH_TRACK 알림 발송: artistId={}, trackId={}, 대상 팔로워 수={}",
-                event.artistId(), event.trackId(), targetUserIds.size());
-
-        String content = "새 트랙 \"" + event.trackTitle() + "\"이 발매되었습니다";
-
-        targetUserIds.forEach(userId ->
-                send(userId, NotificationType.PUBLISH_TRACK, content));
+        try {
+            String message = objectMapper.writeValueAsString(event);
+            rabbitTemplate.convertAndSend(
+                    NotificationRabbitConfig.NOTIFICATION_EXCHANGE,
+                    NotificationRabbitConfig.PUBLISH_TRACK_ROUTING_KEY,
+                    message);
+            log.info("PUBLISH_TRACK RabbitMQ 발행: artistId={}, trackId={}",
+                    event.artistId(), event.trackId());
+        } catch (Exception e) {
+            log.error("RabbitMQ 발행 실패: artistId={}", event.artistId());
+        }
     }
 
+    // Redis publish
     public void send(Long userId, NotificationType type, String content) {
-        // DB 저장
         Notification notification = Notification.create(userId, content, type, NotificationChannel.IN_APP);
         Notification saved = notificationRepository.save(notification);
 
-        // SE 미연결 시 QUEUED 유지
         boolean hasConnection = !sseEmitterRepository.findAllByUserId(userId).isEmpty();
         if (!hasConnection) {
             return;
         }
 
-        // Redis publish — 모든 서버의 Subscriber가 수신하여 로컬 SseEmitter로 전송
         try {
             saved.markAsSent();
             NotificationMessage message = new NotificationMessage(

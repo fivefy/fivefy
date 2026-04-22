@@ -100,6 +100,9 @@ dependencies {
 
     // redissonclient : Redisson 4.0.0 이상(2025년 12월 릴리즈)부터 Spring Boot 4.0 지원이 추가
     implementation 'org.redisson:redisson-spring-boot-starter:4.3.0'
+
+    // rabbitMQ
+    implementation 'org.springframework.boot:spring-boot-starter-amqp'
 }
 
 tasks.named('test') {
