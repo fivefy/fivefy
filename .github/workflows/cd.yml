@@ -176,7 +176,7 @@ jobs:
                   break
                 fi
                 echo 대기중... \$i/12
-                sleep 5
+                sleep 10
               done
 
               # 헬스체크 실패 시 백업 JAR로 롤백
