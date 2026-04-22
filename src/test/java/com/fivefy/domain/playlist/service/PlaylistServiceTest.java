@@ -126,8 +126,8 @@ class PlaylistServiceTest {
         }
 
         @Test
-        @DisplayName("플레이리스트 저장 중 DB 제약 예외 발생 시 중복 제목 예외로 변환")
-        void createPlaylist_dataIntegrityViolation() {
+        @DisplayName("플레이리스트 저장 중 unique 제약 위반 발생 시 중복 제목 예외로 변환")
+        void createPlaylist_uniqueConstraintViolation() {
             // given
             Long userId = 1L;
             PlaylistCreateRequest request = new PlaylistCreateRequest("중복 제목", "설명");
@@ -141,12 +141,39 @@ class PlaylistServiceTest {
                     .willReturn(false);
 
             given(playlistRepository.save(any(Playlist.class)))
-                    .willThrow(new DataIntegrityViolationException("unique constraint violation"));
+                    .willThrow(new DataIntegrityViolationException(
+                            "could not execute statement; constraint [uk_playlist_user_title_deleted]"
+                    ));
 
             // when & then
             assertThatThrownBy(() -> playlistService.createPlaylist(userId, request))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME.getMessage());
+        }
+
+        @Test
+        @DisplayName("플레이리스트 저장 중 다른 무결성 위반 발생 시 중복 제목 예외로 변환하지 않음")
+        void createPlaylist_otherDataIntegrityViolation() {
+            // given
+            Long userId = 1L;
+            PlaylistCreateRequest request = new PlaylistCreateRequest("정상 제목", "설명");
+
+            given(subscriptionRepository.existsByUserIdAndStatusIn(
+                    userId,
+                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            )).willReturn(true);
+
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
+                    .willReturn(false);
+
+            given(playlistRepository.save(any(Playlist.class)))
+                    .willThrow(new DataIntegrityViolationException(
+                            "could not execute statement; not-null property references a null or transient value"
+                    ));
+
+            // when & then
+            assertThatThrownBy(() -> playlistService.createPlaylist(userId, request))
+                    .isInstanceOf(DataIntegrityViolationException.class);
         }
     }
 
