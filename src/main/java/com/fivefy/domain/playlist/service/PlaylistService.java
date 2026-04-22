@@ -115,7 +115,9 @@ public class PlaylistService {
             return rootCause.getMessage().contains(PLAYLIST_UNIQUE_CONSTRAINT);
         }
 
-        return e.getMessage() != null && e.getMessage().contains(PLAYLIST_UNIQUE_CONSTRAINT);
+        String exceptionMessage = e.getMessage();
+        return exceptionMessage != null
+                && exceptionMessage.contains(PLAYLIST_UNIQUE_CONSTRAINT);
     }
 
     private void validateSubscription(Long userId) {
