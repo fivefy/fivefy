@@ -120,4 +120,57 @@ public class Subscription extends BaseEntity {
         this.status = SubscriptionStatus.EXPIRE;
         this.nextBillingDate = null;
     }
+
+    /**
+     * 정기 구독 갱신 (RECURRING 전용)
+     * nextBillingDate + 1개월, expiryDate + 1개월
+     * 구독 갱신은 PointOrderService에서 사용함
+     */
+    public void renew() {
+        if (this.planType != SubscriptionPlanType.RECURRING) {
+            throw new IllegalStateException("RECURRING 플랜만 갱신할 수 있습니다.");
+        }
+        if (this.nextBillingDate == null) {
+            throw new IllegalStateException("취소된 구독은 갱신할 수 없습니다.");
+        }
+        this.nextBillingDate = this.nextBillingDate.plusMonths(1);
+        this.expiryDate      = this.expiryDate.plusMonths(1);
+        this.status          = SubscriptionStatus.ACTIVE;
+    }
+
+    /**
+     * 구독 활성화
+     * @return
+     */
+    public boolean isActive() {
+        return this.status == SubscriptionStatus.ACTIVE && LocalDateTime.now().isBefore(this.expiryDate);
+    }
+
+    /**
+     * 플랜별 만료일 계산
+     */
+    public static LocalDateTime calculateExpiryDate(
+            SubscriptionPlanType planType,
+            LocalDateTime startDate
+    ) {
+        return switch (planType) {
+            case MONTH, RECURRING -> startDate.plusMonths(1);
+            case YEAR -> startDate.plusYears(1);
+            case FREE -> startDate.plusDays(3);
+        };
+    }
+
+    /**
+     * 플랜별 다음 결제일 계산 (정기 구독만 해당)
+     * RECURRING만 +1개월, 나머지 null
+     */
+    public static LocalDateTime calculateNextBillingDate(
+            SubscriptionPlanType planType,
+            LocalDateTime startDate
+    ) {
+        return switch (planType) {
+            case RECURRING -> startDate.plusMonths(1);
+            case MONTH, YEAR, FREE -> null;
+        };
+    }
 }
