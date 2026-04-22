@@ -166,14 +166,16 @@ class PlaylistServiceTest {
             given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
                     .willReturn(false);
 
-            given(playlistRepository.save(any(Playlist.class)))
-                    .willThrow(new DataIntegrityViolationException(
-                            "could not execute statement; not-null property references a null or transient value"
-                    ));
+            DataIntegrityViolationException exception =
+                    new DataIntegrityViolationException(
+                            "could not execute statement; not-null property references a null value"
+                    );
+
+            given(playlistRepository.save(any(Playlist.class))).willThrow(exception);
 
             // when & then
             assertThatThrownBy(() -> playlistService.createPlaylist(userId, request))
-                    .isInstanceOf(DataIntegrityViolationException.class);
+                    .isSameAs(exception);
         }
 
         @Test
