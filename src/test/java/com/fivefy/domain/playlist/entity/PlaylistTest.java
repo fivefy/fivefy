@@ -132,6 +132,7 @@ class PlaylistTest {
 
         // then
         assertThat(playlist.getDeletedAt()).isNotNull();
+        assertThat(playlist.isDeleted()).isTrue();
     }
 
     @Test
@@ -145,5 +146,36 @@ class PlaylistTest {
         assertThatThrownBy(playlist::delete)
                 .isInstanceOf(BusinessException.class)
                 .hasMessage(PlaylistErrorCode.ALREADY_DELETED_PLAYLIST.getMessage());
+    }
+
+    @Test
+    @DisplayName("삭제된 플레이리스트 수정 시 예외 발생")
+    void update_deleted_playlist() {
+        // given
+        Playlist playlist = Playlist.create(1L, "title", "desc");
+        playlist.delete();
+
+        // when & then
+        assertThatThrownBy(() ->
+                playlist.update("newTitle", "newDesc")
+        )
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(PlaylistErrorCode.ALREADY_DELETED_PLAYLIST.getMessage());
+    }
+
+    @Test
+    @DisplayName("삭제 전 isDeleted는 false, 삭제 후 true")
+    void isDeleted_status_check() {
+        // given
+        Playlist playlist = Playlist.create(1L, "title", "desc");
+
+        // then
+        assertThat(playlist.isDeleted()).isFalse();
+
+        // when
+        playlist.delete();
+
+        // then
+        assertThat(playlist.isDeleted()).isTrue();
     }
 }
