@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -61,7 +62,7 @@ class PlaylistServiceTest {
             Playlist playlist = Playlist.create(userId, request.title(), request.description());
             ReflectionTestUtils.setField(playlist, "id", 1L);
 
-            given(playlistRepository.existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title()))
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
                     .willReturn(false);
             given(playlistRepository.save(any(Playlist.class))).willReturn(playlist);
 
@@ -75,7 +76,7 @@ class PlaylistServiceTest {
             assertThat(result.description()).isEqualTo("설명");
 
             verify(playlistRepository, times(1))
-                    .existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title());
+                    .existsByUserIdAndTitleAndDeletedFalse(userId, request.title());
             verify(playlistRepository, times(1)).save(any(Playlist.class));
         }
 
@@ -91,7 +92,7 @@ class PlaylistServiceTest {
                     List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
             )).willReturn(true);
 
-            given(playlistRepository.existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title()))
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
                     .willReturn(true);
 
             // when & then
@@ -120,8 +121,206 @@ class PlaylistServiceTest {
                     .hasMessage(PlaylistErrorCode.PLAYLIST_CREATION_SUBSCRIPTION_REQUIRED.getMessage());
 
             verify(playlistRepository, never())
-                    .existsByUserIdAndTitleAndDeletedAtIsNull(anyLong(), anyString());
+                    .existsByUserIdAndTitleAndDeletedFalse(anyLong(), anyString());
             verify(playlistRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("플레이리스트 저장 중 unique 제약 위반 발생 시 중복 제목 예외로 변환")
+        void createPlaylist_uniqueConstraintViolation() {
+            // given
+            Long userId = 1L;
+            PlaylistCreateRequest request = new PlaylistCreateRequest("중복 제목", "설명");
+
+            given(subscriptionRepository.existsByUserIdAndStatusIn(
+                    userId,
+                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            )).willReturn(true);
+
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
+                    .willReturn(false);
+
+            given(playlistRepository.save(any(Playlist.class)))
+                    .willThrow(new DataIntegrityViolationException(
+                            "could not execute statement; constraint [uk_playlist_user_title_deleted]"
+                    ));
+
+            // when & then
+            assertThatThrownBy(() -> playlistService.createPlaylist(userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME.getMessage());
+        }
+
+        @Test
+        @DisplayName("플레이리스트 저장 중 다른 무결성 위반 발생 시 중복 제목 예외로 변환하지 않음")
+        void createPlaylist_otherDataIntegrityViolation() {
+            // given
+            Long userId = 1L;
+            PlaylistCreateRequest request = new PlaylistCreateRequest("정상 제목", "설명");
+
+            given(subscriptionRepository.existsByUserIdAndStatusIn(
+                    userId,
+                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            )).willReturn(true);
+
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
+                    .willReturn(false);
+
+            DataIntegrityViolationException exception =
+                    new DataIntegrityViolationException(
+                            "could not execute statement; not-null property references a null value"
+                    );
+
+            given(playlistRepository.save(any(Playlist.class))).willThrow(exception);
+
+            // when & then
+            assertThatThrownBy(() -> playlistService.createPlaylist(userId, request))
+                    .isSameAs(exception);
+        }
+
+        @Test
+        @DisplayName("rootCause 메시지에 중복 제약조건이 포함되면 중복 제목 예외로 변환한다")
+        void createPlaylist_duplicateTitle_whenRootCauseContainsConstraint() {
+            // given
+            Long userId = 1L;
+            PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
+
+            given(subscriptionRepository.existsByUserIdAndStatusIn(
+                    userId,
+                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            )).willReturn(true);
+
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
+                    .willReturn(false);
+
+            DataIntegrityViolationException exception = mock(DataIntegrityViolationException.class);
+            Throwable rootCause = mock(Throwable.class);
+
+            given(exception.getMostSpecificCause()).willReturn(rootCause);
+            given(rootCause.getMessage()).willReturn("constraint [uk_playlist_user_title_deleted]");
+
+            given(playlistRepository.save(any(Playlist.class))).willThrow(exception);
+
+            // when & then
+            assertThatThrownBy(() -> playlistService.createPlaylist(userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME.getMessage());
+        }
+
+        @Test
+        @DisplayName("rootCause 메시지가 없으면 예외 메시지로 중복 여부를 판단한다")
+        void createPlaylist_duplicateTitle_whenRootCauseMessageIsNull() {
+            // given
+            Long userId = 1L;
+            PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
+
+            given(subscriptionRepository.existsByUserIdAndStatusIn(
+                    userId,
+                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            )).willReturn(true);
+
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
+                    .willReturn(false);
+
+            DataIntegrityViolationException exception = mock(DataIntegrityViolationException.class);
+            Throwable rootCause = mock(Throwable.class);
+
+            given(exception.getMostSpecificCause()).willReturn(rootCause);
+            given(rootCause.getMessage()).willReturn(null);
+            given(exception.getMessage()).willReturn("constraint [uk_playlist_user_title_deleted]");
+
+            given(playlistRepository.save(any(Playlist.class))).willThrow(exception);
+
+            // when & then
+            assertThatThrownBy(() -> playlistService.createPlaylist(userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME.getMessage());
+        }
+
+        @Test
+        @DisplayName("rootCause가 없으면 예외 메시지로 중복 여부를 판단한다")
+        void createPlaylist_duplicateTitle_whenRootCauseIsNull() {
+            // given
+            Long userId = 1L;
+            PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
+
+            given(subscriptionRepository.existsByUserIdAndStatusIn(
+                    userId,
+                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            )).willReturn(true);
+
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
+                    .willReturn(false);
+
+            DataIntegrityViolationException exception = mock(DataIntegrityViolationException.class);
+
+            given(exception.getMostSpecificCause()).willReturn(null);
+            given(exception.getMessage()).willReturn("constraint [uk_playlist_user_title_deleted]");
+
+            given(playlistRepository.save(any(Playlist.class))).willThrow(exception);
+
+            // when & then
+            assertThatThrownBy(() -> playlistService.createPlaylist(userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME.getMessage());
+        }
+
+        @Test
+        @DisplayName("중복 제약조건이 아니면 duplicate 예외로 변환하지 않는다")
+        void createPlaylist_dataIntegrityViolation_notDuplicateConstraint() {
+            // given
+            Long userId = 1L;
+            PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
+
+            given(subscriptionRepository.existsByUserIdAndStatusIn(
+                    userId,
+                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            )).willReturn(true);
+
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
+                    .willReturn(false);
+
+            DataIntegrityViolationException exception = mock(DataIntegrityViolationException.class);
+            Throwable rootCause = mock(Throwable.class);
+
+            given(exception.getMostSpecificCause()).willReturn(rootCause);
+            given(rootCause.getMessage()).willReturn(null);
+            given(exception.getMessage()).willReturn("some other integrity violation");
+
+            given(playlistRepository.save(any(Playlist.class))).willThrow(exception);
+
+            // when & then
+            assertThatThrownBy(() -> playlistService.createPlaylist(userId, request))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+        }
+
+        @Test
+        @DisplayName("예외 메시지가 없으면 duplicate 예외로 변환하지 않는다")
+        void createPlaylist_dataIntegrityViolation_whenExceptionMessageIsNull() {
+            // given
+            Long userId = 1L;
+            PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
+
+            given(subscriptionRepository.existsByUserIdAndStatusIn(
+                    userId,
+                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            )).willReturn(true);
+
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
+                    .willReturn(false);
+
+            DataIntegrityViolationException exception = mock(DataIntegrityViolationException.class);
+            Throwable rootCause = mock(Throwable.class);
+
+            given(exception.getMostSpecificCause()).willReturn(rootCause);
+            given(rootCause.getMessage()).willReturn(null);
+            given(exception.getMessage()).willReturn(null);
+
+            given(playlistRepository.save(any(Playlist.class))).willThrow(exception);
+
+            // when & then
+            assertThatThrownBy(() -> playlistService.createPlaylist(userId, request))
+                    .isInstanceOf(DataIntegrityViolationException.class);
         }
     }
 
@@ -143,7 +342,7 @@ class PlaylistServiceTest {
 
             Page<Playlist> page = new PageImpl<>(List.of(playlist1, playlist2), pageable, 2);
 
-            given(playlistRepository.findAllByDeletedAtIsNull(pageable)).willReturn(page);
+            given(playlistRepository.findAllByDeletedFalse(pageable)).willReturn(page);
 
             // when
             PageResponse<PlaylistResponse> result = playlistService.getPlaylists(pageable);
@@ -172,7 +371,7 @@ class PlaylistServiceTest {
             Playlist playlist = Playlist.create(1L, "내 플리", "설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
 
             // when
@@ -190,7 +389,7 @@ class PlaylistServiceTest {
             // given
             Long playlistId = 1L;
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.empty());
 
             // when & then
@@ -215,9 +414,9 @@ class PlaylistServiceTest {
             Playlist playlist = Playlist.create(userId, "기존 제목", "기존 설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
-            given(playlistRepository.existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title()))
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
                     .willReturn(false);
 
             // when
@@ -237,7 +436,7 @@ class PlaylistServiceTest {
             Long playlistId = 1L;
             PlaylistUpdateRequest request = new PlaylistUpdateRequest("수정 제목", "설명");
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.empty());
 
             // when & then
@@ -258,7 +457,7 @@ class PlaylistServiceTest {
             Playlist playlist = Playlist.create(otherUserId, "기존 제목", "기존 설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
 
             // when & then
@@ -267,7 +466,7 @@ class PlaylistServiceTest {
                     .hasMessage(PlaylistErrorCode.PLAYLIST_UPDATE_FORBIDDEN.getMessage());
 
             verify(playlistRepository, never())
-                    .existsByUserIdAndTitleAndDeletedAtIsNull(anyLong(), anyString());
+                    .existsByUserIdAndTitleAndDeletedFalse(anyLong(), anyString());
         }
 
         @Test
@@ -281,9 +480,9 @@ class PlaylistServiceTest {
             Playlist playlist = Playlist.create(userId, "기존 제목", "기존 설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
-            given(playlistRepository.existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title()))
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
                     .willReturn(true);
 
             // when & then
@@ -303,7 +502,7 @@ class PlaylistServiceTest {
             Playlist playlist = Playlist.create(userId, "기존 제목", "기존 설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
 
             // when
@@ -314,7 +513,7 @@ class PlaylistServiceTest {
             assertThat(result.description()).isEqualTo("새 설명");
 
             verify(playlistRepository, never())
-                    .existsByUserIdAndTitleAndDeletedAtIsNull(anyLong(), anyString());
+                    .existsByUserIdAndTitleAndDeletedFalse(anyLong(), anyString());
         }
     }
 
@@ -332,7 +531,7 @@ class PlaylistServiceTest {
             Playlist playlist = Playlist.create(userId, "삭제할 플리", "설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
 
             // when
@@ -345,14 +544,42 @@ class PlaylistServiceTest {
         }
 
         @Test
+        @DisplayName("중복되지 않은 제목이면 플레이리스트 생성 성공")
+        void createPlaylist_success_whenTitleNotDuplicated() {
+            // given
+            Long userId = 1L;
+            PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
+
+            given(subscriptionRepository.existsByUserIdAndStatusIn(
+                    userId,
+                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            )).willReturn(true);
+
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
+                    .willReturn(false);
+
+            Playlist playlist = Playlist.create(userId, request.title(), request.description());
+            ReflectionTestUtils.setField(playlist, "id", 1L);
+
+            given(playlistRepository.save(any(Playlist.class))).willReturn(playlist);
+
+            // when
+            PlaylistResponse result = playlistService.createPlaylist(userId, request);
+
+            // then
+            assertThat(result.title()).isEqualTo("내 플레이리스트");
+        }
+
+        @Test
         @DisplayName("존재하지 않는 플레이리스트 삭제 시 예외 발생")
         void deletePlaylistNotFound() {
             // given
             Long userId = 1L;
             Long playlistId = 1L;
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.empty());
+
 
             // when & then
             assertThatThrownBy(() -> playlistService.deletePlaylist(userId, playlistId))
@@ -371,7 +598,7 @@ class PlaylistServiceTest {
             Playlist playlist = Playlist.create(otherUserId, "남의 플리", "설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
 
             // when & then

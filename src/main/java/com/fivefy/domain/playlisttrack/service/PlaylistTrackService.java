@@ -33,7 +33,7 @@ public class PlaylistTrackService {
 
     @Transactional
     public PlaylistTrackResponse addTrack(Long userId, Long playlistId, PlaylistTrackCreateRequest request) {
-        Playlist playlist = playlistRepository.findByIdAndDeletedAtIsNull(playlistId)
+        Playlist playlist = playlistRepository.findByIdAndDeletedFalse(playlistId)
                 .orElseThrow(() -> new BusinessException(PlaylistErrorCode.PLAYLIST_NOT_FOUND));
 
         // 본인 플레이리스트만 트랙 추가 가능
@@ -70,7 +70,7 @@ public class PlaylistTrackService {
     }
 
     public List<PlaylistTrackResponse> getTracks(Long userId, Long playlistId) {
-        Playlist playlist = playlistRepository.findByIdAndDeletedAtIsNull(playlistId)
+        Playlist playlist = playlistRepository.findByIdAndDeletedFalse(playlistId)
                 .orElseThrow(() -> new BusinessException(PlaylistErrorCode.PLAYLIST_NOT_FOUND));
 
         // 본인 플레이리스트만 트랙 조회 가능
@@ -86,7 +86,7 @@ public class PlaylistTrackService {
 
     @Transactional
     public void updateTrackOrder(Long userId, Long playlistId, PlaylistTrackOrderUpdateRequest request) {
-        Playlist playlist = playlistRepository.findByIdAndDeletedAtIsNull(playlistId)
+        Playlist playlist = playlistRepository.findByIdAndDeletedFalse(playlistId)
                 .orElseThrow(() -> new BusinessException(PlaylistErrorCode.PLAYLIST_NOT_FOUND));
 
         // 본인 플레이리스트만 트랙 순서 변경 가능
@@ -129,7 +129,7 @@ public class PlaylistTrackService {
 
     @Transactional
     public void deleteTrack(Long userId, Long playlistId, Long trackId) {
-        Playlist playlist = playlistRepository.findByIdAndDeletedAtIsNull(playlistId)
+        Playlist playlist = playlistRepository.findByIdAndDeletedFalse(playlistId)
                 .orElseThrow(() -> new BusinessException(PlaylistErrorCode.PLAYLIST_NOT_FOUND));
 
         // 본인 플레이리스트만 트랙 삭제 가능
