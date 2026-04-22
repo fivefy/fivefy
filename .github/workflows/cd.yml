@@ -135,9 +135,10 @@ jobs:
               # Object Storage에서 새 JAR 다운로드
               AWS_ACCESS_KEY_ID=$NCP_ACCESS_KEY \
               AWS_SECRET_ACCESS_KEY=$NCP_SECRET_KEY \
+              AWS_REQUEST_CHECKSUM_CALCULATION=WHEN_REQUIRED \
               aws s3 cp s3://$NCP_BUCKET/deploy/$DEPLOY_ENV/app.jar \
                 \$APP_DIR/app-new.jar \
-                --endpoint-url=https://kr.object.ncloudstorage.com
+                --endpoint-url=https://kr.object.private.ncloudstorage.com
 
               # 기존 JAR 백업 (롤백용)
               if [ -f \$APP_DIR/app.jar ]; then
