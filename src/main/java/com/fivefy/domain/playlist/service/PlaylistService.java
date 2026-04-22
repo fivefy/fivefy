@@ -35,7 +35,7 @@ public class PlaylistService {
         validateSubscription(userId);
 
         // 중복 제목 여부 검사
-        if (playlistRepository.existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title())) {
+        if (playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title())) {
             throw new BusinessException(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME);
         }
 
@@ -54,14 +54,14 @@ public class PlaylistService {
     }
 
     public PageResponse<PlaylistResponse> getPlaylists(Pageable pageable) {
-        Page<PlaylistResponse> page = playlistRepository.findAllByDeletedAtIsNull(pageable)
+        Page<PlaylistResponse> page = playlistRepository.findAllByDeletedFalse(pageable)
                 .map(PlaylistResponse::from);
 
         return PageResponse.from(page);
     }
 
     public PlaylistResponse getPlaylist(Long playlistId) {
-        Playlist playlist = playlistRepository.findByIdAndDeletedAtIsNull(playlistId)
+        Playlist playlist = playlistRepository.findByIdAndDeletedFalse(playlistId)
                 .orElseThrow(() -> new BusinessException(PlaylistErrorCode.PLAYLIST_NOT_FOUND));
 
         return PlaylistResponse.from(playlist);
@@ -69,7 +69,7 @@ public class PlaylistService {
 
     @Transactional
     public PlaylistResponse updatePlaylist(Long userId, Long playlistId, PlaylistUpdateRequest request) {
-        Playlist playlist = playlistRepository.findByIdAndDeletedAtIsNull(playlistId)
+        Playlist playlist = playlistRepository.findByIdAndDeletedFalse(playlistId)
                 .orElseThrow(() -> new BusinessException(PlaylistErrorCode.PLAYLIST_NOT_FOUND));
 
         // 본인이 생성한 플레이리스트만 수정 가능
@@ -77,9 +77,9 @@ public class PlaylistService {
             throw new BusinessException(PlaylistErrorCode.PLAYLIST_UPDATE_FORBIDDEN);
         }
 
-        // 제목이 변경된 경우에만 중복 체크
-        if (!playlist.getTitle().equals(request.title()) &&
-                playlistRepository.existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title())) {
+        // 제목이 변경된 경우에만 활성 플레이리스트 기준 중복 체크
+        if (!playlist.getTitle().equals(request.title())
+                && playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title())) {
             throw new BusinessException(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME);
         }
 
@@ -90,7 +90,7 @@ public class PlaylistService {
 
     @Transactional
     public PlaylistDeleteResponse deletePlaylist(Long userId, Long playlistId) {
-        Playlist playlist = playlistRepository.findByIdAndDeletedAtIsNull(playlistId)
+        Playlist playlist = playlistRepository.findByIdAndDeletedFalse(playlistId)
                 .orElseThrow(() -> new BusinessException(PlaylistErrorCode.PLAYLIST_NOT_FOUND));
 
         // 본인이 생성한 플레이리스트만 삭제 가능
