@@ -83,12 +83,9 @@ public class PlaylistService {
             throw new BusinessException(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME);
         }
 
-        try {
-            playlist.update(request.title(), request.description());
-            return PlaylistResponse.from(playlist);
-        } catch (DataIntegrityViolationException e) {
-            throw new BusinessException(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME);
-        }
+        playlist.update(request.title(), request.description());
+
+        return PlaylistResponse.from(playlist);
     }
 
     @Transactional
