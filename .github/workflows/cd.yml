@@ -54,7 +54,6 @@ jobs:
             echo "db_username=${{ secrets.DB_USERNAME_PROD }}"     >> $GITHUB_OUTPUT
             echo "db_password=${{ secrets.DB_PASSWORD_PROD }}"     >> $GITHUB_OUTPUT
             echo "redis_host=${{ secrets.REDIS_HOST_PROD }}"       >> $GITHUB_OUTPUT
-            echo "redis_password=${{ secrets.REDIS_PASSWORD_PROD }}" >> $GITHUB_OUTPUT
             echo "kafka_servers=${{ secrets.KAFKA_SERVERS_PROD }}" >> $GITHUB_OUTPUT
             echo "jwt_secret=${{ secrets.JWT_SECRET_PROD }}"       >> $GITHUB_OUTPUT
           else
@@ -64,7 +63,6 @@ jobs:
             echo "db_username=${{ secrets.DB_USERNAME_STAGE }}"    >> $GITHUB_OUTPUT
             echo "db_password=${{ secrets.DB_PASSWORD_STAGE }}"    >> $GITHUB_OUTPUT
             echo "redis_host=${{ secrets.REDIS_HOST_STAGE }}"      >> $GITHUB_OUTPUT
-            echo "redis_password=${{ secrets.REDIS_PASSWORD_STAGE }}" >> $GITHUB_OUTPUT
             echo "kafka_servers=${{ secrets.KAFKA_SERVERS_STAGE }}" >> $GITHUB_OUTPUT
             echo "jwt_secret=${{ secrets.JWT_SECRET_STAGE }}"      >> $GITHUB_OUTPUT
           fi
@@ -108,7 +106,6 @@ jobs:
           DB_USERNAME: ${{ steps.env.outputs.db_username }}
           DB_PASSWORD: ${{ steps.env.outputs.db_password }}
           REDIS_HOST: ${{ steps.env.outputs.redis_host }}
-          REDIS_PASSWORD: ${{ steps.env.outputs.redis_password }}
           KAFKA_SERVERS: ${{ steps.env.outputs.kafka_servers }}
           JWT_SECRET: ${{ steps.env.outputs.jwt_secret }}
           NCP_ACCESS_KEY: ${{ secrets.NCP_ACCESS_KEY }}
@@ -161,7 +158,6 @@ jobs:
                 -Dspring.datasource.username=$DB_USERNAME \
                 -Dspring.datasource.password=$DB_PASSWORD \
                 -Dspring.data.redis.host=$REDIS_HOST \
-                -Dspring.data.redis.password=$REDIS_PASSWORD \
                 -Dspring.kafka.bootstrap-servers=$KAFKA_SERVERS \
                 -Djwt.secret=$JWT_SECRET \
                 -Dportone.api-secret=$PORTONE_API_SECRET \
@@ -200,7 +196,6 @@ jobs:
                     -Dspring.datasource.username=$DB_USERNAME \
                     -Dspring.datasource.password=$DB_PASSWORD \
                     -Dspring.data.redis.host=$REDIS_HOST \
-                    -Dspring.data.redis.password=$REDIS_PASSWORD \
                     -Dspring.kafka.bootstrap-servers=$KAFKA_SERVERS \
                     -Djwt.secret=$JWT_SECRET \
                     -Dportone.api-secret=$PORTONE_API_SECRET \
