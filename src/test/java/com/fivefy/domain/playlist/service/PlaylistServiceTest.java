@@ -62,7 +62,7 @@ class PlaylistServiceTest {
             Playlist playlist = Playlist.create(userId, request.title(), request.description());
             ReflectionTestUtils.setField(playlist, "id", 1L);
 
-            given(playlistRepository.existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title()))
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
                     .willReturn(false);
             given(playlistRepository.save(any(Playlist.class))).willReturn(playlist);
 
@@ -76,7 +76,7 @@ class PlaylistServiceTest {
             assertThat(result.description()).isEqualTo("설명");
 
             verify(playlistRepository, times(1))
-                    .existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title());
+                    .existsByUserIdAndTitleAndDeletedFalse(userId, request.title());
             verify(playlistRepository, times(1)).save(any(Playlist.class));
         }
 
@@ -92,7 +92,7 @@ class PlaylistServiceTest {
                     List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
             )).willReturn(true);
 
-            given(playlistRepository.existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title()))
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
                     .willReturn(true);
 
             // when & then
@@ -121,7 +121,7 @@ class PlaylistServiceTest {
                     .hasMessage(PlaylistErrorCode.PLAYLIST_CREATION_SUBSCRIPTION_REQUIRED.getMessage());
 
             verify(playlistRepository, never())
-                    .existsByUserIdAndTitleAndDeletedAtIsNull(anyLong(), anyString());
+                    .existsByUserIdAndTitleAndDeletedFalse(anyLong(), anyString());
             verify(playlistRepository, never()).save(any());
         }
 
@@ -137,7 +137,7 @@ class PlaylistServiceTest {
                     List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
             )).willReturn(true);
 
-            given(playlistRepository.existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title()))
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
                     .willReturn(false);
 
             given(playlistRepository.save(any(Playlist.class)))
@@ -168,7 +168,7 @@ class PlaylistServiceTest {
 
             Page<Playlist> page = new PageImpl<>(List.of(playlist1, playlist2), pageable, 2);
 
-            given(playlistRepository.findAllByDeletedAtIsNull(pageable)).willReturn(page);
+            given(playlistRepository.findAllByDeletedFalse(pageable)).willReturn(page);
 
             // when
             PageResponse<PlaylistResponse> result = playlistService.getPlaylists(pageable);
@@ -197,7 +197,7 @@ class PlaylistServiceTest {
             Playlist playlist = Playlist.create(1L, "내 플리", "설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
 
             // when
@@ -215,7 +215,7 @@ class PlaylistServiceTest {
             // given
             Long playlistId = 1L;
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.empty());
 
             // when & then
@@ -240,9 +240,9 @@ class PlaylistServiceTest {
             Playlist playlist = Playlist.create(userId, "기존 제목", "기존 설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
-            given(playlistRepository.existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title()))
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
                     .willReturn(false);
 
             // when
@@ -262,7 +262,7 @@ class PlaylistServiceTest {
             Long playlistId = 1L;
             PlaylistUpdateRequest request = new PlaylistUpdateRequest("수정 제목", "설명");
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.empty());
 
             // when & then
@@ -283,7 +283,7 @@ class PlaylistServiceTest {
             Playlist playlist = Playlist.create(otherUserId, "기존 제목", "기존 설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
 
             // when & then
@@ -292,7 +292,7 @@ class PlaylistServiceTest {
                     .hasMessage(PlaylistErrorCode.PLAYLIST_UPDATE_FORBIDDEN.getMessage());
 
             verify(playlistRepository, never())
-                    .existsByUserIdAndTitleAndDeletedAtIsNull(anyLong(), anyString());
+                    .existsByUserIdAndTitleAndDeletedFalse(anyLong(), anyString());
         }
 
         @Test
@@ -306,9 +306,9 @@ class PlaylistServiceTest {
             Playlist playlist = Playlist.create(userId, "기존 제목", "기존 설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
-            given(playlistRepository.existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title()))
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
                     .willReturn(true);
 
             // when & then
@@ -328,7 +328,7 @@ class PlaylistServiceTest {
             Playlist playlist = Playlist.create(userId, "기존 제목", "기존 설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
 
             // when
@@ -339,7 +339,7 @@ class PlaylistServiceTest {
             assertThat(result.description()).isEqualTo("새 설명");
 
             verify(playlistRepository, never())
-                    .existsByUserIdAndTitleAndDeletedAtIsNull(anyLong(), anyString());
+                    .existsByUserIdAndTitleAndDeletedFalse(anyLong(), anyString());
         }
     }
 
@@ -357,7 +357,7 @@ class PlaylistServiceTest {
             Playlist playlist = Playlist.create(userId, "삭제할 플리", "설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
 
             // when
@@ -376,8 +376,9 @@ class PlaylistServiceTest {
             Long userId = 1L;
             Long playlistId = 1L;
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.empty());
+
 
             // when & then
             assertThatThrownBy(() -> playlistService.deletePlaylist(userId, playlistId))
@@ -396,8 +397,9 @@ class PlaylistServiceTest {
             Playlist playlist = Playlist.create(otherUserId, "남의 플리", "설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
+
 
             // when & then
             assertThatThrownBy(() -> playlistService.deletePlaylist(userId, playlistId))
@@ -408,6 +410,7 @@ class PlaylistServiceTest {
         @Test
         @DisplayName("삭제된 플레이리스트 제목은 다시 생성 가능")
         void createPlaylist_success_whenDeletedPlaylistHasSameTitle() {
+            // given
             Long userId = 1L;
             PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
 
@@ -416,7 +419,7 @@ class PlaylistServiceTest {
                     List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
             )).willReturn(true);
 
-            given(playlistRepository.existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title()))
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
                     .willReturn(false);
 
             Playlist playlist = Playlist.create(userId, request.title(), request.description());
@@ -424,8 +427,10 @@ class PlaylistServiceTest {
 
             given(playlistRepository.save(any(Playlist.class))).willReturn(playlist);
 
+            // when
             PlaylistResponse result = playlistService.createPlaylist(userId, request);
 
+            // then
             assertThat(result.title()).isEqualTo("내 플레이리스트");
         }
     }
