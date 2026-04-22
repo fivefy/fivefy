@@ -25,6 +25,8 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class PlaylistService {
 
+    private static final String PLAYLIST_UNIQUE_CONSTRAINT = "uk_playlist_user_title_deleted";
+
     private final PlaylistRepository playlistRepository;
     private final SubscriptionRepository subscriptionRepository;
 
@@ -49,7 +51,10 @@ public class PlaylistService {
             Playlist savedPlaylist = playlistRepository.save(playlist);
             return PlaylistResponse.from(savedPlaylist);
         } catch (DataIntegrityViolationException e) {
-            throw new BusinessException(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME);
+            if (isDuplicatePlaylistTitleException(e)) {
+                throw new BusinessException(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME);
+            }
+            throw e;
         }
     }
 
@@ -101,6 +106,16 @@ public class PlaylistService {
         playlist.delete();
 
         return PlaylistDeleteResponse.from(playlist);
+    }
+
+    private boolean isDuplicatePlaylistTitleException(DataIntegrityViolationException e) {
+        Throwable rootCause = e.getMostSpecificCause();
+
+        if (rootCause != null && rootCause.getMessage() != null) {
+            return rootCause.getMessage().contains(PLAYLIST_UNIQUE_CONSTRAINT);
+        }
+
+        return e.getMessage() != null && e.getMessage().contains(PLAYLIST_UNIQUE_CONSTRAINT);
     }
 
     private void validateSubscription(Long userId) {
