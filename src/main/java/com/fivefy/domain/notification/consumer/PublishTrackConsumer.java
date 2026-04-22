@@ -1,21 +1,16 @@
 package com.fivefy.domain.notification.consumer;
 
 import com.fivefy.common.config.rabbitmq.NotificationRabbitConfig;
-import com.fivefy.domain.follow.entity.Follow;
-import com.fivefy.domain.follow.repository.FollowRepository;
 import com.fivefy.domain.notification.enums.NotificationType;
 import com.fivefy.domain.notification.service.NotificationService;
-import com.fivefy.domain.track.event.PublishTrackEvent;
+import com.fivefy.domain.track.event.PublishTrackChunkEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -23,58 +18,46 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class PublishTrackConsumer {
 
-    private static final int CHUNK_SIZE = 1000;
     private static final String DEDUP_KEY_PREFIX = "notification:dedup:publish:";
     private static final long DEDUP_TTL_HOURS = 24;
 
-    private final FollowRepository followRepository;
     private final NotificationService notificationService;
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate stringRedisTemplate;
 
-    @RabbitListener(queues = NotificationRabbitConfig.PUBLISH_TRACK_QUEUE)
+    // concurrency: 최소 3개 ~ 최대 10개 Consumer 스레드가 병렬 처리
+    @RabbitListener(
+            queues = NotificationRabbitConfig.PUBLISH_TRACK_QUEUE,
+            concurrency = "3-10"
+    )
     public void consume(String message) {
         try {
-            PublishTrackEvent event = objectMapper.readValue(message, PublishTrackEvent.class);
+            PublishTrackChunkEvent event = objectMapper.readValue(message, PublishTrackChunkEvent.class);
 
-            // 중복 메시지 체크 — 24시간 내 동일 이벤트 재처리 방지
-            String dedupKey = DEDUP_KEY_PREFIX + event.artistId() + ":" + event.trackId();
+            // 청크 단위 중복 체크 — trackId + 청크 첫 번째 userId 조합
+            String dedupKey = DEDUP_KEY_PREFIX + event.trackId() + ":chunk:" + event.chunkIndex();
             Boolean isNew = stringRedisTemplate.opsForValue()
                     .setIfAbsent(dedupKey, "1", DEDUP_TTL_HOURS, TimeUnit.HOURS);
 
             if (Boolean.FALSE.equals(isNew)) {
-                log.warn("중복 메시지 감지, 처리 스킵: artistId={}, trackId={}",
-                        event.artistId(), event.trackId());
+                log.warn("중복 청크 감지, 처리 스킵: trackId={}, 청크 size={}",
+                        event.trackId(), event.userIds().size());
                 return;
             }
 
-            log.info("RabbitMQ PUBLISH_TRACK 수신: artistId={}, trackId={}",
-                    event.artistId(), event.trackId());
+            log.debug("PUBLISH_TRACK 청크 처리 시작: trackId={}, artistId={}, 청크 size={}",
+                    event.trackId(), event.artistId(), event.userIds().size());
 
             String content = "새 트랙 \"" + event.trackTitle() + "\"이 발매되었습니다";
 
-            int page = 0;
-            Page<Follow> chunk;
+            event.userIds().forEach(userId ->
+                    notificationService.send(userId, NotificationType.PUBLISH_TRACK, content));
 
-            do {
-                chunk = followRepository.findAllByArtistIdAndNotificationEnabledTrue(
-                        event.artistId(), PageRequest.of(page++, CHUNK_SIZE));
-
-                chunk.getContent().forEach(follow ->
-                        notificationService.send(
-                                follow.getUserId(),
-                                NotificationType.PUBLISH_TRACK,
-                                content));
-
-                log.debug("PUBLISH_TRACK 청크 처리 완료: page={}, size={}, artistId={}",
-                        page - 1, chunk.getNumberOfElements(), event.artistId());
-
-            } while (chunk.hasNext());
-
-            log.info("PUBLISH_TRACK 알림 발송 완료: artistId={}", event.artistId());
+            log.debug("PUBLISH_TRACK 청크 처리 완료: trackId={}, 청크 size={}",
+                    event.trackId(), event.userIds().size());
 
         } catch (Exception e) {
-            log.error("RabbitMQ 메시지 처리 실패: {}", e.getMessage());
+            log.error("RabbitMQ 청크 메시지 처리 실패: {}", e.getMessage());
         }
     }
 }

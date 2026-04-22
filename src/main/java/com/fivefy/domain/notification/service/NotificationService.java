@@ -2,6 +2,8 @@ package com.fivefy.domain.notification.service;
 
 import com.fivefy.common.config.rabbitmq.NotificationRabbitConfig;
 import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.follow.entity.Follow;
+import com.fivefy.domain.follow.repository.FollowRepository;
 import com.fivefy.domain.notification.dto.NotificationMessage;
 import com.fivefy.domain.notification.dto.response.NotificationGetResponse;
 import com.fivefy.domain.notification.entity.Notification;
@@ -12,6 +14,7 @@ import com.fivefy.domain.notification.enums.NotificationType;
 import com.fivefy.domain.notification.event.NotificationEvent;
 import com.fivefy.domain.notification.repository.NotificationRepository;
 import com.fivefy.domain.notification.repository.SseEmitterRepository;
+import com.fivefy.domain.track.event.PublishTrackChunkEvent;
 import com.fivefy.domain.track.event.PublishTrackEvent;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
@@ -20,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
@@ -31,6 +35,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.util.List;
+
 
 @Slf4j
 @Service
@@ -40,6 +46,7 @@ public class NotificationService {
     private static final long SSE_TIMEOUT = 60 * 60 * 1000L;
     private static final String SSE_EVENT_CONNECT = "connect";
     private static final String REDIS_NOTIFICATION_CHANNEL = "notification:";
+    private static final int CHUNK_SIZE = 1000;
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
@@ -47,6 +54,7 @@ public class NotificationService {
     private final RabbitTemplate rabbitTemplate;
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
+    private final FollowRepository  followRepository;
 
     // 알림 구독
     public SseEmitter subscribe(Long userId) {
@@ -83,20 +91,48 @@ public class NotificationService {
         send(event.targetUserId(), event.type(), event.content());
     }
 
-    // 트랙 발행 -> 알림 수신 동의 팔로워 전체 알림
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handlePublishTrackEvent(PublishTrackEvent event) {
         try {
-            String message = objectMapper.writeValueAsString(event);
-            rabbitTemplate.convertAndSend(
-                    NotificationRabbitConfig.NOTIFICATION_EXCHANGE,
-                    NotificationRabbitConfig.PUBLISH_TRACK_ROUTING_KEY,
-                    message);
-            log.info("PUBLISH_TRACK RabbitMQ 발행: artistId={}, trackId={}",
-                    event.artistId(), event.trackId());
+            int page = 0;
+            int totalChunks = 0;
+            long chunkIndex = 0L;
+            Page<Follow> chunk;
+
+            do {
+                chunk = followRepository.findAllByArtistIdAndNotificationEnabledTrue(
+                        event.artistId(), PageRequest.of(page++, CHUNK_SIZE));
+
+                if (chunk.isEmpty()) break;
+
+                List<Long> userIds = chunk.getContent().stream()
+                        .map(Follow::getUserId)
+                        .toList();
+
+                // 청크별 메시지 발행 → 각 Consumer가 병렬 처리
+                String message = objectMapper.writeValueAsString(
+                        PublishTrackChunkEvent.of(
+                                event.artistId(),
+                                event.trackId(),
+                                event.trackTitle(),
+                                chunkIndex++,
+                                userIds));
+
+                rabbitTemplate.convertAndSend(
+                        NotificationRabbitConfig.NOTIFICATION_EXCHANGE,
+                        NotificationRabbitConfig.PUBLISH_TRACK_ROUTING_KEY,
+                        message);
+
+                totalChunks++;
+
+            } while (chunk.hasNext());
+
+            log.info("PUBLISH_TRACK RabbitMQ 발행 완료: artistId={}, trackId={}, 총 청크 수={}",
+                    event.artistId(), event.trackId(), totalChunks);
+
         } catch (Exception e) {
-            log.error("RabbitMQ 발행 실패: artistId={}", event.artistId());
+            log.error("PUBLISH_TRACK RabbitMQ 발행 실패: artistId={}", event.artistId());
         }
     }
 
@@ -111,7 +147,6 @@ public class NotificationService {
         }
 
         try {
-            // 1. 전송 전 메시지는 현재 QUEUED 상태로 생성
             NotificationMessage message = new NotificationMessage(
                     saved.getId(),
                     userId,
