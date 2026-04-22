@@ -73,12 +73,13 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.NCP_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.NCP_SECRET_KEY }}
-          AWS_DEFAULT_REGION: kr-standard
+          AWS_DEFAULT_REGION: kr
         run: |
           DEPLOY_ENV=${{ steps.env.outputs.name }}
           aws s3 cp build/libs/*.jar \
             s3://${{ secrets.NCP_BUCKET_DEPLOY }}/deploy/$DEPLOY_ENV/app.jar \
-            --endpoint-url=https://kr.object.ncloudstorage.com
+            --endpoint-url=https://kr.object.ncloudstorage.com \
+            --threshold 150MB
 
       # SSH 키 설정 + known_hosts 사전 등록 (StrictHostKeyChecking 유지)
       - name: Setup SSH keys
