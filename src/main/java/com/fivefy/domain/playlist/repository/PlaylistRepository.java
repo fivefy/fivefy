@@ -13,11 +13,11 @@ import java.util.Optional;
 
 public interface PlaylistRepository extends JpaRepository<Playlist, Long> {
 
-    Page<Playlist> findAllByDeletedAtIsNull(Pageable pageable);
-    Optional<Playlist> findByIdAndDeletedAtIsNull(Long id);
-    boolean existsByUserIdAndTitleAndDeletedAtIsNull(Long userId, String title);
+    Page<Playlist> findAllByDeletedFalse(Pageable pageable);
+    Optional<Playlist> findByIdAndDeletedFalse(Long id);
+    boolean existsByUserIdAndTitleAndDeletedFalse(Long userId, String title);
 
     @Modifying
-    @Query("delete from Playlist p where p.deletedAt is not null and p.deletedAt <= :threshold")
+    @Query("delete from Playlist p where p.deleted = true and p.deletedAt is not null and p.deletedAt <= :threshold")
     int deleteAllSoftDeletedBefore(@Param("threshold") LocalDateTime threshold);
 }
