@@ -397,6 +397,33 @@ class PlaylistServiceTest {
         }
 
         @Test
+        @DisplayName("중복되지 않은 제목이면 플레이리스트 생성 성공")
+        void createPlaylist_success_whenTitleNotDuplicated() {
+            // given
+            Long userId = 1L;
+            PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
+
+            given(subscriptionRepository.existsByUserIdAndStatusIn(
+                    userId,
+                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            )).willReturn(true);
+
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
+                    .willReturn(false);
+
+            Playlist playlist = Playlist.create(userId, request.title(), request.description());
+            ReflectionTestUtils.setField(playlist, "id", 1L);
+
+            given(playlistRepository.save(any(Playlist.class))).willReturn(playlist);
+
+            // when
+            PlaylistResponse result = playlistService.createPlaylist(userId, request);
+
+            // then
+            assertThat(result.title()).isEqualTo("내 플레이리스트");
+        }
+
+        @Test
         @DisplayName("존재하지 않는 플레이리스트 삭제 시 예외 발생")
         void deletePlaylistNotFound() {
             // given
@@ -427,38 +454,10 @@ class PlaylistServiceTest {
             given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
 
-
             // when & then
             assertThatThrownBy(() -> playlistService.deletePlaylist(userId, playlistId))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(PlaylistErrorCode.PLAYLIST_DELETE_FORBIDDEN.getMessage());
-        }
-
-        @Test
-        @DisplayName("삭제된 플레이리스트 제목은 다시 생성 가능")
-        void createPlaylist_success_whenDeletedPlaylistHasSameTitle() {
-            // given
-            Long userId = 1L;
-            PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
-
-            given(subscriptionRepository.existsByUserIdAndStatusIn(
-                    userId,
-                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
-            )).willReturn(true);
-
-            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
-                    .willReturn(false);
-
-            Playlist playlist = Playlist.create(userId, request.title(), request.description());
-            ReflectionTestUtils.setField(playlist, "id", 1L);
-
-            given(playlistRepository.save(any(Playlist.class))).willReturn(playlist);
-
-            // when
-            PlaylistResponse result = playlistService.createPlaylist(userId, request);
-
-            // then
-            assertThat(result.title()).isEqualTo("내 플레이리스트");
         }
     }
 }
