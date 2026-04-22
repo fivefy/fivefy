@@ -175,6 +175,151 @@ class PlaylistServiceTest {
             assertThatThrownBy(() -> playlistService.createPlaylist(userId, request))
                     .isInstanceOf(DataIntegrityViolationException.class);
         }
+
+        @Test
+        @DisplayName("rootCause 메시지에 중복 제약조건이 포함되면 중복 제목 예외로 변환한다")
+        void createPlaylist_duplicateTitle_whenRootCauseContainsConstraint() {
+            // given
+            Long userId = 1L;
+            PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
+
+            given(subscriptionRepository.existsByUserIdAndStatusIn(
+                    userId,
+                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            )).willReturn(true);
+
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
+                    .willReturn(false);
+
+            DataIntegrityViolationException exception = mock(DataIntegrityViolationException.class);
+            Throwable rootCause = mock(Throwable.class);
+
+            given(exception.getMostSpecificCause()).willReturn(rootCause);
+            given(rootCause.getMessage()).willReturn("constraint [uk_playlist_user_title_deleted]");
+
+            given(playlistRepository.save(any(Playlist.class))).willThrow(exception);
+
+            // when & then
+            assertThatThrownBy(() -> playlistService.createPlaylist(userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME.getMessage());
+        }
+
+        @Test
+        @DisplayName("rootCause 메시지가 없으면 예외 메시지로 중복 여부를 판단한다")
+        void createPlaylist_duplicateTitle_whenRootCauseMessageIsNull() {
+            // given
+            Long userId = 1L;
+            PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
+
+            given(subscriptionRepository.existsByUserIdAndStatusIn(
+                    userId,
+                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            )).willReturn(true);
+
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
+                    .willReturn(false);
+
+            DataIntegrityViolationException exception = mock(DataIntegrityViolationException.class);
+            Throwable rootCause = mock(Throwable.class);
+
+            given(exception.getMostSpecificCause()).willReturn(rootCause);
+            given(rootCause.getMessage()).willReturn(null);
+            given(exception.getMessage()).willReturn("constraint [uk_playlist_user_title_deleted]");
+
+            given(playlistRepository.save(any(Playlist.class))).willThrow(exception);
+
+            // when & then
+            assertThatThrownBy(() -> playlistService.createPlaylist(userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME.getMessage());
+        }
+
+        @Test
+        @DisplayName("rootCause가 없으면 예외 메시지로 중복 여부를 판단한다")
+        void createPlaylist_duplicateTitle_whenRootCauseIsNull() {
+            // given
+            Long userId = 1L;
+            PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
+
+            given(subscriptionRepository.existsByUserIdAndStatusIn(
+                    userId,
+                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            )).willReturn(true);
+
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
+                    .willReturn(false);
+
+            DataIntegrityViolationException exception = mock(DataIntegrityViolationException.class);
+
+            given(exception.getMostSpecificCause()).willReturn(null);
+            given(exception.getMessage()).willReturn("constraint [uk_playlist_user_title_deleted]");
+
+            given(playlistRepository.save(any(Playlist.class))).willThrow(exception);
+
+            // when & then
+            assertThatThrownBy(() -> playlistService.createPlaylist(userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME.getMessage());
+        }
+
+        @Test
+        @DisplayName("중복 제약조건이 아니면 duplicate 예외로 변환하지 않는다")
+        void createPlaylist_dataIntegrityViolation_notDuplicateConstraint() {
+            // given
+            Long userId = 1L;
+            PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
+
+            given(subscriptionRepository.existsByUserIdAndStatusIn(
+                    userId,
+                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            )).willReturn(true);
+
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
+                    .willReturn(false);
+
+            DataIntegrityViolationException exception = mock(DataIntegrityViolationException.class);
+            Throwable rootCause = mock(Throwable.class);
+
+            given(exception.getMostSpecificCause()).willReturn(rootCause);
+            given(rootCause.getMessage()).willReturn(null);
+            given(exception.getMessage()).willReturn("some other integrity violation");
+
+            given(playlistRepository.save(any(Playlist.class))).willThrow(exception);
+
+            // when & then
+            assertThatThrownBy(() -> playlistService.createPlaylist(userId, request))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+        }
+
+        @Test
+        @DisplayName("예외 메시지가 없으면 duplicate 예외로 변환하지 않는다")
+        void createPlaylist_dataIntegrityViolation_whenExceptionMessageIsNull() {
+            // given
+            Long userId = 1L;
+            PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
+
+            given(subscriptionRepository.existsByUserIdAndStatusIn(
+                    userId,
+                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            )).willReturn(true);
+
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
+                    .willReturn(false);
+
+            DataIntegrityViolationException exception = mock(DataIntegrityViolationException.class);
+            Throwable rootCause = mock(Throwable.class);
+
+            given(exception.getMostSpecificCause()).willReturn(rootCause);
+            given(rootCause.getMessage()).willReturn(null);
+            given(exception.getMessage()).willReturn(null);
+
+            given(playlistRepository.save(any(Playlist.class))).willThrow(exception);
+
+            // when & then
+            assertThatThrownBy(() -> playlistService.createPlaylist(userId, request))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+        }
     }
 
     @Nested
