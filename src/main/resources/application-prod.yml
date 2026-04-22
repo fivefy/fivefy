@@ -40,9 +40,16 @@ logging:
     root: WARN
     com.fivefy: INFO
 
+### 포트원 ###
 portone:
+  # 포트원 콘솔 > 결제연동 > V2 API Secret
   api-secret: ${PORTONE_API_SECRET}
+  # 포트원 콘솔 > 연동 정보 > 상점 ID
   store-id: ${PORTONE_STORE_ID}
+  # 포트원 API Url
   api-url: ${PORTONE_API_URL}
   channel-key: ${PORTONE_CHANNEL_KEY}
+  # 웹훅 시크릿 키
   webhook-secret: ${PORTONE_WEBHOOK_SECRET}
+  # 빌링키
+  channel-key-billing: ${PORTONE_CHANNEL_KEY_BILLING}

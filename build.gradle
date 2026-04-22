@@ -105,7 +105,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-amqp'
 
     // spring-dotenv : .env 읽어주기
-    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+    // implementation 'me.paulschwarz:spring-dotenv:4.0.0'
 
     // 서버 상태 확인 (/actuator/health)
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
