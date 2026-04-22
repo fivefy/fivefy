@@ -12,6 +12,7 @@ import com.fivefy.domain.playlist.repository.PlaylistRepository;
 import com.fivefy.domain.subscription.enums.SubscriptionStatus;
 import com.fivefy.domain.subscription.repository.SubscriptionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -44,9 +45,12 @@ public class PlaylistService {
                 request.description()
         );
 
-        Playlist savedPlaylist = playlistRepository.save(playlist);
-
-        return PlaylistResponse.from(savedPlaylist);
+        try {
+            Playlist savedPlaylist = playlistRepository.save(playlist);
+            return PlaylistResponse.from(savedPlaylist);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME);
+        }
     }
 
     public PageResponse<PlaylistResponse> getPlaylists(Pageable pageable) {
@@ -79,9 +83,12 @@ public class PlaylistService {
             throw new BusinessException(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME);
         }
 
-        playlist.update(request.title(), request.description());
-
-        return PlaylistResponse.from(playlist);
+        try {
+            playlist.update(request.title(), request.description());
+            return PlaylistResponse.from(playlist);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME);
+        }
     }
 
     @Transactional
@@ -101,7 +108,7 @@ public class PlaylistService {
 
     private void validateSubscription(Long userId) {
         // 사용자 구독 상태 조회
-        // TRIAL(체험), ACTIVE(유료) 상태인 경우 유효한 구독으로 판단
+        // FREE(체험), ACTIVE(유료) 상태인 경우 유효한 구독으로 판단
         boolean hasValidSubscription = subscriptionRepository.existsByUserIdAndStatusIn(
                 userId,
                 List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
