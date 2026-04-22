@@ -7,6 +7,7 @@ import com.fivefy.domain.notification.dto.response.NotificationGetResponse;
 import com.fivefy.domain.notification.entity.Notification;
 import com.fivefy.domain.notification.enums.NotificationChannel;
 import com.fivefy.domain.notification.enums.NotificationErrorCode;
+import com.fivefy.domain.notification.enums.NotificationStatus;
 import com.fivefy.domain.notification.enums.NotificationType;
 import com.fivefy.domain.notification.event.NotificationEvent;
 import com.fivefy.domain.notification.repository.NotificationRepository;
@@ -110,19 +111,20 @@ public class NotificationService {
         }
 
         try {
-            saved.markAsSent();
+            // 1. 전송 전 메시지는 현재 QUEUED 상태로 생성
             NotificationMessage message = new NotificationMessage(
                     saved.getId(),
                     userId,
                     type,
                     content,
-                    saved.getStatus(),
+                    NotificationStatus.SENT,
                     saved.getChannel(),
                     saved.getCreatedAt()
             );
             String channel = REDIS_NOTIFICATION_CHANNEL + userId;
-            stringRedisTemplate.convertAndSend(channel, objectMapper.writeValueAsString(message));
+            stringRedisTemplate.convertAndSend(channel, objectMapper.writeValueAsString(message)); // 전송
 
+            saved.markAsSent();
             notificationRepository.save(saved);
         } catch (Exception e) {
             log.error("알림 발송 실패: userId={}, type={}", userId, type);
