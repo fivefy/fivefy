@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -122,6 +123,30 @@ class PlaylistServiceTest {
             verify(playlistRepository, never())
                     .existsByUserIdAndTitleAndDeletedAtIsNull(anyLong(), anyString());
             verify(playlistRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("플레이리스트 저장 중 DB 제약 예외 발생 시 중복 제목 예외로 변환")
+        void createPlaylist_dataIntegrityViolation() {
+            // given
+            Long userId = 1L;
+            PlaylistCreateRequest request = new PlaylistCreateRequest("중복 제목", "설명");
+
+            given(subscriptionRepository.existsByUserIdAndStatusIn(
+                    userId,
+                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            )).willReturn(true);
+
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title()))
+                    .willReturn(false);
+
+            given(playlistRepository.save(any(Playlist.class)))
+                    .willThrow(new DataIntegrityViolationException("unique constraint violation"));
+
+            // when & then
+            assertThatThrownBy(() -> playlistService.createPlaylist(userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(PlaylistErrorCode.DUPLICATE_PLAYLIST_NAME.getMessage());
         }
     }
 
@@ -378,6 +403,30 @@ class PlaylistServiceTest {
             assertThatThrownBy(() -> playlistService.deletePlaylist(userId, playlistId))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(PlaylistErrorCode.PLAYLIST_DELETE_FORBIDDEN.getMessage());
+        }
+
+        @Test
+        @DisplayName("삭제된 플레이리스트 제목은 다시 생성 가능")
+        void createPlaylist_success_whenDeletedPlaylistHasSameTitle() {
+            Long userId = 1L;
+            PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
+
+            given(subscriptionRepository.existsByUserIdAndStatusIn(
+                    userId,
+                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            )).willReturn(true);
+
+            given(playlistRepository.existsByUserIdAndTitleAndDeletedAtIsNull(userId, request.title()))
+                    .willReturn(false);
+
+            Playlist playlist = Playlist.create(userId, request.title(), request.description());
+            ReflectionTestUtils.setField(playlist, "id", 1L);
+
+            given(playlistRepository.save(any(Playlist.class))).willReturn(playlist);
+
+            PlaylistResponse result = playlistService.createPlaylist(userId, request);
+
+            assertThat(result.title()).isEqualTo("내 플레이리스트");
         }
     }
 }
