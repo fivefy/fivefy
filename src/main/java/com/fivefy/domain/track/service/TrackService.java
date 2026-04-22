@@ -20,10 +20,7 @@ import com.fivefy.domain.track.enums.TrackApplicationErrorCode;
 import com.fivefy.domain.track.enums.TrackErrorCode;
 import com.fivefy.domain.track.enums.TrackStatus;
 import com.fivefy.domain.track.enums.TrackType;
-import com.fivefy.domain.track.repository.PublicTrackListProjection;
-import com.fivefy.domain.track.repository.TrackApplicationRepository;
-import com.fivefy.domain.track.repository.TrackDetailProjection;
-import com.fivefy.domain.track.repository.TrackRepository;
+import com.fivefy.domain.track.repository.*;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.enums.UserRole;
@@ -49,6 +46,7 @@ public class TrackService {
     private final AlbumRepository albumRepository;
     private final ArtistRepository artistRepository;
     private final TrackRepository trackRepository;
+    private final TrackCommentRepository trackCommentRepository;
 
     /**
      * 자유 창작 트랙 등록 신청
@@ -246,7 +244,13 @@ public class TrackService {
         String artistName = projection == null ? null : projection.artistName();
         String albumTitle = projection == null ? null : projection.albumTitle();
 
-        return TrackDetailResponse.of(track, artistName, albumTitle);
+        List<TrackCommentResponse> comments = trackCommentRepository
+                .getRecentTrackComments(trackId, 5)
+                .stream()
+                .map(TrackCommentResponse::from)
+                .toList();
+
+        return TrackDetailResponse.of(track, artistName, albumTitle, comments);
     }
 
     /**
@@ -325,6 +329,16 @@ public class TrackService {
         return artist;
     }
 
+    // 공개 조회 가능한 아티스트 조회
+    private void findVisibleArtist(Long artistId) {
+        Artist artist = artistRepository.findById(artistId)
+                .orElseThrow(() -> new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND));
+
+        if (artist.isDeleted() || artist.getStatus() != ArtistStatus.ACTIVE) {
+            throw new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND);
+        }
+    }
+
     // 앨범 조회
     private Album findAlbum(Long albumId) {
         return albumRepository.findById(albumId)
@@ -340,6 +354,16 @@ public class TrackService {
         }
 
         return album;
+    }
+
+    // 공개 조회 가능한 앨범 조회
+    private void findVisibleAlbum(Long albumId) {
+        Album album = albumRepository.findById(albumId)
+                .orElseThrow(() -> new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND));
+
+        if (album.getDeletedAt() != null || album.getStatus() != AlbumStatus.PUBLISHED) {
+            throw new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND);
+        }
     }
 
     // 트랙 등록 신청 조회
@@ -458,17 +482,8 @@ public class TrackService {
 
     // 정식 발매 트랙 공개 가능 상태 검증
     private void validateOfficialTrackVisibility(Track track) {
-        Album album = findAlbum(track.getAlbumId());
-
-        if (album.getDeletedAt() != null || album.getStatus() != AlbumStatus.PUBLISHED) {
-            throw new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND);
-        }
-
-        Artist artist = findArtist(track.getArtistId());
-
-        if (artist.isDeleted()) {
-            throw new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND);
-        }
+        findVisibleAlbum(track.getAlbumId());
+        findVisibleArtist(track.getArtistId());
     }
 
     // =========================

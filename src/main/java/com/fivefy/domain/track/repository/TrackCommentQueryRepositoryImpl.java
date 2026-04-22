@@ -52,4 +52,20 @@ public class TrackCommentQueryRepositoryImpl implements TrackCommentQueryReposit
 
         return new PageImpl<>(content, pageable, total == null ? 0 : total);
     }
+
+    /**
+     * 트랙 상세 조회용 최신 댓글 목록 조회
+     */
+    @Override
+    public List<TrackComment> getRecentTrackComments(Long trackId, int limit) {
+        return queryFactory
+                .selectFrom(trackComment)
+                .where(
+                        trackComment.trackId.eq(trackId),
+                        trackComment.deletedAt.isNull()
+                )
+                .orderBy(trackComment.createdAt.desc())
+                .limit(limit)
+                .fetch();
+    }
 }

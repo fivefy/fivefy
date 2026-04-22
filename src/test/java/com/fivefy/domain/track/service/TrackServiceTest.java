@@ -15,14 +15,12 @@ import com.fivefy.domain.track.dto.request.OfficialTrackApplicationCreateRequest
 import com.fivefy.domain.track.dto.response.*;
 import com.fivefy.domain.track.entity.Track;
 import com.fivefy.domain.track.entity.TrackApplication;
+import com.fivefy.domain.track.entity.TrackComment;
 import com.fivefy.domain.track.enums.TrackApplicationErrorCode;
 import com.fivefy.domain.track.enums.TrackErrorCode;
 import com.fivefy.domain.track.enums.TrackStatus;
 import com.fivefy.domain.track.enums.TrackType;
-import com.fivefy.domain.track.repository.PublicTrackListProjection;
-import com.fivefy.domain.track.repository.TrackApplicationRepository;
-import com.fivefy.domain.track.repository.TrackDetailProjection;
-import com.fivefy.domain.track.repository.TrackRepository;
+import com.fivefy.domain.track.repository.*;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.enums.UserRole;
@@ -79,6 +77,9 @@ class TrackServiceTest {
 
     @Mock
     private TrackRepository trackRepository;
+
+    @Mock
+    private TrackCommentRepository trackCommentRepository;
 
     @InjectMocks
     private TrackService trackService;
@@ -1616,6 +1617,17 @@ class TrackServiceTest {
             Long artistId = 10L;
             Long albumId = 100L;
 
+            TrackComment comment = mock(TrackComment.class);
+            when(comment.getId()).thenReturn(10L);
+            when(comment.getUserId()).thenReturn(3L);
+            when(comment.getTrackId()).thenReturn(trackId);
+            when(comment.getContent()).thenReturn("좋아요");
+            when(comment.getCreatedAt()).thenReturn(LocalDateTime.of(2026, 4, 22, 13, 0, 0));
+            when(comment.getUpdatedAt()).thenReturn(LocalDateTime.of(2026, 4, 22, 13, 0, 0));
+
+            when(trackCommentRepository.getRecentTrackComments(trackId, 5))
+                    .thenReturn(List.of(comment));
+
             Track track = Track.createOfficialRelease(
                     1L,
                     artistId,
@@ -1680,6 +1692,11 @@ class TrackServiceTest {
             assertThat(response.featuredArtistText()).isEqualTo("feat. 10cm");
             assertThat(response.playCount()).isEqualTo(1200L);
             assertThat(response.publishedAt()).isEqualTo(LocalDateTime.of(2026, 5, 1, 18, 0, 0));
+            assertThat(response.comments()).hasSize(1);
+            assertThat(response.comments().get(0).commentId()).isEqualTo(10L);
+            assertThat(response.comments().get(0).userId()).isEqualTo(3L);
+            assertThat(response.comments().get(0).trackId()).isEqualTo(trackId);
+            assertThat(response.comments().get(0).content()).isEqualTo("좋아요");
         }
 
         @Test

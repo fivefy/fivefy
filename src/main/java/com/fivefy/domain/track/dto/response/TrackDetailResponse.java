@@ -5,6 +5,7 @@ import com.fivefy.domain.track.entity.Track;
 import com.fivefy.domain.track.enums.TrackType;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 트랙 상세 조회 응답 DTO
@@ -25,12 +26,14 @@ public record TrackDetailResponse(
         Long durationSec,
         String featuredArtistText,
         Long playCount,
-        LocalDateTime publishedAt
+        LocalDateTime publishedAt,
+        List<TrackCommentResponse> comments
 ) {
     public static TrackDetailResponse of(
             Track track,
             String artistName,
-            String albumTitle
+            String albumTitle,
+            List<TrackCommentResponse> comments
     ) {
         return new TrackDetailResponse(
                 track.getId(),
@@ -47,7 +50,8 @@ public record TrackDetailResponse(
                 track.getDurationSec(),
                 track.getFeaturedArtistText(),
                 track.getPlayCount(),
-                track.getPublishedAt()
+                track.getPublishedAt(),
+                comments
         );
     }
 }

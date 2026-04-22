@@ -8,6 +8,7 @@ import com.fivefy.common.filter.LastActiveAtFilter;
 import com.fivefy.domain.artist.enums.ArtistErrorCode;
 import com.fivefy.domain.track.dto.response.ArtistFreeCreationTrackResponse;
 import com.fivefy.domain.track.dto.response.PublicTrackListResponse;
+import com.fivefy.domain.track.dto.response.TrackCommentResponse;
 import com.fivefy.domain.track.dto.response.TrackDetailResponse;
 import com.fivefy.domain.track.enums.TrackErrorCode;
 import com.fivefy.domain.track.enums.TrackType;
@@ -78,7 +79,17 @@ class TrackControllerTest extends RestDocsSupport {
                     230L,
                     "feat. 10cm",
                     1200L,
-                    LocalDateTime.of(2026, 5, 1, 18, 0, 0)
+                    LocalDateTime.of(2026, 5, 1, 18, 0, 0),
+                    List.of(
+                            new TrackCommentResponse(
+                                    10L,
+                                    3L,
+                                    1000L,
+                                    "좋아요",
+                                    LocalDateTime.of(2026, 4, 22, 13, 0, 0),
+                                    LocalDateTime.of(2026, 4, 22, 13, 0, 0)
+                            )
+                    )
             );
 
             given(trackService.getTrack(trackId)).willReturn(response);
@@ -89,6 +100,10 @@ class TrackControllerTest extends RestDocsSupport {
                     .andExpect(jsonPath("$.message").value("트랙 상세 조회 성공"))
                     .andExpect(jsonPath("$.data.trackId").value(trackId))
                     .andExpect(jsonPath("$.data.title").value("밤편지"))
+                    .andExpect(jsonPath("$.data.comments[0].commentId").value(10L))
+                    .andExpect(jsonPath("$.data.comments[0].userId").value(3L))
+                    .andExpect(jsonPath("$.data.comments[0].trackId").value(1000L))
+                    .andExpect(jsonPath("$.data.comments[0].content").value("좋아요"))
                     .andDo(document("tracks-get",
                             pathParameters(
                                     parameterWithName("trackId").description("트랙 ID")
@@ -350,7 +365,14 @@ class TrackControllerTest extends RestDocsSupport {
                 fieldWithPath("data.durationSec").type(NUMBER).description("재생 시간(초)"),
                 fieldWithPath("data.featuredArtistText").type(STRING).description("피처링 아티스트 텍스트").optional(),
                 fieldWithPath("data.playCount").type(NUMBER).description("재생 횟수"),
-                fieldWithPath("data.publishedAt").type(STRING).description("공개 시각")
+                fieldWithPath("data.publishedAt").type(STRING).description("공개 시각"),
+                fieldWithPath("data.comments").type(ARRAY).description("최신 트랙 댓글 목록"),
+                fieldWithPath("data.comments[].commentId").type(NUMBER).description("댓글 ID"),
+                fieldWithPath("data.comments[].userId").type(NUMBER).description("댓글 작성자 ID"),
+                fieldWithPath("data.comments[].trackId").type(NUMBER).description("트랙 ID"),
+                fieldWithPath("data.comments[].content").type(STRING).description("댓글 내용"),
+                fieldWithPath("data.comments[].createdAt").type(STRING).description("댓글 작성 시각"),
+                fieldWithPath("data.comments[].updatedAt").type(STRING).description("댓글 수정 시각")
         };
     }
 
