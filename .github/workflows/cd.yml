@@ -73,7 +73,8 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.NCP_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.NCP_SECRET_KEY }}
-          AWS_DEFAULT_REGION: kr
+          AWS_DEFAULT_REGION: kr-standard
+          AWS_REQUEST_CHECKSUM_CALCULATION: WHEN_REQUIRED
         run: |
           DEPLOY_ENV=${{ steps.env.outputs.name }}
           aws configure set default.s3.multipart_threshold 200MB
