@@ -136,16 +136,16 @@ jobs:
               AWS_SECRET_ACCESS_KEY=$NCP_SECRET_KEY \
               AWS_REQUEST_CHECKSUM_CALCULATION=WHEN_REQUIRED \
               aws s3 cp s3://$NCP_BUCKET/deploy/$DEPLOY_ENV/app.jar \
-                \/root/app/$DEPLOY_ENV/app-new.jar \
-                --endpoint-url=https://kr.object.private.ncloudstorage.com
+                /root/app/$DEPLOY_ENV/app-new.jar \
+                --endpoint-url=https://kr.object.ncloudstorage.com
 
               # 기존 JAR 백업 (롤백용)
-              if [ -f \/root/app/$DEPLOY_ENV/app.jar ]; then
-                cp \/root/app/$DEPLOY_ENV/app.jar \/root/app/$DEPLOY_ENV/app-backup.jar
+              if [ -f /root/app/$DEPLOY_ENV/app.jar ]; then
+                cp /root/app/$DEPLOY_ENV/app.jar /root/app/$DEPLOY_ENV/app-backup.jar
               fi
 
               # 새 JAR 교체
-              mv \/root/app/$DEPLOY_ENV/app-new.jar \/root/app/$DEPLOY_ENV/app.jar
+              mv /root/app/$DEPLOY_ENV/app-new.jar /root/app/$DEPLOY_ENV/app.jar
 
               # 기존 앱 종료
               pkill -f "spring.profiles.active=\$DEPLOY_ENV" || true
@@ -169,7 +169,7 @@ jobs:
                 -Dportone.api-url=$PORTONE_API_URL \
                 -Dportone.channel-key=$PORTONE_CHANNEL_KEY \
                 -Dportone.webhook-secret=$PORTONE_WEBHOOK_SECRET \
-                -jar \/root/app/$DEPLOY_ENV/app.jar > \/root/app/$DEPLOY_ENV/app.log 2>&1 &
+                -jar /root/app/$DEPLOY_ENV/app.jar > /root/app/$DEPLOY_ENV/app.log 2>&1 &
 
               # 헬스체크 (최대 60초 대기)
               STATUS=""
@@ -189,8 +189,8 @@ jobs:
                 pkill -f "spring.profiles.active=\$DEPLOY_ENV" || true
                 sleep 2
 
-                if [ -f \/root/app/$DEPLOY_ENV/app-backup.jar ]; then
-                  cp \/root/app/$DEPLOY_ENV/app-backup.jar \/root/app/$DEPLOY_ENV/app.jar
+                if [ -f /root/app/$DEPLOY_ENV/app-backup.jar ]; then
+                  cp /root/app/$DEPLOY_ENV/app-backup.jar /root/app/$DEPLOY_ENV/app.jar
                   nohup java \
                     -XX:+UseContainerSupport \
                     -XX:MaxRAMPercentage=75.0 \
@@ -208,7 +208,7 @@ jobs:
                     -Dportone.api-url=$PORTONE_API_URL \
                     -Dportone.channel-key=$PORTONE_CHANNEL_KEY \
                     -Dportone.webhook-secret=$PORTONE_WEBHOOK_SECRET \
-                    -jar \/root/app/$DEPLOY_ENV/app.jar > \/root/app/$DEPLOY_ENV/app.log 2>&1 &
+                    -jar /root/app/$DEPLOY_ENV/app.jar > /root/app/$DEPLOY_ENV/app.log 2>&1 &
                   echo 이전 버전으로 롤백 완료
                 else
                   echo 백업 파일 없음 — 롤백 불가
