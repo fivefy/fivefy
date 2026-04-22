@@ -353,12 +353,19 @@ class TrackCommentServiceTest {
             TrackCommentCreateRequest request =
                     new TrackCommentCreateRequest("수정된 댓글");
 
+            User user = mock(User.class);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId))
+                    .thenReturn(Optional.of(user));
+            when(user.getId()).thenReturn(userId);
+
             // 공개된 자유 창작 트랙 조회 mock 구성
             stubPublishedFreeCreationTrack(trackId);
 
             TrackComment comment = mock(TrackComment.class);
+            when(comment.isWrittenBy(userId)).thenReturn(true);
             when(comment.getUserId()).thenReturn(userId);
             when(comment.getTrackId()).thenReturn(trackId);
+            when(comment.getContent()).thenReturn("수정된 댓글");
 
             when(trackCommentRepository.findById(commentId))
                     .thenReturn(Optional.of(comment));
@@ -383,6 +390,10 @@ class TrackCommentServiceTest {
 
             TrackCommentCreateRequest request =
                     new TrackCommentCreateRequest("수정된 댓글");
+
+            User user = mock(User.class);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId))
+                    .thenReturn(Optional.of(user));
 
             Track track = mock(Track.class);
             when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
@@ -409,6 +420,11 @@ class TrackCommentServiceTest {
 
             TrackCommentCreateRequest request =
                     new TrackCommentCreateRequest("수정된 댓글");
+
+            User user = mock(User.class);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId))
+                    .thenReturn(Optional.of(user));
+            when(user.getId()).thenReturn(userId);
 
             Track track = mock(Track.class);
             when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
@@ -440,6 +456,10 @@ class TrackCommentServiceTest {
             TrackCommentCreateRequest request =
                     new TrackCommentCreateRequest("수정된 댓글");
 
+            User user = mock(User.class);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId))
+                    .thenReturn(Optional.of(user));
+
             Track track = mock(Track.class);
             when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
             when(track.getDeletedAt()).thenReturn(null);
@@ -468,6 +488,10 @@ class TrackCommentServiceTest {
             TrackCommentCreateRequest request =
                     new TrackCommentCreateRequest("수정된 댓글");
 
+            User user = mock(User.class);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId))
+                    .thenReturn(Optional.of(user));
+
             Track track = mock(Track.class);
             when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
             when(track.getDeletedAt()).thenReturn(null);
@@ -478,6 +502,36 @@ class TrackCommentServiceTest {
             )
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackErrorCode.ERR_TRACK_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("다른 트랙의 댓글이면 수정 실패")
+        void updateTrackComment_fail_whenCommentBelongsToAnotherTrack() {
+            Long userId = 1L;
+            Long trackId = 1L;
+            Long anotherTrackId = 999L;
+            Long commentId = 10L;
+
+            TrackCommentCreateRequest request =
+                    new TrackCommentCreateRequest("수정된 댓글");
+
+            User user = mock(User.class);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId))
+                    .thenReturn(Optional.of(user));
+
+            stubPublishedFreeCreationTrack(trackId);
+
+            TrackComment comment = TrackComment.create(userId, anotherTrackId, "댓글입니다");
+            ReflectionTestUtils.setField(comment, "id", commentId);
+
+            when(trackCommentRepository.findById(commentId))
+                    .thenReturn(Optional.of(comment));
+
+            assertThatThrownBy(() ->
+                    trackCommentService.updateTrackComment(userId, trackId, commentId, request)
+            )
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackCommentErrorCode.ERR_TRACK_COMMENT_NOT_FOUND.getMessage());
         }
     }
 
@@ -628,6 +682,33 @@ class TrackCommentServiceTest {
             )
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackCommentErrorCode.ERR_TRACK_COMMENT_ALREADY_DELETED.getMessage());
+        }
+
+        @Test
+        @DisplayName("다른 트랙의 댓글이면 삭제 실패")
+        void deleteTrackComment_fail_whenCommentBelongsToAnotherTrack() {
+            Long userId = 1L;
+            Long trackId = 1L;
+            Long anotherTrackId = 999L;
+            Long commentId = 10L;
+
+            User user = mock(User.class);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId))
+                    .thenReturn(Optional.of(user));
+
+            stubPublishedFreeCreationTrack(trackId);
+
+            TrackComment comment = TrackComment.create(userId, anotherTrackId, "댓글입니다");
+            ReflectionTestUtils.setField(comment, "id", commentId);
+
+            when(trackCommentRepository.findById(commentId))
+                    .thenReturn(Optional.of(comment));
+
+            assertThatThrownBy(() ->
+                    trackCommentService.deleteTrackComment(userId, trackId, commentId)
+            )
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackCommentErrorCode.ERR_TRACK_COMMENT_NOT_FOUND.getMessage());
         }
     }
 
