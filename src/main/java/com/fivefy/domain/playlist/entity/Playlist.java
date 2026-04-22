@@ -18,6 +18,12 @@ import java.util.Objects;
 @Entity
 @Table(
         name = "playlists",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_playlist_user_title_deleted",
+                        columnNames = {"user_id", "title", "deleted"}
+                )
+        },
         indexes = {
                 @Index(name = "idx_playlist_deleted_at", columnList = "deleted_at"),
                 @Index(name = "idx_playlist_user_deleted_at", columnList = "user_id, deleted_at"),
@@ -40,6 +46,9 @@ public class Playlist extends BaseEntity {
     @Column(length = 255)
     private String description;
 
+    @Column(nullable = false)
+    private boolean deleted;
+
     @LastModifiedDate
     private LocalDateTime updatedAt;
 
@@ -54,6 +63,7 @@ public class Playlist extends BaseEntity {
         playlist.userId = userId;
         playlist.title = title;
         playlist.description = description;
+        playlist.deleted = false;
 
         return playlist;
     }
@@ -62,7 +72,7 @@ public class Playlist extends BaseEntity {
         return Objects.equals(this.userId, userId);
     }
 
-    public boolean isDeleted() { return this.deletedAt != null; }
+    public boolean isDeleted() { return this.deleted; }
 
     public void update(String title, String description) {
         validateNotDeleted();
@@ -74,6 +84,7 @@ public class Playlist extends BaseEntity {
 
     public void delete() {
         validateNotDeleted();
+        this.deleted = true;
         this.deletedAt = LocalDateTime.now();
     }
 
