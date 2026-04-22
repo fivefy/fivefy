@@ -40,6 +40,7 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
+                                "/acuator/health",
                                 "/api/users/signup",
                                 "/api/users/login",
                                 "/api/users/reissue",
