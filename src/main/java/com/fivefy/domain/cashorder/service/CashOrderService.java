@@ -3,9 +3,11 @@ package com.fivefy.domain.cashorder.service;
 import com.fivefy.common.lock.annotation.RedissonLock;
 import com.fivefy.common.portone.PortoneWebhookVerifier;
 import com.fivefy.common.portone.client.PortoneClient;
+import com.fivefy.common.portone.dto.PortoneBillingPaymentResponse;
 import com.fivefy.common.portone.dto.PortoneCancelResponse;
 import com.fivefy.common.portone.dto.PortonePaymentResponse;
 import com.fivefy.common.portone.dto.PortoneWebhookRequest;
+import com.fivefy.domain.billingkey.entity.BillingKey;
 import com.fivefy.domain.cashorder.dto.CashOrderPurchaseResponse;
 import com.fivefy.domain.cashorder.dto.CashOrderRefundRequest;
 import com.fivefy.domain.cashorder.dto.CashOrderResponse;
@@ -24,12 +26,14 @@ import com.fivefy.domain.wallet.repository.PointHistoryRepository;
 import com.fivefy.domain.wallet.repository.WalletRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CashOrderService {
@@ -222,7 +226,7 @@ public class CashOrderService {
         if (cashOrder.getStatus() != CashOrderStatus.PENDING) {
             return;
         }
-        
+
         // 금액 검증
         // PortonePaymentResponse에서 결제 대금을 totalAmount으로 두고, 포인트 구매에서 결제 대금을 CashAmount로 둔다.
         if (!pgPayment.totalAmount().equals(cashOrder.getCashAmount())) {
@@ -256,7 +260,84 @@ public class CashOrderService {
                 wallet.getBalance(),        // 충전 후 잔액 스냅샷
             "포인트 충전 (" + cashOrder.getProductType().getDescription() + ")"
         ));
+    }
 
 
+
+    /**
+     * 정기 포인트 자동 충전 (빌링키 청구)
+     * RecurringChargeScheduler에서 매월 1일 오전 8시 호출
+     *
+     * 흐름:
+     * 1. 포트원에 빌링키로 카드 청구 (1,000원)
+     * 2. 청구 성공 시 CashOrder(SUCCESS) + Payment 생성
+     * 3. 지갑에 포인트 충전 (1,500P) + PointHistory 기록
+     * 4. 실패 시 BillingKey 비활성화 (카드 만료/한도 초과 등)
+     *
+     * @param billingKey 청구할 빌링키 엔티티
+     */
+    @RedissonLock(key = "'wallet:' + #billingKey.userId")
+    @Transactional
+    public void processRecurringCharge(BillingKey billingKey) {
+        Long userId = billingKey.getUserId();
+        CashProductType productType = CashProductType.PRODUCT_4_RECURRING;
+        String orderNumber = "REC-" + UUID.randomUUID().toString().substring(0, 8);
+
+        // 1. 포트원 빌링키 청구
+        PortoneBillingPaymentResponse pgResponse;
+        try {
+            pgResponse = portoneClient.chargeWithBillingKey(
+                    billingKey.getBillingKey(),
+                    orderNumber,
+                    productType.getCashAmount(),
+                    productType.getDescription()
+            );
+        } catch (Exception e) {
+            log.error("[정기충전] 포트원 청구 실패 — userId={}, 사유={}", userId, e.getMessage());
+            billingKey.deactivate();    // 카드 만료/한도 초과 등 → 비활성화
+            return;
+        }
+
+        // 청구 실패 상태 응답 처리
+        // if ("FAILED".equals(pgResponse.status())) {
+        // status 체크 대신 payment 객체로 성공 여부 판단
+        if (pgResponse.payment() == null) {
+            log.warn("[정기충전] 포트원 청구 거절 — userId={}", userId);
+            billingKey.deactivate();
+            return;
+        }
+
+        // 2. CashOrder 생성 (SUCCESS)
+        CashOrder cashOrder = CashOrder.create(userId, productType, orderNumber);
+        cashOrder.success(orderNumber); // 빌링키 청구는 webhookId 대신 orderNumber로 멱등키 대체
+        cashOrderRepository.save(cashOrder);
+
+        // 3. Payment 기록 : 2026-04-22 : 실제 PG 거래 ID pgIxId 수정
+        Payment payment = Payment.create(
+                userId,
+                productType.getCashAmount(),
+                orderNumber,
+                pgResponse.payment().pgTxId(),  // 포트원 결제 ID paymentId() -> 실제 PG 거래 ID는 pgTxId. PortoneBillingPaymentResponse 참고하기
+                orderNumber              // 멱등키 (orderNumber 재사용)
+        );
+        payment.complete();
+        paymentRepository.save(payment);
+
+        // 4. 지갑 포인트 충전
+        Wallet wallet = walletRepository.findByUserId(userId)
+                .orElseThrow(() -> new IllegalArgumentException("지갑 없음"));
+        wallet.chargeBalance(productType.getPointAmount());
+
+        pointHistoryRepository.save(PointHistory.create(
+                wallet.getId(),
+                PointType.PAID,
+                PointHistoryType.CHARGE,
+                productType.getPointAmount(),
+                wallet.getBalance(),
+                "정기 포인트 자동 충전"
+        ));
+
+        log.info("[정기충전] 완료 — userId={}, orderNumber={}, 충전P={}",
+                userId, orderNumber, productType.getPointAmount());
     }
 }
