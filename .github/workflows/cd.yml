@@ -40,7 +40,7 @@ jobs:
 
       # CI에서 이미 테스트 통과 → 테스트 스킵
       - name: Build JAR
-        run: ./gradlew bootJar -x test --no-daemon
+        run: ./gradlew bootJar -x test -x asciidoctor --no-daemon
 
       # 배포 환경 결정 + 환경별 시크릿 분기
       - name: Set deploy environment
