@@ -168,15 +168,16 @@ jobs:
                 -jar /root/app/$DEPLOY_ENV/app.jar > /root/app/$DEPLOY_ENV/app.log 2>&1 &
 
               # 헬스체크 (최대 60초 대기)
+              sleep 10
               STATUS=""
               for i in \$(seq 1 12); do
-                STATUS=\$(curl -s -o /dev/null -w "%{http_code}" http://localhost:\$PORT/actuator/health)
+                STATUS=\$(curl -s -o /dev/null -w "%{http_code}" http://localhost:\$PORT/actuator/health || echo "000")
                 if [ "\$STATUS" = "200" ]; then
                   echo 헬스체크 성공
                   break
                 fi
                 echo 대기중... \$i/12
-                sleep 10
+                sleep 5
               done
 
               # 헬스체크 실패 시 백업 JAR로 롤백
