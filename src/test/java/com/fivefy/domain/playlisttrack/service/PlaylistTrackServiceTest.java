@@ -60,7 +60,7 @@ class PlaylistTrackServiceTest {
             PlaylistTrack savedTrack = PlaylistTrack.create(playlistId, 10L, 1);
             ReflectionTestUtils.setField(savedTrack, "id", 1L);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
             given(trackRepository.existsById(10L))
                     .willReturn(true);
@@ -92,7 +92,7 @@ class PlaylistTrackServiceTest {
             Playlist playlist = Playlist.create(userId, "플리", "설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
             given(trackRepository.existsById(10L))
                     .willReturn(false);
@@ -111,7 +111,7 @@ class PlaylistTrackServiceTest {
             Long playlistId = 1L;
             PlaylistTrackCreateRequest request = new PlaylistTrackCreateRequest(10L);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.empty());
 
             // when & then
@@ -132,7 +132,7 @@ class PlaylistTrackServiceTest {
             Playlist playlist = Playlist.create(otherUserId, "플리", "설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
 
             // when & then
@@ -152,7 +152,7 @@ class PlaylistTrackServiceTest {
             Playlist playlist = Playlist.create(userId, "플리", "설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
             given(trackRepository.existsById(10L))
                     .willReturn(true);
@@ -178,7 +178,7 @@ class PlaylistTrackServiceTest {
             Playlist playlist = Playlist.create(userId, "플리", "설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
             given(trackRepository.existsById(10L))
                     .willReturn(true);
@@ -206,7 +206,7 @@ class PlaylistTrackServiceTest {
             Playlist playlist = Playlist.create(userId, "플리", "설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
             given(trackRepository.existsById(10L))
                     .willReturn(true);
@@ -234,7 +234,7 @@ class PlaylistTrackServiceTest {
             Playlist playlist = Playlist.create(userId, "플리", "설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
             given(trackRepository.existsById(10L))
                     .willReturn(true);
@@ -261,7 +261,7 @@ class PlaylistTrackServiceTest {
             Playlist playlist = Playlist.create(userId, "플리", "설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
             given(trackRepository.existsById(10L))
                     .willReturn(true);
@@ -298,7 +298,7 @@ class PlaylistTrackServiceTest {
             PlaylistTrack track2 = PlaylistTrack.create(playlistId, 20L, 2);
             ReflectionTestUtils.setField(track2, "id", 2L);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
             given(playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(playlistId))
                     .willReturn(List.of(track1, track2));
@@ -321,7 +321,7 @@ class PlaylistTrackServiceTest {
             Long userId = 1L;
             Long playlistId = 1L;
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.empty());
 
             // when & then
@@ -341,7 +341,7 @@ class PlaylistTrackServiceTest {
             Playlist playlist = Playlist.create(otherUserId, "플리", "설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
 
             // when & then
@@ -370,7 +370,7 @@ class PlaylistTrackServiceTest {
             PlaylistTrack track2 = PlaylistTrack.create(playlistId, 20L, 2);
             PlaylistTrack track3 = PlaylistTrack.create(playlistId, 30L, 3);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
             given(playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(playlistId))
                     .willReturn(new ArrayList<>(List.of(track1, track2, track3)));
@@ -393,7 +393,7 @@ class PlaylistTrackServiceTest {
             Long playlistId = 1L;
             PlaylistTrackOrderUpdateRequest request = new PlaylistTrackOrderUpdateRequest(10L, 1);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.empty());
 
             // when & then
@@ -414,7 +414,7 @@ class PlaylistTrackServiceTest {
             Playlist playlist = Playlist.create(otherUserId, "플리", "설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
 
             // when & then
@@ -437,7 +437,7 @@ class PlaylistTrackServiceTest {
             PlaylistTrack track1 = PlaylistTrack.create(playlistId, 10L, 1);
             PlaylistTrack track2 = PlaylistTrack.create(playlistId, 20L, 2);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
             given(playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(playlistId))
                     .willReturn(List.of(track1, track2));
@@ -462,7 +462,7 @@ class PlaylistTrackServiceTest {
             PlaylistTrack track1 = PlaylistTrack.create(playlistId, 10L, 1);
             PlaylistTrack track2 = PlaylistTrack.create(playlistId, 20L, 2);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
             given(playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(playlistId))
                     .willReturn(List.of(track1, track2));
@@ -487,7 +487,7 @@ class PlaylistTrackServiceTest {
             PlaylistTrack track1 = PlaylistTrack.create(playlistId, 10L, 1);
             PlaylistTrack track2 = PlaylistTrack.create(playlistId, 20L, 2);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
             given(playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(playlistId))
                     .willReturn(List.of(track1, track2));
@@ -516,7 +516,7 @@ class PlaylistTrackServiceTest {
             PlaylistTrack track1 = PlaylistTrack.create(playlistId, 10L, 1);
             PlaylistTrack track2 = PlaylistTrack.create(playlistId, 20L, 2);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
             given(playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(playlistId))
                     .willReturn(List.of(track1, track2));
@@ -544,7 +544,7 @@ class PlaylistTrackServiceTest {
             PlaylistTrack track2 = PlaylistTrack.create(playlistId, 20L, 2);
             PlaylistTrack track3 = PlaylistTrack.create(playlistId, 30L, 3);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
             given(playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(playlistId))
                     .willReturn(new ArrayList<>(List.of(track1, track2, track3)));
@@ -578,7 +578,7 @@ class PlaylistTrackServiceTest {
             PlaylistTrack track2 = PlaylistTrack.create(playlistId, 20L, 2);
             PlaylistTrack track3 = PlaylistTrack.create(playlistId, 30L, 3);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
             given(playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(playlistId))
                     .willReturn(new ArrayList<>(List.of(track1, track2, track3)));
@@ -601,7 +601,7 @@ class PlaylistTrackServiceTest {
             Long playlistId = 1L;
             Long trackId = 10L;
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.empty());
 
             // when & then
@@ -622,7 +622,7 @@ class PlaylistTrackServiceTest {
             Playlist playlist = Playlist.create(otherUserId, "플리", "설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
 
             // when & then
@@ -645,7 +645,7 @@ class PlaylistTrackServiceTest {
             PlaylistTrack track1 = PlaylistTrack.create(playlistId, 10L, 1);
             PlaylistTrack track2 = PlaylistTrack.create(playlistId, 20L, 2);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
             given(playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(playlistId))
                     .willReturn(List.of(track1, track2));
@@ -671,7 +671,7 @@ class PlaylistTrackServiceTest {
             PlaylistTrack track2 = PlaylistTrack.create(playlistId, 20L, 2);
             PlaylistTrack track3 = PlaylistTrack.create(playlistId, 30L, 3);
 
-            given(playlistRepository.findByIdAndDeletedAtIsNull(playlistId))
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
             given(playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(playlistId))
                     .willReturn(new ArrayList<>(List.of(track1, track2, track3)));
