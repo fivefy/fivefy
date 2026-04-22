@@ -54,7 +54,8 @@ public class SecurityConfig {
                                 "/api/artists/{artistId}/albums",
                                 "/api/tracks/{trackId}",
                                 "/api/tracks",
-                                "/api/artists/{artistId}/free-creations"
+                                "/api/artists/{artistId}/free-creations",
+                                "/api/tracks/{trackId}/comments"
                         ).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())

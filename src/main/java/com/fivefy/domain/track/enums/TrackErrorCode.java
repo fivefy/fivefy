@@ -6,7 +6,7 @@ import org.springframework.http.HttpStatus;
 
 @Getter
 public enum TrackErrorCode implements ErrorCode {
-    ERR_TRACK_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지않는 트랙입니다"),
+    ERR_TRACK_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 트랙입니다"),
     ERR_TRACK_ALREADY_PUBLISHED(HttpStatus.BAD_REQUEST, "이미 공개된 트랙입니다"),
     ERR_TRACK_ALREADY_BLOCKED(HttpStatus.BAD_REQUEST, "이미 차단된 트랙입니다"),
     ERR_TRACK_ALREADY_DELETED(HttpStatus.BAD_REQUEST, "이미 삭제된 트랙입니다"),
