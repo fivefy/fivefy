@@ -3,7 +3,6 @@ package com.fivefy.domain.track.entity;
 import com.fivefy.common.entity.BaseEntity;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.track.enums.TrackCommentErrorCode;
-import com.fivefy.domain.track.enums.TrackCommentStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -36,12 +35,8 @@ public class TrackComment extends BaseEntity {
     @Column(name = "track_id", nullable = false)
     private Long trackId;
 
-    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "content", nullable = false, length = 1000)
     private String content;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private TrackCommentStatus status;
 
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
@@ -55,18 +50,21 @@ public class TrackComment extends BaseEntity {
         validateNonNull(trackId, "trackId");
         validateNonNull(content, "content");
 
+        validateContentLength(content);
+
         TrackComment comment = new TrackComment();
         comment.userId = userId;
         comment.trackId = trackId;
         comment.content = content;
-        comment.status = TrackCommentStatus.PUBLISHED;
 
         return comment;
     }
 
     public void updateContent(String content) {
         validateNonNull(content, "content");
+
         validateNotDeleted();
+        validateContentLength(content);
 
         this.content = content;
     }
@@ -87,6 +85,12 @@ public class TrackComment extends BaseEntity {
     private void validateNotDeleted() {
         if (this.deletedAt != null) {
             throw new BusinessException(TrackCommentErrorCode.ERR_DELETED_TRACK_COMMENT_CANNOT_BE_UPDATED);
+        }
+    }
+
+    private static void validateContentLength(String content) {
+        if (content.length() > 1000) {
+            throw new BusinessException(TrackCommentErrorCode.ERR_INVALID_TRACK_COMMENT_LENGTH);
         }
     }
 }
