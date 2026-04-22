@@ -4,9 +4,6 @@ on:
   push:
     branches: [stage]
   workflow_dispatch:
-  pull_request:
-    branches: [ stage, main ]
-    types: [ closed ]
 
 jobs:
   deploy:
