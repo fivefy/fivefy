@@ -1,21 +1,20 @@
 name: CD — Deploy
 
 on:
-  push:
-    branches: [stage]
-  workflow_dispatch:
+  pull_request:
+    branches: [ stage, main ]
+    types: [ closed ]
 
 jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
     # 머지된 PR만 실행 + 브랜치 승격 체인 강제 (dev→stage, stage→main)
-    # 테스트를 위해 아래 조건을 잠시 막아둡니다.
-#    if: |
-#      github.event.pull_request.merged == true && (
-#        (github.base_ref == 'stage' && github.head_ref == 'dev') ||
-#        (github.base_ref == 'main'  && github.head_ref == 'stage')
-#      )
+    if: |
+      github.event.pull_request.merged == true && (
+        (github.base_ref == 'stage' && github.head_ref == 'dev') ||
+        (github.base_ref == 'main'  && github.head_ref == 'stage')
+      )
 
     steps:
       - name: Checkout
