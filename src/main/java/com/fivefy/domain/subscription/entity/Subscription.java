@@ -79,6 +79,10 @@ public class Subscription extends BaseEntity {
             subscription.nextBillingDate = (planType == SubscriptionPlanType.RECURRING)
                     ? startDate.plusMonths(1)
                     : null;
+              // 테스트 용도
+//            subscription.nextBillingDate = (planType == SubscriptionPlanType.RECURRING)
+//                    ? subscription.expiryDate  // 만료일과 동일
+//                    : null;
 
         return subscription;
     }

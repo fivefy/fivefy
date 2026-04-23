@@ -63,12 +63,12 @@ public class TestDefaultUserInitializer implements ApplicationRunner {
 
         // 유저 1: 월간 패키지 구독 유저(한 달)
         initUser("test1@fivefy.com", "test1234", "테스트유저1",
-                50000L, 0L, SubscriptionPlanType.MONTH, now
+                50000L, 0L, SubscriptionPlanType.FREE, now
         );
 
         // 유저 2: 연간 구독 유저(일 년)
         initUser("test2@fivefy.com", "test1234", "테스트유저2",
-                500000L, 0L, SubscriptionPlanType.YEAR, now
+                500000L, 0L, SubscriptionPlanType.FREE, now
         );
 
         // 유저 3: 무료 유저(삼 일)
@@ -117,8 +117,6 @@ public class TestDefaultUserInitializer implements ApplicationRunner {
          * 3 : 삼 일(무료)
          */
         LocalDateTime expiryDate = switch (subscriptionPlanType) {
-            case MONTH -> now.plusMonths(1);
-            case YEAR -> now.plusYears(1);
             case FREE -> now.plusDays(3);
             case RECURRING -> now.plusMonths(1);
         };
@@ -130,9 +128,7 @@ public class TestDefaultUserInitializer implements ApplicationRunner {
                 user.getId(),
                 null,        // pointOrderId — 더미데이터는 null
                 subscriptionPlanType,
-                now,
-                expiryDate,
-                nextBillingDate
+                now
                 )
         );
     }

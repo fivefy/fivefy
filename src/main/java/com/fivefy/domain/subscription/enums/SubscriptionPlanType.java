@@ -24,6 +24,7 @@ public enum SubscriptionPlanType {
         return switch (this) {
             case FREE     -> startDate.plusDays(3);     // 무료 플랜 3일
             case RECURRING -> startDate.plusMonths(1);  // 정기 결제
+            //case RECURRING -> startDate.plusMinutes(1);  // 테스트: 1분
         };
     }
 }
