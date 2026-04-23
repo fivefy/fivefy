@@ -109,8 +109,8 @@ public class Subscription extends BaseEntity {
 
     /**
      * 정기 구독 갱신 (RECURRING 전용)
-     * nextBillingDate + 1개월, expiryDate + 1개월
-     * 구독 갱신은 PointOrderService에서 사용함
+     * expiryDate      += 1개월
+     * nextBillingDate  = 새 expiryDate 당일 00:00
      */
     public void renew() {
         if (this.planType != SubscriptionPlanType.RECURRING) {
@@ -138,14 +138,23 @@ public class Subscription extends BaseEntity {
 
 
     /**
-     * [테스트 전용] nextBillingDate, expiryDate -1개월
+     * [테스트 전용] 1개월 갱신 시뮬레이션
+     * 포인트 차감 없이 날짜만 앞당김
+     * expiryDate      += 1개월
+     * nextBillingDate  = 새 expiryDate 당일 00:00
+     *
+     * 예) 현재: startDate       = 4월 23일 19:07,
+     *          expiryDate      = 5월 23일 19:07,
+     *          nextBillingDate = 5월 23일 00:00
+     *
+     *     이후: startDate      = 4월 23일 19:07,
+     *          expiryDate      = 6월 23일 19:07,
+     *          nextBillingDate = 6월 23일 00:00
      */
     public void skipOneMonth() {
-        if (this.nextBillingDate != null) {
-            this.nextBillingDate = this.nextBillingDate.minusMonths(1);
-        }
         if (this.expiryDate != null) {
-            this.expiryDate = this.expiryDate.minusMonths(1);
+            this.expiryDate = this.expiryDate.plusMonths(1);
+            this.nextBillingDate = this.expiryDate.toLocalDate().atStartOfDay();
         }
     }
 }
