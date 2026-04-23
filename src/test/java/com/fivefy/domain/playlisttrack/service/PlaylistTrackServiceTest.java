@@ -374,6 +374,8 @@ class PlaylistTrackServiceTest {
                     .willReturn(Optional.of(playlist));
             given(playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(playlistId))
                     .willReturn(new ArrayList<>(List.of(track1, track2, track3)));
+            given(playlistTrackRepository.findByPlaylistIdAndPositionBetweenOrderByPositionAsc(playlistId, 1, 2))
+                    .willReturn(List.of(track1, track2));
 
             // when
             playlistTrackService.updateTrackOrder(userId, playlistId, request);
@@ -382,6 +384,7 @@ class PlaylistTrackServiceTest {
             assertThat(track3.getPosition()).isEqualTo(1);
             assertThat(track1.getPosition()).isEqualTo(2);
             assertThat(track2.getPosition()).isEqualTo(3);
+
             verify(playlistTrackRepository, times(2)).flush();
         }
 
@@ -557,6 +560,72 @@ class PlaylistTrackServiceTest {
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(PlaylistErrorCode.PLAYLIST_TRACK_POSITION_CONFLICT.getMessage());
         }
+
+        @Test
+        @DisplayName("트랙 순서를 아래로 이동하면 영향 범위만 앞으로 당겨진다")
+        void updateTrackOrderMoveDownSuccess() {
+            // given
+            Long userId = 1L;
+            Long playlistId = 1L;
+            PlaylistTrackOrderUpdateRequest request = new PlaylistTrackOrderUpdateRequest(10L, 3);
+
+            Playlist playlist = Playlist.create(userId, "플리", "설명");
+            ReflectionTestUtils.setField(playlist, "id", playlistId);
+
+            PlaylistTrack track1 = PlaylistTrack.create(playlistId, 10L, 1);
+            PlaylistTrack track2 = PlaylistTrack.create(playlistId, 20L, 2);
+            PlaylistTrack track3 = PlaylistTrack.create(playlistId, 30L, 3);
+
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
+                    .willReturn(Optional.of(playlist));
+            given(playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(playlistId))
+                    .willReturn(new ArrayList<>(List.of(track1, track2, track3)));
+
+            // 1 -> 3 이동이므로 영향 범위는 2 ~ 3
+            given(playlistTrackRepository.findByPlaylistIdAndPositionBetweenOrderByPositionAsc(playlistId, 2, 3))
+                    .willReturn(List.of(track2, track3));
+
+            // when
+            playlistTrackService.updateTrackOrder(userId, playlistId, request);
+
+            // then
+            assertThat(track1.getPosition()).isEqualTo(3);
+            assertThat(track2.getPosition()).isEqualTo(1);
+            assertThat(track3.getPosition()).isEqualTo(2);
+
+            verify(playlistTrackRepository, times(2)).flush();
+        }
+
+        @Test
+        @DisplayName("트랙 순서 아래 이동 중 position 충돌 시 예외 발생")
+        void updateTrackOrderMoveDownPositionConflict() {
+            // given
+            Long userId = 1L;
+            Long playlistId = 1L;
+            PlaylistTrackOrderUpdateRequest request = new PlaylistTrackOrderUpdateRequest(10L, 3);
+
+            Playlist playlist = Playlist.create(userId, "플리", "설명");
+            ReflectionTestUtils.setField(playlist, "id", playlistId);
+
+            PlaylistTrack track1 = PlaylistTrack.create(playlistId, 10L, 1);
+            PlaylistTrack track2 = PlaylistTrack.create(playlistId, 20L, 2);
+            PlaylistTrack track3 = PlaylistTrack.create(playlistId, 30L, 3);
+
+            given(playlistRepository.findByIdAndDeletedFalse(playlistId))
+                    .willReturn(Optional.of(playlist));
+            given(playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(playlistId))
+                    .willReturn(new ArrayList<>(List.of(track1, track2, track3)));
+            given(playlistTrackRepository.findByPlaylistIdAndPositionBetweenOrderByPositionAsc(playlistId, 2, 3))
+                    .willReturn(List.of(track2, track3));
+
+            doThrow(constraintViolationException("uk_playlist_track_playlist_position"))
+                    .when(playlistTrackRepository).flush();
+
+            // when & then
+            assertThatThrownBy(() -> playlistTrackService.updateTrackOrder(userId, playlistId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(PlaylistErrorCode.PLAYLIST_TRACK_POSITION_CONFLICT.getMessage());
+        }
     }
 
     @Nested
@@ -574,22 +643,22 @@ class PlaylistTrackServiceTest {
             Playlist playlist = Playlist.create(userId, "플리", "설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            PlaylistTrack track1 = PlaylistTrack.create(playlistId, 10L, 1);
             PlaylistTrack track2 = PlaylistTrack.create(playlistId, 20L, 2);
             PlaylistTrack track3 = PlaylistTrack.create(playlistId, 30L, 3);
 
             given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
-            given(playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(playlistId))
-                    .willReturn(new ArrayList<>(List.of(track1, track2, track3)));
+            given(playlistTrackRepository.findByPlaylistIdAndTrackId(playlistId, trackId))
+                    .willReturn(Optional.of(track2));
+            given(playlistTrackRepository.findByPlaylistIdAndPositionGreaterThanOrderByPositionAsc(playlistId, 2))
+                    .willReturn(List.of(track3));
 
             // when
             playlistTrackService.deleteTrack(userId, playlistId, trackId);
 
             // then
             verify(playlistTrackRepository).delete(track2);
-            verify(playlistTrackRepository, times(3)).flush();
-            assertThat(track1.getPosition()).isEqualTo(1);
+            verify(playlistTrackRepository, times(2)).flush();
             assertThat(track3.getPosition()).isEqualTo(2);
         }
 
@@ -642,13 +711,10 @@ class PlaylistTrackServiceTest {
             Playlist playlist = Playlist.create(userId, "플리", "설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            PlaylistTrack track1 = PlaylistTrack.create(playlistId, 10L, 1);
-            PlaylistTrack track2 = PlaylistTrack.create(playlistId, 20L, 2);
-
             given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
-            given(playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(playlistId))
-                    .willReturn(List.of(track1, track2));
+            given(playlistTrackRepository.findByPlaylistIdAndTrackId(playlistId, trackId))
+                    .willReturn(Optional.empty());
 
             // when & then
             assertThatThrownBy(() -> playlistTrackService.deleteTrack(userId, playlistId, trackId))
@@ -667,14 +733,12 @@ class PlaylistTrackServiceTest {
             Playlist playlist = Playlist.create(userId, "플리", "설명");
             ReflectionTestUtils.setField(playlist, "id", playlistId);
 
-            PlaylistTrack track1 = PlaylistTrack.create(playlistId, 10L, 1);
             PlaylistTrack track2 = PlaylistTrack.create(playlistId, 20L, 2);
-            PlaylistTrack track3 = PlaylistTrack.create(playlistId, 30L, 3);
 
             given(playlistRepository.findByIdAndDeletedFalse(playlistId))
                     .willReturn(Optional.of(playlist));
-            given(playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(playlistId))
-                    .willReturn(new ArrayList<>(List.of(track1, track2, track3)));
+            given(playlistTrackRepository.findByPlaylistIdAndTrackId(playlistId, trackId))
+                    .willReturn(Optional.of(track2));
 
             doThrow(constraintViolationException("uk_playlist_track_playlist_position"))
                     .when(playlistTrackRepository).flush();
