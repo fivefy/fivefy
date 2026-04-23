@@ -53,3 +53,10 @@ portone:
   webhook-secret: ${PORTONE_WEBHOOK_SECRET}
   # 빌링키
   channel-key-billing: ${PORTONE_CHANNEL_KEY_BILLING}
+
+### 운영 ###
+scheduler:
+  # 포인트 충전(Cashorder-payment)             : 매월 8시 실행
+  charge-cron: ${CHARGE_CRON}
+  # 구독 패키지 구매(PointOrder-Subscription)  : 매월 9시 실행
+  subscription-cron: ${SUBSCRIPTION_CRON}

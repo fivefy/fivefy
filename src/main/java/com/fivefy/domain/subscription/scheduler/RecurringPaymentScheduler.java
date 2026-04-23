@@ -33,7 +33,8 @@ public class RecurringPaymentScheduler {
      *
      * 대상: active=true 인 BillingKey 전체
      */
-    @Scheduled(cron = "0 0 8 1 * *")
+    // @Scheduled(cron = "0 0 8 1 * *")
+    @Scheduled(cron = "${scheduler.charge-cron}")
     public void processRecurringCharges() {
         LocalDateTime now = LocalDateTime.now();
         log.info("[정기충전 스케줄러] 실행 시작 — {}", now);
@@ -60,12 +61,13 @@ public class RecurringPaymentScheduler {
 
     /**
      * ② 정기 구독 포인트 차감
-     * 매일 오전 9시 실행
+     * 매월 오전 9시 실행
      * → 충전된 포인트에서 45P 차감 + 구독 갱신
      *
      * 대상: RECURRING + ACTIVE + nextBillingDate 지난 구독
      */
-    @Scheduled(cron = "0 0 9 * * *")
+    // @Scheduled(cron = "0 0 9 1 * *")
+    @Scheduled(cron = "${scheduler.subscription-cron}")
     public void processRecurringPayments() {
         LocalDateTime now = LocalDateTime.now();
         log.info("[정기결제 스케줄러] 실행 시작 — {}", now);
