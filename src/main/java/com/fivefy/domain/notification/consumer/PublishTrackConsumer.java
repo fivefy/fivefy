@@ -1,21 +1,27 @@
 package com.fivefy.domain.notification.consumer;
 
 import com.fivefy.common.config.rabbitmq.NotificationRabbitConfig;
+import com.fivefy.domain.notification.dto.NotificationMessage;
+import com.fivefy.domain.notification.enums.NotificationChannel;
+import com.fivefy.domain.notification.enums.NotificationStatus;
 import com.fivefy.domain.notification.enums.NotificationType;
-import com.fivefy.domain.notification.service.NotificationService;
+import com.fivefy.domain.notification.repository.NotificationBulkRepository;
+import com.fivefy.domain.notification.repository.SseEmitterRepository;
 import com.fivefy.domain.track.event.PublishTrackChunkEvent;
 import com.rabbitmq.client.Channel;
-import org.springframework.beans.factory.annotation.Qualifier;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -26,18 +32,22 @@ public class PublishTrackConsumer {
 
     private static final String DEDUP_KEY_PREFIX = "notification:dedup:publish:";
     private static final long DEDUP_TTL_HOURS = 24;
+    private static final String REDIS_NOTIFICATION_CHANNEL = "notification:";
 
-    private final NotificationService notificationService;
+    private final NotificationBulkRepository notificationBulkRepository;
+    private final SseEmitterRepository sseEmitterRepository;
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate stringRedisTemplate;
     private final Executor notificationSendExecutor;
 
     public PublishTrackConsumer(
-            NotificationService notificationService,
+            NotificationBulkRepository notificationBulkRepository,
+            SseEmitterRepository sseEmitterRepository,
             ObjectMapper objectMapper,
             StringRedisTemplate stringRedisTemplate,
             @Qualifier("notificationSendExecutor") Executor notificationSendExecutor) {
-        this.notificationService = notificationService;
+        this.notificationBulkRepository = notificationBulkRepository;
+        this.sseEmitterRepository = sseEmitterRepository;
         this.objectMapper = objectMapper;
         this.stringRedisTemplate = stringRedisTemplate;
         this.notificationSendExecutor = notificationSendExecutor;
@@ -76,20 +86,46 @@ public class PublishTrackConsumer {
                 return;
             }
 
-            log.debug("PUBLISH_TRACK 청크 처리 시작: trackId={}, artistId={}, 청크 size={}, 재시도={}",
+            log.info("PUBLISH_TRACK 청크 처리 시작: trackId={}, artistId={}, 청크 size={}, 재시도={}",
                     event.trackId(), event.artistId(), event.userIds().size(), retryCount);
 
             String content = "새 트랙 \"" + event.trackTitle() + "\"이 발매되었습니다";
 
-            List<CompletableFuture<Void>> futures = event.userIds().stream()
+            // SSE 연결 여부로 분리
+            Set<Long> connectedSet = sseEmitterRepository.findAllConnectedUserIds();
+
+            List<Long> connectedUserIds = event.userIds().stream()
+                    .filter(connectedSet::contains)
+                    .toList();
+
+            List<Long> disconnectedUserIds = event.userIds().stream()
+                    .filter(userId -> !connectedSet.contains(userId))
+                    .toList();
+
+            // 연결된 유저 → SENT로 INSERT
+            if (!connectedUserIds.isEmpty()) {
+                notificationBulkRepository.bulkInsert(
+                        connectedUserIds, NotificationType.PUBLISH_TRACK, content,
+                        NotificationChannel.IN_APP, NotificationStatus.SENT);
+            }
+
+            // 미연결 유저 → QUEUED로 INSERT
+            if (!disconnectedUserIds.isEmpty()) {
+                notificationBulkRepository.bulkInsert(
+                        disconnectedUserIds, NotificationType.PUBLISH_TRACK, content,
+                        NotificationChannel.IN_APP, NotificationStatus.QUEUED);
+            }
+
+            // SSE 연결된 유저에게만 Redis publish (병렬 처리)
+            List<CompletableFuture<Void>> futures = connectedUserIds.stream()
                     .map(userId -> CompletableFuture.runAsync(
-                            () -> notificationService.send(userId, NotificationType.PUBLISH_TRACK, content),
+                            () -> publishToRedis(userId, content),
                             notificationSendExecutor))
                     .toList();
 
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
-            log.debug("PUBLISH_TRACK 청크 처리 완료: trackId={}, 청크 size={}",
+            log.info("PUBLISH_TRACK 청크 처리 완료: trackId={}, 청크 size={}",
                     event.trackId(), event.userIds().size());
 
             channel.basicAck(deliveryTag, false); // 성공 → ACK
@@ -108,8 +144,7 @@ public class PublishTrackConsumer {
             queues = NotificationRabbitConfig.PUBLISH_TRACK_DLQ,
             ackMode = "MANUAL"
     )
-    public void consumeDlq(String message,
-                           Channel channel,
+    public void consumeDlq(String message, Channel channel,
                            @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
         try {
             PublishTrackChunkEvent event = objectMapper.readValue(message, PublishTrackChunkEvent.class);
@@ -125,6 +160,25 @@ public class PublishTrackConsumer {
             } catch (Exception ackEx) {
                 log.error("DLQ ACK 실패: {}", ackEx.getMessage());
             }
+        }
+    }
+
+    private void publishToRedis(Long userId, String content) {
+        try {
+            NotificationMessage notificationMessage = new NotificationMessage(
+                    null,  // bulkInsert 후 ID 없음 — Subscriber에서 목록 조회로 확인
+                    userId,
+                    NotificationType.PUBLISH_TRACK,
+                    content,
+                    NotificationStatus.SENT,
+                    NotificationChannel.IN_APP,
+                    LocalDateTime.now()
+            );
+            String redisChannel = REDIS_NOTIFICATION_CHANNEL + userId;
+            stringRedisTemplate.convertAndSend(
+                    redisChannel, objectMapper.writeValueAsString(notificationMessage));
+        } catch (Exception e) {
+            log.error("Redis publish 실패: userId={}", userId);
         }
     }
 
