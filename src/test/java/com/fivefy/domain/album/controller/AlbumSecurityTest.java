@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -26,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(AlbumController.class)
 @AutoConfigureMockMvc
-@Import({SecurityConfig.class, JwtFilter.class, JwtAuthenticationEntryPoint.class, JwtAccessDeniedHandler.class})
+@Import({SecurityConfig.class, JwtFilter.class, JwtAuthenticationEntryPoint.class, JwtAccessDeniedHandler.class, LastActiveAtFilter.class})
 class AlbumSecurityTest {
 
     @Autowired
@@ -39,7 +40,7 @@ class AlbumSecurityTest {
     private JwtUtil jwtUtil;
 
     @MockitoBean
-    private LastActiveAtFilter lastActiveAtFilter;
+    private StringRedisTemplate redisTemplate;
 
     @Nested
     @DisplayName("공개 API 접근")
