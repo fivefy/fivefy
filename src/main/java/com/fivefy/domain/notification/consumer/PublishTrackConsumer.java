@@ -5,7 +5,7 @@ import com.fivefy.domain.notification.enums.NotificationType;
 import com.fivefy.domain.notification.service.NotificationService;
 import com.fivefy.domain.track.event.PublishTrackChunkEvent;
 import com.rabbitmq.client.Channel;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
@@ -16,11 +16,12 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class PublishTrackConsumer {
 
     private static final String DEDUP_KEY_PREFIX = "notification:dedup:publish:";
@@ -29,6 +30,18 @@ public class PublishTrackConsumer {
     private final NotificationService notificationService;
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate stringRedisTemplate;
+    private final Executor notificationSendExecutor;
+
+    public PublishTrackConsumer(
+            NotificationService notificationService,
+            ObjectMapper objectMapper,
+            StringRedisTemplate stringRedisTemplate,
+            @Qualifier("notificationSendExecutor") Executor notificationSendExecutor) {
+        this.notificationService = notificationService;
+        this.objectMapper = objectMapper;
+        this.stringRedisTemplate = stringRedisTemplate;
+        this.notificationSendExecutor = notificationSendExecutor;
+    }
 
     @RabbitListener(
             queues = NotificationRabbitConfig.PUBLISH_TRACK_QUEUE,
@@ -68,8 +81,13 @@ public class PublishTrackConsumer {
 
             String content = "새 트랙 \"" + event.trackTitle() + "\"이 발매되었습니다";
 
-            event.userIds().forEach(userId ->
-                    notificationService.send(userId, NotificationType.PUBLISH_TRACK, content));
+            List<CompletableFuture<Void>> futures = event.userIds().stream()
+                    .map(userId -> CompletableFuture.runAsync(
+                            () -> notificationService.send(userId, NotificationType.PUBLISH_TRACK, content),
+                            notificationSendExecutor))
+                    .toList();
+
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
             log.debug("PUBLISH_TRACK 청크 처리 완료: trackId={}, 청크 size={}",
                     event.trackId(), event.userIds().size());
