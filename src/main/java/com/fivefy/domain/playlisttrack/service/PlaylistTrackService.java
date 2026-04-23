@@ -94,13 +94,16 @@ public class PlaylistTrackService {
             throw new BusinessException(PlaylistErrorCode.PLAYLIST_UPDATE_FORBIDDEN);
         }
 
+        // 현재 플레이리스트의 트랙 목록 조회 (순서 기준)
         List<PlaylistTrack> playlistTracks = playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(playlistId);
 
+        // 이동 대상 트랙 조회
         PlaylistTrack target = playlistTracks.stream()
                 .filter(playlistTrack -> playlistTrack.getTrackId().equals(request.trackId()))
                 .findFirst()
                 .orElseThrow(() -> new BusinessException(PlaylistErrorCode.PLAYLIST_TRACK_NOT_FOUND));
 
+        int oldPosition = target.getPosition();
         int newPosition = request.position();
 
         // 이동할 위치는 1 ~ 트랙 개수 범위여야 함
@@ -109,19 +112,17 @@ public class PlaylistTrackService {
         }
 
         // 현재 위치와 같으면 변경할 필요 없음
-        if (target.getPosition().equals(newPosition)) {
+        if (oldPosition == newPosition) {
             return;
         }
 
-        // 기존 위치에서 제거한 뒤, 요청한 위치에 다시 넣음
-        playlistTracks.remove(target);
-        playlistTracks.add(newPosition - 1, target);
-
         try {
-            // 변경된 순서대로 position 재정렬
-            reorderPositions(playlistTracks);
-        // DB 유니크 제약조건 충돌 발생 시,
-        // 어떤 제약조건이 깨졌는지(constraint name)를 기준으로 예외 구분
+            // 이동 방향에 따라 영향 범위만 부분 재정렬
+            if (oldPosition < newPosition) {
+                moveDown(playlistId, target, oldPosition, newPosition);
+            } else {
+                moveUp(playlistId, target, oldPosition, newPosition);
+            }
         } catch (DataIntegrityViolationException e) {
             throw handlePlaylistTrackConstraintException(e);
         }
@@ -137,54 +138,100 @@ public class PlaylistTrackService {
             throw new BusinessException(PlaylistErrorCode.PLAYLIST_DELETE_FORBIDDEN);
         }
 
-        List<PlaylistTrack> playlistTracks = playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(playlistId);
-
-        PlaylistTrack target = playlistTracks.stream()
-                .filter(playlistTrack -> playlistTrack.getTrackId().equals(trackId))
-                .findFirst()
+        // 삭제 대상 트랙 조회
+        PlaylistTrack target = playlistTrackRepository.findByPlaylistIdAndTrackId(playlistId, trackId)
                 .orElseThrow(() -> new BusinessException(PlaylistErrorCode.PLAYLIST_TRACK_NOT_FOUND));
 
-        // 삭제 대상 트랙을 목록과 DB에서 제거
-        playlistTracks.remove(target);
+        int deletedPosition = target.getPosition();
+
+        // 트랙 삭제
         playlistTrackRepository.delete(target);
 
         try {
-            // position 충돌 방지를 위해 삭제를 먼저 DB에 반영
+            // 삭제를 먼저 DB에 반영 (position 충돌 방지)
             playlistTrackRepository.flush();
-            // 변경된 순서대로 position 재정렬
-            reorderPositions(playlistTracks);
+
+            // 삭제된 위치 이후 트랙만 조회하여 position을 한 칸씩 앞으로 당김
+            List<PlaylistTrack> affectedTracks =
+                    playlistTrackRepository.findByPlaylistIdAndPositionGreaterThanOrderByPositionAsc(
+                            playlistId, deletedPosition
+                    );
+
+            for (PlaylistTrack track : affectedTracks) {
+                track.updatePosition(track.getPosition() - 1);
+            }
+
+            playlistTrackRepository.flush();
         } catch (DataIntegrityViolationException e) {
             throw handlePlaylistTrackConstraintException(e);
         }
     }
 
     /**
-     * position 중복 방지를 위해
-     * 모든 값을 음수로 변경 후 flush,
-     * 이후 1부터 순서대로 다시 할당
+     * 아래로 이동 (oldPosition < newPosition)
+     * 예: 2 -> 4
+     * - target: 2 → 4 이동
+     * - 3, 4 위치 트랙들은 각각 1칸씩 앞으로 이동 (3→2, 4→3)
      */
-    private void reorderPositions(List<PlaylistTrack> playlistTracks) {
-        // 임시로 음수 position 부여 (중복 방지)
-        for (int i = 0; i < playlistTracks.size(); i++) {
-            playlistTracks.get(i).moveToTemporaryPosition(-(i + 1));
+    private void moveDown(Long playlistId, PlaylistTrack target, int oldPosition, int newPosition) {
+        List<PlaylistTrack> affectedTracks =
+                playlistTrackRepository.findByPlaylistIdAndPositionBetweenOrderByPositionAsc(
+                        playlistId, oldPosition + 1, newPosition
+                );
+
+        // 충돌 방지를 위해 영향 범위 + target을 임시 음수로 변경
+        target.moveToTemporaryPosition(-oldPosition);
+        for (PlaylistTrack track : affectedTracks) {
+            track.moveToTemporaryPosition(-track.getPosition());
         }
 
-        // 변경된 음수 position을 DB에 먼저 반영
         playlistTrackRepository.flush();
 
-        // position을 1부터 순서대로 다시 부여
-        for (int i = 0; i < playlistTracks.size(); i++) {
-            playlistTracks.get(i).updatePosition(i + 1);
+        // affected 트랙: 한 칸씩 앞으로 이동
+        for (PlaylistTrack track : affectedTracks) {
+            int originalPosition = -track.getPosition();
+            track.updatePosition(originalPosition - 1);
         }
 
-        // 최종 position 반영
+        // target: 요청 위치로 이동
+        target.updatePosition(newPosition);
+
         playlistTrackRepository.flush();
     }
 
     /**
-     * DB 유니크 제약조건 위반 시 constraint 이름을 기반으로
-     * 적절한 비즈니스 예외 변환
+     * 위로 이동
+     * 예: 4 -> 2
+     * - target: 4 -> 2
+     * - 2, 3 위치 트랙들은 각각 1칸씩 뒤로 이동 (2→3, 3→4)
      */
+    private void moveUp(Long playlistId, PlaylistTrack target, int oldPosition, int newPosition) {
+        List<PlaylistTrack> affectedTracks =
+                playlistTrackRepository.findByPlaylistIdAndPositionBetweenOrderByPositionAsc(
+                        playlistId, newPosition, oldPosition - 1
+                );
+
+        // 충돌 방지를 위해 영향 범위 + target을 임시 음수로 변경
+        target.moveToTemporaryPosition(-oldPosition);
+        for (PlaylistTrack track : affectedTracks) {
+            track.moveToTemporaryPosition(-track.getPosition());
+        }
+
+        playlistTrackRepository.flush();
+
+        // affected 트랙: 한 칸씩 뒤로 이동
+        for (PlaylistTrack track : affectedTracks) {
+            int originalPosition = -track.getPosition();
+            track.updatePosition(originalPosition + 1);
+        }
+
+        // target: 요청 위치로 이동
+        target.updatePosition(newPosition);
+
+        playlistTrackRepository.flush();
+    }
+
+    // DB 유니크 제약조건 위반 시 constraint 이름을 기반으로 적절한 비즈니스 예외 변환
     private BusinessException handlePlaylistTrackConstraintException(DataIntegrityViolationException e) {
         String constraintName = extractConstraintName(e);
 
