@@ -96,31 +96,11 @@ class NotificationServiceTest {
     class Send {
 
         @Test
-        @DisplayName("SSE 미연결 상태에서 알림 저장 시 QUEUED 상태를 유지한다")
-        void send_noConnection_savesAsQueued() {
-            // given
-            Notification notification = makeNotification(USER_ID);
-            given(notificationRepository.save(any())).willReturn(notification);
-            given(sseEmitterRepository.findAllByUserId(USER_ID)).willReturn(List.of());
-
-            // when
-            notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림");
-
-            // then
-            verify(notificationRepository, times(1)).save(any());
-            assertThat(notification.getStatus()).isEqualTo(NotificationStatus.QUEUED);
-            verify(stringRedisTemplate, never()).convertAndSend(any(), any(String.class));
-        }
-
-        @Test
-        @DisplayName("SSE 연결된 상태에서 전송 성공 시 SENT 상태로 저장된다")
+        @DisplayName("Redis publish 성공 시 SENT 상태로 저장된다")
         void send_withConnection_marksAsSent() throws Exception {
             // given
             Notification notification = makeNotification(USER_ID);
-            SseEmitter mockEmitter = mock(SseEmitter.class);
-
             given(notificationRepository.save(any())).willReturn(notification);
-            given(sseEmitterRepository.findAllByUserId(USER_ID)).willReturn(List.of(mockEmitter));
             given(objectMapper.writeValueAsString(any())).willReturn("{}");
 
             // when
@@ -137,10 +117,7 @@ class NotificationServiceTest {
         void send_redisPublishFails_marksAsFailed() throws Exception {
             // given
             Notification notification = makeNotification(USER_ID);
-            SseEmitter mockEmitter = mock(SseEmitter.class);
-
             given(notificationRepository.save(any())).willReturn(notification);
-            given(sseEmitterRepository.findAllByUserId(USER_ID)).willReturn(List.of(mockEmitter));
             given(objectMapper.writeValueAsString(any())).willThrow(new RuntimeException("직렬화 실패"));
 
             // when
@@ -149,6 +126,21 @@ class NotificationServiceTest {
             // then
             assertThat(notification.getStatus()).isEqualTo(NotificationStatus.FAILED);
             verify(notificationRepository, times(2)).save(any());
+        }
+
+        @Test
+        @DisplayName("알림 저장 후 Redis publish를 항상 시도한다")
+        void send_alwaysPublishesToRedis() throws Exception {
+            // given
+            Notification notification = makeNotification(USER_ID);
+            given(notificationRepository.save(any())).willReturn(notification);
+            given(objectMapper.writeValueAsString(any())).willReturn("{}");
+
+            // when
+            notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림");
+
+            // then
+            verify(stringRedisTemplate).convertAndSend(any(), any(String.class));
         }
     }
 
