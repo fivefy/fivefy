@@ -25,10 +25,8 @@ public class PointOrder extends BaseEntity {
 
     /**
      * 구독 플랜 타입
-     * MONTH        : 50P   : 1달
-     * YEAR         : 500P  : 1년
      * FREE         : 0P    : 무료(1회 한정)
-     * RECURRING    : 45P   : 정기 구독(3개월 이후부터 구독 취소 가능)
+     * RECURRING    : 50P   : 정기 구독
      */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
