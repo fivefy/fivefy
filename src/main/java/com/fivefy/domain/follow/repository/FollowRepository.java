@@ -14,9 +14,6 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
     boolean existsByUserIdAndArtistId(Long userId, Long artistId);
     Page<Follow> findAllByUserId(Long userId, Pageable pageable);
 
-    // 알림 수신 동의 팔로워 전체 조회 (PUBLISH_TRACK 단순 발송용)
-    List<Follow> findAllByArtistIdAndNotificationEnabledTrue(Long artistId);
-
     // 알림 수신 동의 팔로워 페이징 조회 (RabbitMQ Consumer 청크 처리용)
     Page<Follow> findAllByArtistIdAndNotificationEnabledTrue(Long artistId, Pageable pageable);
 }

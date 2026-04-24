@@ -212,8 +212,7 @@ public class TrackService {
 
         // OFFICIAL_RELEASE이고 즉시 발행된 경우에만 알림 발송
         if (application.getTrackType() == TrackType.OFFICIAL_RELEASE
-                && (application.getPublishDelayDays() == null
-                || application.getPublishDelayDays() == 0)) {
+                && savedTrack.getStatus() == TrackStatus.PUBLISHED) {
             eventPublisher.publishEvent(PublishTrackEvent.of(
                     application.getArtistId(),
                     savedTrack.getId(),

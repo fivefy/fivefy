@@ -26,16 +26,17 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
+import static com.fivefy.common.config.rabbitmq.NotificationRabbitConfig.MAX_RETRY_COUNT;
+
 @Slf4j
 @Component
 public class PublishTrackConsumer {
 
     private static final String DEDUP_KEY_PREFIX = "notification:dedup:publish:";
-    private static final long DEDUP_TTL_HOURS = 24;
+    private static final long DEDUP_TTL_MINUTES = 30;
     private static final String REDIS_NOTIFICATION_CHANNEL = "notification:";
 
     private final NotificationBulkRepository notificationBulkRepository;
-    private final SseEmitterRepository sseEmitterRepository;
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate stringRedisTemplate;
     private final Executor notificationSendExecutor;
@@ -47,7 +48,6 @@ public class PublishTrackConsumer {
             StringRedisTemplate stringRedisTemplate,
             @Qualifier("notificationSendExecutor") Executor notificationSendExecutor) {
         this.notificationBulkRepository = notificationBulkRepository;
-        this.sseEmitterRepository = sseEmitterRepository;
         this.objectMapper = objectMapper;
         this.stringRedisTemplate = stringRedisTemplate;
         this.notificationSendExecutor = notificationSendExecutor;
@@ -58,26 +58,34 @@ public class PublishTrackConsumer {
             concurrency = "3-10",
             ackMode = "MANUAL"
     )
-    public void consume(String message,
-                        Channel channel,
+    public void consume(String message, Channel channel,
                         @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag,
                         @Header(value = "x-death", required = false) List<Map<String, Object>> xDeath) {
+        String dedupKey = null;
+
         try {
             PublishTrackChunkEvent event = objectMapper.readValue(message, PublishTrackChunkEvent.class);
 
             // 재시도 횟수 확인 — MAX_RETRY_COUNT 초과 시 DLQ로 이동
             long retryCount = getRetryCount(xDeath);
-            if (retryCount >= NotificationRabbitConfig.MAX_RETRY_COUNT) {
+            if (retryCount >= MAX_RETRY_COUNT) {
                 log.error("최대 재시도 초과, DLQ로 이동: trackId={}, chunkIndex={}, retryCount={}",
                         event.trackId(), event.chunkIndex(), retryCount);
-                channel.basicNack(deliveryTag, false, false); // requeue=false → DLQ로 이동
+                channel.basicPublish(
+                        NotificationRabbitConfig.DEAD_LETTER_EXCHANGE,
+                        NotificationRabbitConfig.PUBLISH_TRACK_DLQ_ROUTING_KEY,
+                        null,
+                        message.getBytes()
+                );
+
+                channel.basicAck(deliveryTag, false);
                 return;
             }
 
             // 중복 청크 체크
-            String dedupKey = DEDUP_KEY_PREFIX + event.trackId() + ":chunk:" + event.chunkIndex();
+            dedupKey = DEDUP_KEY_PREFIX + event.trackId() + ":chunk:" + event.chunkIndex();
             Boolean isNew = stringRedisTemplate.opsForValue()
-                    .setIfAbsent(dedupKey, "1", DEDUP_TTL_HOURS, TimeUnit.HOURS);
+                    .setIfAbsent(dedupKey, "1", DEDUP_TTL_MINUTES, TimeUnit.MINUTES);
 
             if (Boolean.FALSE.equals(isNew)) {
                 log.warn("중복 청크 감지, 처리 스킵: trackId={}, chunkIndex={}",
@@ -91,33 +99,15 @@ public class PublishTrackConsumer {
 
             String content = "새 트랙 \"" + event.trackTitle() + "\"이 발매되었습니다";
 
-            // SSE 연결 여부로 분리
-            Set<Long> connectedSet = sseEmitterRepository.findAllConnectedUserIds();
+            notificationBulkRepository.bulkInsert(
+                    event.userIds(),
+                    NotificationType.PUBLISH_TRACK,
+                    content,
+                    NotificationChannel.IN_APP,
+                    NotificationStatus.QUEUED
+            );
 
-            List<Long> connectedUserIds = event.userIds().stream()
-                    .filter(connectedSet::contains)
-                    .toList();
-
-            List<Long> disconnectedUserIds = event.userIds().stream()
-                    .filter(userId -> !connectedSet.contains(userId))
-                    .toList();
-
-            // 연결된 유저 → SENT로 INSERT
-            if (!connectedUserIds.isEmpty()) {
-                notificationBulkRepository.bulkInsert(
-                        connectedUserIds, NotificationType.PUBLISH_TRACK, content,
-                        NotificationChannel.IN_APP, NotificationStatus.SENT);
-            }
-
-            // 미연결 유저 → QUEUED로 INSERT
-            if (!disconnectedUserIds.isEmpty()) {
-                notificationBulkRepository.bulkInsert(
-                        disconnectedUserIds, NotificationType.PUBLISH_TRACK, content,
-                        NotificationChannel.IN_APP, NotificationStatus.QUEUED);
-            }
-
-            // SSE 연결된 유저에게만 Redis publish (병렬 처리)
-            List<CompletableFuture<Void>> futures = connectedUserIds.stream()
+            List<CompletableFuture<Void>> futures = event.userIds().stream()
                     .map(userId -> CompletableFuture.runAsync(
                             () -> publishToRedis(userId, content),
                             notificationSendExecutor))
@@ -132,10 +122,16 @@ public class PublishTrackConsumer {
 
         } catch (Exception e) {
             log.error("RabbitMQ 청크 메시지 처리 실패: {}", e.getMessage());
+
+            if (dedupKey != null) {
+                stringRedisTemplate.delete(dedupKey);
+            }
+
             try {
-                channel.basicNack(deliveryTag, false, true); // 실패 → 재큐
-            } catch (Exception nackEx) {
-                log.error("NACK 실패: {}", nackEx.getMessage());
+                channel.basicNack(deliveryTag, false, false);
+
+            } catch (Exception ex) {
+                log.error("NACK 실패: {}", ex.getMessage());
             }
         }
     }

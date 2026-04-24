@@ -141,11 +141,6 @@ public class NotificationService {
         Notification notification = Notification.create(userId, content, type, NotificationChannel.IN_APP);
         Notification saved = notificationRepository.save(notification);
 
-        boolean hasConnection = !sseEmitterRepository.findAllByUserId(userId).isEmpty();
-        if (!hasConnection) {
-            return;
-        }
-
         try {
             NotificationMessage message = new NotificationMessage(
                     saved.getId(),

@@ -26,6 +26,8 @@ public class NotificationRabbitConfig {
 
     // 최대 재시도 횟수
     public static final int MAX_RETRY_COUNT = 3;
+    public static final String RETRY_QUEUE = "notification.publish.track.retry";
+    public static final String RETRY_ROUTING_KEY = "publish.track.retry";
 
     @Bean
     public DirectExchange notificationExchange() {
@@ -41,8 +43,8 @@ public class NotificationRabbitConfig {
     @Bean
     public Queue publishTrackQueue() {
         Map<String, Object> args = new HashMap<>();
-        args.put("x-dead-letter-exchange", DEAD_LETTER_EXCHANGE);
-        args.put("x-dead-letter-routing-key", PUBLISH_TRACK_DLQ_ROUTING_KEY);
+        args.put("x-dead-letter-exchange", NOTIFICATION_EXCHANGE);
+        args.put("x-dead-letter-routing-key", RETRY_ROUTING_KEY);
         return new Queue(PUBLISH_TRACK_QUEUE, true, false, false, args);
     }
 
@@ -68,6 +70,15 @@ public class NotificationRabbitConfig {
                 .with(PUBLISH_TRACK_DLQ_ROUTING_KEY);
     }
 
+    @Bean
+    public Binding retryBinding(Queue publishTrackRetryQueue,
+                                DirectExchange notificationExchange) {
+        return BindingBuilder
+                .bind(publishTrackRetryQueue)
+                .to(notificationExchange)
+                .with(RETRY_ROUTING_KEY);
+    }
+
     // Manual ACK 설정
     @Bean
     public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
@@ -77,5 +88,15 @@ public class NotificationRabbitConfig {
         factory.setAcknowledgeMode(AcknowledgeMode.MANUAL);
         factory.setPrefetchCount(3);
         return factory;
+    }
+
+    @Bean
+    public Queue publishTrackRetryQueue() {
+        Map<String, Object> args = new HashMap<>();
+        args.put("x-dead-letter-exchange", NOTIFICATION_EXCHANGE);
+        args.put("x-dead-letter-routing-key", PUBLISH_TRACK_ROUTING_KEY);
+        args.put("x-message-ttl", 5000); // 5초 후 재시도
+
+        return new Queue(RETRY_QUEUE, true, false, false, args);
     }
 }
