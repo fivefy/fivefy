@@ -85,7 +85,7 @@ class PointOrderServiceTest {
                     latch.await();  // 모든 스레드가 준비될 때까지 대기 후 동시 시작
                     pointOrderService.purchase(
                         USER_ID,
-                        new PointOrderPurchaseRequest(SubscriptionPlanType.MONTH)
+                        new PointOrderPurchaseRequest(SubscriptionPlanType.RECURRING)
                     );
                     successCount.incrementAndGet();
                 } catch (Exception e) {
@@ -129,7 +129,7 @@ class PointOrderServiceTest {
                     startLatch.await();  // 신호 대기
                     pointOrderService.purchase(
                         USER_ID,
-                        new PointOrderPurchaseRequest(SubscriptionPlanType.MONTH)
+                        new PointOrderPurchaseRequest(SubscriptionPlanType.RECURRING)
                     );
                     successCount.incrementAndGet();
                 } catch (Exception e) {
