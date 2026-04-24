@@ -20,12 +20,14 @@ import com.fivefy.domain.track.enums.TrackApplicationErrorCode;
 import com.fivefy.domain.track.enums.TrackErrorCode;
 import com.fivefy.domain.track.enums.TrackStatus;
 import com.fivefy.domain.track.enums.TrackType;
+import com.fivefy.domain.track.event.PublishTrackEvent;
 import com.fivefy.domain.track.repository.*;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.enums.UserRole;
 import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -47,6 +49,7 @@ public class TrackService {
     private final ArtistRepository artistRepository;
     private final TrackRepository trackRepository;
     private final TrackCommentRepository trackCommentRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 자유 창작 트랙 등록 신청
@@ -206,6 +209,16 @@ public class TrackService {
 
         // 승인된 신청 기반으로 트랙 생성
         Track savedTrack = trackRepository.save(createTrack(application));
+
+        // OFFICIAL_RELEASE이고 즉시 발행된 경우에만 알림 발송
+        if (application.getTrackType() == TrackType.OFFICIAL_RELEASE
+                && savedTrack.getStatus() == TrackStatus.PUBLISHED) {
+            eventPublisher.publishEvent(PublishTrackEvent.of(
+                    application.getArtistId(),
+                    savedTrack.getId(),
+                    application.getTitle()
+            ));
+        }
 
         return TrackApplicationApproveResponse.from(application, savedTrack.getId());
     }

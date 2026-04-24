@@ -5,7 +5,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -28,5 +28,9 @@ public class SseEmitterRepository {
             list.remove(emitter);
             if (list.isEmpty()) emitters.remove(userId);
         }
+    }
+
+    public Set<Long> findAllConnectedUserIds() {
+        return emitters.keySet();
     }
 }

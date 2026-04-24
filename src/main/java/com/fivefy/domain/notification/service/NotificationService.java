@@ -1,31 +1,42 @@
 package com.fivefy.domain.notification.service;
 
+import com.fivefy.common.config.rabbitmq.NotificationRabbitConfig;
 import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.follow.entity.Follow;
+import com.fivefy.domain.follow.repository.FollowRepository;
+import com.fivefy.domain.notification.dto.NotificationMessage;
 import com.fivefy.domain.notification.dto.response.NotificationGetResponse;
 import com.fivefy.domain.notification.entity.Notification;
 import com.fivefy.domain.notification.enums.NotificationChannel;
 import com.fivefy.domain.notification.enums.NotificationErrorCode;
+import com.fivefy.domain.notification.enums.NotificationStatus;
 import com.fivefy.domain.notification.enums.NotificationType;
 import com.fivefy.domain.notification.event.NotificationEvent;
 import com.fivefy.domain.notification.repository.NotificationRepository;
 import com.fivefy.domain.notification.repository.SseEmitterRepository;
+import com.fivefy.domain.track.event.PublishTrackChunkEvent;
+import com.fivefy.domain.track.event.PublishTrackEvent;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.List;
+
 
 @Slf4j
 @Service
@@ -34,11 +45,16 @@ public class NotificationService {
 
     private static final long SSE_TIMEOUT = 60 * 60 * 1000L;
     private static final String SSE_EVENT_CONNECT = "connect";
-    private static final String SSE_EVENT_NOTIFICATION = "notification";
+    private static final String REDIS_NOTIFICATION_CHANNEL = "notification:";
+    private static final int CHUNK_SIZE = 1000;
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final SseEmitterRepository sseEmitterRepository;
+    private final RabbitTemplate rabbitTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final ObjectMapper objectMapper;
+    private final FollowRepository  followRepository;
 
     // 알림 구독
     public SseEmitter subscribe(Long userId) {
@@ -75,36 +91,74 @@ public class NotificationService {
         send(event.targetUserId(), event.type(), event.content());
     }
 
-    public void send(Long userId, NotificationType type, String content) {
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handlePublishTrackEvent(PublishTrackEvent event) {
+        try {
+            int page = 0;
+            int totalChunks = 0;
+            long chunkIndex = 0L;
+            Page<Follow> chunk;
 
-        // DB 저장 — save() 자체 트랜잭션으로 처리 후 커넥션 즉시 반환
+            do {
+                chunk = followRepository.findAllByArtistIdAndNotificationEnabledTrue(
+                        event.artistId(), PageRequest.of(page++, CHUNK_SIZE));
+
+                if (chunk.isEmpty()) break;
+
+                List<Long> userIds = chunk.getContent().stream()
+                        .map(Follow::getUserId)
+                        .toList();
+
+                // 청크별 메시지 발행 → 각 Consumer가 병렬 처리
+                String message = objectMapper.writeValueAsString(
+                        PublishTrackChunkEvent.of(
+                                event.artistId(),
+                                event.trackId(),
+                                event.trackTitle(),
+                                chunkIndex++,
+                                userIds));
+
+                rabbitTemplate.convertAndSend(
+                        NotificationRabbitConfig.NOTIFICATION_EXCHANGE,
+                        NotificationRabbitConfig.PUBLISH_TRACK_ROUTING_KEY,
+                        message);
+
+                totalChunks++;
+
+            } while (chunk.hasNext());
+
+            log.info("PUBLISH_TRACK RabbitMQ 발행 완료: artistId={}, trackId={}, 총 청크 수={}",
+                    event.artistId(), event.trackId(), totalChunks);
+
+        } catch (Exception e) {
+            log.error("PUBLISH_TRACK RabbitMQ 발행 실패: artistId={}", event.artistId());
+        }
+    }
+
+    // Redis publish
+    public void send(Long userId, NotificationType type, String content) {
         Notification notification = Notification.create(userId, content, type, NotificationChannel.IN_APP);
         Notification saved = notificationRepository.save(notification);
 
-        // SSE 전송 — DB 커넥션 미점유 상태
-        List<SseEmitter> emitterList = sseEmitterRepository.findAllByUserId(userId);
-        int originalEmitterCount = emitterList.size();
-        boolean sent = false;
+        try {
+            NotificationMessage message = new NotificationMessage(
+                    saved.getId(),
+                    userId,
+                    type,
+                    content,
+                    NotificationStatus.SENT,
+                    saved.getChannel(),
+                    saved.getCreatedAt()
+            );
+            String channel = REDIS_NOTIFICATION_CHANNEL + userId;
+            stringRedisTemplate.convertAndSend(channel, objectMapper.writeValueAsString(message)); // 전송
 
-        for (SseEmitter emitter : emitterList) {
-            try {
-                emitter.send(SseEmitter.event()
-                        .name(SSE_EVENT_NOTIFICATION)
-                        .data(NotificationGetResponse.from(saved)));
-                sent = true;
-            } catch (IOException e) {
-                log.warn("SSE 전송 실패: userId={}, type={}", userId, type);
-                sseEmitterRepository.delete(userId, emitter);
-            }
-        }
-
-        if (sent) {
             saved.markAsSent();
-        }
-        else if (originalEmitterCount > 0) {
+            notificationRepository.save(saved);
+        } catch (Exception e) {
+            log.error("알림 발송 실패: userId={}, type={}", userId, type);
             saved.markAsFailed();
-        }
-        if (sent || originalEmitterCount > 0) {
             notificationRepository.save(saved);
         }
     }
