@@ -248,7 +248,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--scale",
         default="smoke",
-        choices=["smoke", "local", "dev"],
+        choices=["smoke", "test", "local", "dev"],
         help="CSV scale directory under scripts/seed/output.",
     )
     parser.add_argument(

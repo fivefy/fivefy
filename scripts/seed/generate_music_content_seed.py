@@ -47,6 +47,16 @@ SCALE_CONFIGS = {
         album_applications=2_000,
         track_applications=3_000,
     ),
+    "test": ScaleConfig(
+        users=10_000,
+        artists=10_000,
+        albums=30_000,
+        tracks=100_000,
+        track_comments=300_000,
+        artist_applications=10_000,
+        album_applications=20_000,
+        track_applications=30_000,
+    ),
     "local": ScaleConfig(
         users=100_000,
         artists=100_000,

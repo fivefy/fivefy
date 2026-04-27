@@ -64,7 +64,7 @@ scripts/seed/run_music_content_seed.sh local 42
 seed 데이터를 삭제하려면 아래 명령어를 실행합니다.
 
 ```bash
-mysql -h 127.0.0.1 --local-infile=1 -u root -p fivefy_db < scripts/seed/clean_music_content_seed.sql
+mysql -h 127.0.0.1 -u root -p fivefy_db < scripts/seed/clean_music_content_seed.sql
 ```
 
 ## Scale
@@ -72,6 +72,7 @@ mysql -h 127.0.0.1 --local-infile=1 -u root -p fivefy_db < scripts/seed/clean_mu
 | scale | 목적 |
 |---|---|
 | smoke | 스크립트/적재 흐름 검증 |
+| test | local 실행 전 중간 규모 검증 |
 | local | 로컬 성능 분석 |
 | dev | 개발 서버 부하 테스트 |
 
