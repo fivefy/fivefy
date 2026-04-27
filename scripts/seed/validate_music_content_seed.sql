@@ -1,36 +1,36 @@
 SELECT '==================== 1. ROW COUNT ====================' AS section;
 
-SELECT 'users' AS table_name, COUNT(*) AS row_count FROM users
+SELECT 'users' AS table_name, FORMAT(COUNT(*), 0) AS row_count FROM users
 UNION ALL
-SELECT 'artists', COUNT(*) FROM artists
+SELECT 'artists', FORMAT(COUNT(*), 0) FROM artists
 UNION ALL
-SELECT 'albums', COUNT(*) FROM albums
+SELECT 'albums', FORMAT(COUNT(*), 0) FROM albums
 UNION ALL
-SELECT 'tracks', COUNT(*) FROM tracks
+SELECT 'tracks', FORMAT(COUNT(*), 0) FROM tracks
 UNION ALL
-SELECT 'track_comments', COUNT(*) FROM track_comments
+SELECT 'track_comments', FORMAT(COUNT(*), 0) FROM track_comments
 UNION ALL
-SELECT 'artist_applications', COUNT(*) FROM artist_applications
+SELECT 'artist_applications', FORMAT(COUNT(*), 0) FROM artist_applications
 UNION ALL
-SELECT 'album_applications', COUNT(*) FROM album_applications
+SELECT 'album_applications', FORMAT(COUNT(*), 0) FROM album_applications
 UNION ALL
-SELECT 'track_applications', COUNT(*) FROM track_applications;
+SELECT 'track_applications', FORMAT(COUNT(*), 0) FROM track_applications;
 
 
 SELECT '==================== 2. USER DISTRIBUTION ====================' AS section;
 
 SELECT
     status,
-    COUNT(*) AS count,
-    ROUND(COUNT(*) / (SELECT COUNT(*) FROM users) * 100, 2) AS ratio
+    FORMAT(COUNT(*), 0) AS row_count,
+    CONCAT(ROUND(COUNT(*) / (SELECT COUNT(*) FROM users) * 100, 2), '%') AS ratio_percent
 FROM users
 GROUP BY status
 ORDER BY status;
 
 SELECT
     role,
-    COUNT(*) AS count,
-    ROUND(COUNT(*) / (SELECT COUNT(*) FROM users) * 100, 2) AS ratio
+    FORMAT(COUNT(*), 0) AS row_count,
+    CONCAT(ROUND(COUNT(*) / (SELECT COUNT(*) FROM users) * 100, 2), '%') AS ratio_percent
 FROM users
 GROUP BY role
 ORDER BY role;
@@ -40,37 +40,53 @@ SELECT '==================== 3. ARTIST DISTRIBUTION ====================' AS sec
 
 SELECT
     status,
-    COUNT(*) AS count,
-    ROUND(COUNT(*) / (SELECT COUNT(*) FROM artists) * 100, 2) AS ratio
+    FORMAT(COUNT(*), 0) AS row_count,
+    CONCAT(ROUND(COUNT(*) / (SELECT COUNT(*) FROM artists) * 100, 2), '%') AS ratio_percent
 FROM artists
 GROUP BY status
 ORDER BY status;
 
 SELECT
     artist_type,
-    COUNT(*) AS count,
-    ROUND(COUNT(*) / (SELECT COUNT(*) FROM artists) * 100, 2) AS ratio
+    FORMAT(COUNT(*), 0) AS row_count,
+    CONCAT(ROUND(COUNT(*) / (SELECT COUNT(*) FROM artists) * 100, 2), '%') AS ratio_percent
 FROM artists
 GROUP BY artist_type
 ORDER BY artist_type;
+
+SELECT
+    'artists_deleted_ratio' AS check_name,
+    FORMAT(COUNT(*), 0) AS total_count,
+    FORMAT(SUM(deleted_at IS NULL), 0) AS null_count,
+    FORMAT(SUM(deleted_at IS NOT NULL), 0) AS not_null_count,
+    CONCAT(ROUND(SUM(deleted_at IS NOT NULL) / COUNT(*) * 100, 2), '%') AS not_null_ratio
+FROM artists;
 
 
 SELECT '==================== 4. ALBUM DISTRIBUTION ====================' AS section;
 
 SELECT
     status,
-    COUNT(*) AS count,
-    ROUND(COUNT(*) / (SELECT COUNT(*) FROM albums) * 100, 2) AS ratio
+    FORMAT(COUNT(*), 0) AS row_count,
+    CONCAT(ROUND(COUNT(*) / (SELECT COUNT(*) FROM albums) * 100, 2), '%') AS ratio_percent
 FROM albums
 GROUP BY status
 ORDER BY status;
 
 SELECT
     'albums_deleted_ratio' AS check_name,
-    COUNT(*) AS total_count,
-    SUM(deleted_at IS NULL) AS null_count,
-    SUM(deleted_at IS NOT NULL) AS not_null_count,
-    ROUND(SUM(deleted_at IS NOT NULL) / COUNT(*) * 100, 2) AS not_null_ratio
+    FORMAT(COUNT(*), 0) AS total_count,
+    FORMAT(SUM(deleted_at IS NULL), 0) AS null_count,
+    FORMAT(SUM(deleted_at IS NOT NULL), 0) AS not_null_count,
+    CONCAT(ROUND(SUM(deleted_at IS NOT NULL) / COUNT(*) * 100, 2), '%') AS not_null_ratio
+FROM albums;
+
+SELECT
+    'albums_published_at_ratio' AS check_name,
+    FORMAT(COUNT(*), 0) AS total_count,
+    FORMAT(SUM(published_at IS NULL), 0) AS null_count,
+    FORMAT(SUM(published_at IS NOT NULL), 0) AS not_null_count,
+    CONCAT(ROUND(SUM(published_at IS NOT NULL) / COUNT(*) * 100, 2), '%') AS not_null_ratio
 FROM albums;
 
 
@@ -78,53 +94,78 @@ SELECT '==================== 5. TRACK DISTRIBUTION ====================' AS sect
 
 SELECT
     status,
-    COUNT(*) AS count,
-    ROUND(COUNT(*) / (SELECT COUNT(*) FROM tracks) * 100, 2) AS ratio
+    FORMAT(COUNT(*), 0) AS row_count,
+    CONCAT(ROUND(COUNT(*) / (SELECT COUNT(*) FROM tracks) * 100, 2), '%') AS ratio_percent
 FROM tracks
 GROUP BY status
 ORDER BY status;
 
 SELECT
     track_type,
-    COUNT(*) AS count,
-    ROUND(COUNT(*) / (SELECT COUNT(*) FROM tracks) * 100, 2) AS ratio
+    FORMAT(COUNT(*), 0) AS row_count,
+    CONCAT(ROUND(COUNT(*) / (SELECT COUNT(*) FROM tracks) * 100, 2), '%') AS ratio_percent
 FROM tracks
 GROUP BY track_type
 ORDER BY track_type;
 
 SELECT
     'tracks_deleted_ratio' AS check_name,
-    COUNT(*) AS total_count,
-    SUM(deleted_at IS NULL) AS null_count,
-    SUM(deleted_at IS NOT NULL) AS not_null_count,
-    ROUND(SUM(deleted_at IS NOT NULL) / COUNT(*) * 100, 2) AS not_null_ratio
+    FORMAT(COUNT(*), 0) AS total_count,
+    FORMAT(SUM(deleted_at IS NULL), 0) AS null_count,
+    FORMAT(SUM(deleted_at IS NOT NULL), 0) AS not_null_count,
+    CONCAT(ROUND(SUM(deleted_at IS NOT NULL) / COUNT(*) * 100, 2), '%') AS not_null_ratio
 FROM tracks;
 
 SELECT
     'tracks_published_at_ratio' AS check_name,
-    COUNT(*) AS total_count,
-    SUM(published_at IS NULL) AS null_count,
-    SUM(published_at IS NOT NULL) AS not_null_count,
-    ROUND(SUM(published_at IS NOT NULL) / COUNT(*) * 100, 2) AS not_null_ratio
+    FORMAT(COUNT(*), 0) AS total_count,
+    FORMAT(SUM(published_at IS NULL), 0) AS null_count,
+    FORMAT(SUM(published_at IS NOT NULL), 0) AS not_null_count,
+    CONCAT(ROUND(SUM(published_at IS NOT NULL) / COUNT(*) * 100, 2), '%') AS not_null_ratio
 FROM tracks;
+
+SELECT
+    track_type,
+    FORMAT(COUNT(*), 0) AS total_count,
+    FORMAT(SUM(artist_id IS NULL), 0) AS artist_id_null_count,
+    FORMAT(SUM(album_id IS NULL), 0) AS album_id_null_count,
+    FORMAT(SUM(track_number IS NULL), 0) AS track_number_null_count
+FROM tracks
+GROUP BY track_type
+ORDER BY track_type;
 
 
 SELECT '==================== 6. TRACK COMMENT DISTRIBUTION ====================' AS section;
 
 SELECT
     'track_comments_deleted_ratio' AS check_name,
-    COUNT(*) AS total_count,
-    SUM(deleted_at IS NULL) AS null_count,
-    SUM(deleted_at IS NOT NULL) AS not_null_count,
-    ROUND(SUM(deleted_at IS NOT NULL) / COUNT(*) * 100, 2) AS not_null_ratio
+    FORMAT(COUNT(*), 0) AS total_count,
+    FORMAT(SUM(deleted_at IS NULL), 0) AS null_count,
+    FORMAT(SUM(deleted_at IS NOT NULL), 0) AS not_null_count,
+    CONCAT(ROUND(SUM(deleted_at IS NOT NULL) / COUNT(*) * 100, 2), '%') AS not_null_ratio
 FROM track_comments;
 
 SELECT
+    'top_20_track_comment_distribution' AS check_name,
+    FORMAT(SUM(comment_count), 0) AS top_20_comment_count,
+    FORMAT((SELECT COUNT(*) FROM track_comments), 0) AS total_comment_count,
+    CONCAT(ROUND(SUM(comment_count) / (SELECT COUNT(*) FROM track_comments) * 100, 2), '%') AS top_20_ratio
+FROM (
+         SELECT
+             track_id,
+             COUNT(*) AS comment_count
+         FROM track_comments
+         GROUP BY track_id
+         ORDER BY comment_count DESC
+         LIMIT 20
+     ) top_comments;
+
+SELECT
     track_id,
-    COUNT(*) AS comment_count
+    FORMAT(COUNT(*), 0) AS comment_count
 FROM track_comments
 GROUP BY track_id
-ORDER BY comment_count DESC
+ORDER BY COUNT(*) DESC
 LIMIT 20;
 
 
@@ -134,8 +175,8 @@ SELECT 'artist_applications_status' AS target;
 
 SELECT
     status,
-    COUNT(*) AS count,
-    ROUND(COUNT(*) / (SELECT COUNT(*) FROM artist_applications) * 100, 2) AS ratio
+    FORMAT(COUNT(*), 0) AS row_count,
+    CONCAT(ROUND(COUNT(*) / (SELECT COUNT(*) FROM artist_applications) * 100, 2), '%') AS ratio_percent
 FROM artist_applications
 GROUP BY status
 ORDER BY status;
@@ -144,8 +185,8 @@ SELECT 'album_applications_status' AS target;
 
 SELECT
     status,
-    COUNT(*) AS count,
-    ROUND(COUNT(*) / (SELECT COUNT(*) FROM album_applications) * 100, 2) AS ratio
+    FORMAT(COUNT(*), 0) AS row_count,
+    CONCAT(ROUND(COUNT(*) / (SELECT COUNT(*) FROM album_applications) * 100, 2), '%') AS ratio_percent
 FROM album_applications
 GROUP BY status
 ORDER BY status;
@@ -154,39 +195,67 @@ SELECT 'track_applications_status' AS target;
 
 SELECT
     status,
-    COUNT(*) AS count,
-    ROUND(COUNT(*) / (SELECT COUNT(*) FROM track_applications) * 100, 2) AS ratio
+    FORMAT(COUNT(*), 0) AS row_count,
+    CONCAT(ROUND(COUNT(*) / (SELECT COUNT(*) FROM track_applications) * 100, 2), '%') AS ratio_percent
 FROM track_applications
 GROUP BY status
 ORDER BY status;
+
+SELECT
+    'artist_applications_review_field_check' AS check_name,
+    FORMAT(SUM(status = 'PENDING' AND reviewed_at IS NULL AND reviewed_by_admin_id IS NULL), 0) AS pending_without_review_count,
+    FORMAT(SUM(status IN ('APPROVED', 'REJECTED') AND reviewed_at IS NOT NULL AND reviewed_by_admin_id IS NOT NULL), 0) AS reviewed_status_with_review_count,
+    FORMAT(SUM(status = 'REJECTED' AND rejection_reason IS NOT NULL), 0) AS rejected_with_reason_count
+FROM artist_applications;
+
+SELECT
+    'album_applications_review_field_check' AS check_name,
+    FORMAT(SUM(status = 'PENDING' AND reviewed_at IS NULL AND reviewed_by_admin_id IS NULL), 0) AS pending_without_review_count,
+    FORMAT(SUM(status IN ('APPROVED', 'REJECTED') AND reviewed_at IS NOT NULL AND reviewed_by_admin_id IS NOT NULL), 0) AS reviewed_status_with_review_count,
+    FORMAT(SUM(status = 'REJECTED' AND rejection_reason IS NOT NULL), 0) AS rejected_with_reason_count
+FROM album_applications;
+
+SELECT
+    'track_applications_review_field_check' AS check_name,
+    FORMAT(SUM(status = 'PENDING' AND reviewed_at IS NULL AND reviewed_by_admin_id IS NULL), 0) AS pending_without_review_count,
+    FORMAT(SUM(status IN ('APPROVED', 'REJECTED') AND reviewed_at IS NOT NULL AND reviewed_by_admin_id IS NOT NULL), 0) AS reviewed_status_with_review_count,
+    FORMAT(SUM(status = 'REJECTED' AND rejection_reason IS NOT NULL), 0) AS rejected_with_reason_count
+FROM track_applications;
 
 
 SELECT '==================== 8. NULL SAFETY CHECK ====================' AS section;
 
 SELECT
     'tracks_deleted_at' AS target,
-    COUNT(*) AS total_count,
-    SUM(deleted_at IS NULL) AS null_count,
-    SUM(deleted_at IS NOT NULL) AS not_null_count
+    FORMAT(COUNT(*), 0) AS total_count,
+    FORMAT(SUM(deleted_at IS NULL), 0) AS null_count,
+    FORMAT(SUM(deleted_at IS NOT NULL), 0) AS not_null_count
 FROM tracks
 UNION ALL
 SELECT
     'albums_deleted_at',
-    COUNT(*),
-    SUM(deleted_at IS NULL),
-    SUM(deleted_at IS NOT NULL)
+    FORMAT(COUNT(*), 0),
+    FORMAT(SUM(deleted_at IS NULL), 0),
+    FORMAT(SUM(deleted_at IS NOT NULL), 0)
 FROM albums
 UNION ALL
 SELECT
     'track_comments_deleted_at',
-    COUNT(*),
-    SUM(deleted_at IS NULL),
-    SUM(deleted_at IS NOT NULL)
+    FORMAT(COUNT(*), 0),
+    FORMAT(SUM(deleted_at IS NULL), 0),
+    FORMAT(SUM(deleted_at IS NOT NULL), 0)
 FROM track_comments
 UNION ALL
 SELECT
     'tracks_published_at',
-    COUNT(*),
-    SUM(published_at IS NULL),
-    SUM(published_at IS NOT NULL)
-FROM tracks;
+    FORMAT(COUNT(*), 0),
+    FORMAT(SUM(published_at IS NULL), 0),
+    FORMAT(SUM(published_at IS NOT NULL), 0)
+FROM tracks
+UNION ALL
+SELECT
+    'albums_published_at',
+    FORMAT(COUNT(*), 0),
+    FORMAT(SUM(published_at IS NULL), 0),
+    FORMAT(SUM(published_at IS NOT NULL), 0)
+FROM albums;
