@@ -1,22 +1,15 @@
 #!/usr/bin/env python3
 """
-음악 컨텐츠 성능 검증용 CSV seed 생성기.
+통합 성능 검증용 CSV seed 생성기.
 
 목적:
-- tracks / track_comments / application 계열 대량 데이터 생성
-- MySQL LOAD DATA 적재 전제
+- integrated 데이터셋 CSV 생성
 - scale 옵션으로 데이터 규모 증량
 - random seed 고정으로 동일 데이터 재현
-
-사용 예:
-    python scripts/seed/generate_music_content_seed.py --scale smoke --seed 42
-    python scripts/seed/generate_music_content_seed.py --scale local --seed 42
-    python scripts/seed/generate_music_content_seed.py --scale dev --seed 42
 """
 
 import argparse
 import csv
-import os
 import random
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -27,6 +20,8 @@ from typing import Optional
 @dataclass(frozen=True)
 class ScaleConfig:
     users: int
+    wallets: int
+    point_histories: int
     artists: int
     albums: int
     tracks: int
@@ -39,6 +34,8 @@ class ScaleConfig:
 SCALE_CONFIGS = {
     "smoke": ScaleConfig(
         users=1_000,
+        wallets=1_000,
+        point_histories=2_000,
         artists=1_000,
         albums=3_000,
         tracks=10_000,
@@ -49,6 +46,8 @@ SCALE_CONFIGS = {
     ),
     "test": ScaleConfig(
         users=10_000,
+        wallets=10_000,
+        point_histories=20_000,
         artists=10_000,
         albums=30_000,
         tracks=100_000,
@@ -59,6 +58,8 @@ SCALE_CONFIGS = {
     ),
     "local": ScaleConfig(
         users=100_000,
+        wallets=100_000,
+        point_histories=200_000,
         artists=100_000,
         albums=300_000,
         tracks=1_000_000,
@@ -69,6 +70,8 @@ SCALE_CONFIGS = {
     ),
     "dev": ScaleConfig(
         users=500_000,
+        wallets=500_000,
+        point_histories=1_000_000,
         artists=500_000,
         albums=1_500_000,
         tracks=10_000_000,
@@ -144,6 +147,57 @@ def generate_users(count: int):
             format_dt(created_at),
             format_dt(updated_at),
             format_dt(deleted_at),
+        ]
+
+
+def generate_wallets(count: int):
+    for wallet_id in range(1, count + 1):
+        user_id = wallet_id
+
+        balance = random.randint(0, 100_000)
+        event_balance = random.randint(0, 30_000)
+        total_balance = balance + event_balance
+
+        created_at = random_datetime_between(BASE_DATE, NOW)
+        updated_at = random_datetime_between(created_at, NOW)
+
+        yield [
+            wallet_id,
+            user_id,
+            balance,
+            event_balance,
+            total_balance,
+            format_dt(created_at),
+            format_dt(updated_at),
+        ]
+
+
+def generate_point_histories(count: int, wallet_count: int):
+    for history_id in range(1, count + 1):
+        wallet_id = random.randint(1, wallet_count)
+        point_type = weighted_choice([
+            ("PAID", 70),
+            ("FREE", 30),
+        ])
+        point_history_type = weighted_choice([
+            ("CHARGE", 50),
+            ("USE", 40),
+            ("REFUND", 10),
+        ])
+
+        amount = random.randint(100, 50_000)
+        balance_after = random.randint(0, 200_000)
+        created_at = random_datetime_between(BASE_DATE, NOW)
+
+        yield [
+            history_id,
+            wallet_id,
+            point_type,
+            point_history_type,
+            amount,
+            balance_after,
+            f"Seed point history {history_id}",
+            format_dt(created_at),
         ]
 
 
@@ -457,6 +511,35 @@ def generate_all(config: ScaleConfig, output_dir: Path) -> None:
         )
 
     write_csv(
+        output_dir / "wallets.csv",
+        [
+            "id",
+            "user_id",
+            "balance",
+            "event_balance",
+            "total_balance",
+            "created_at",
+            "updated_at",
+        ],
+        generate_wallets(config.wallets),
+        )
+
+    write_csv(
+        output_dir / "point_histories.csv",
+        [
+            "id",
+            "wallet_id",
+            "point_type",
+            "point_history_type",
+            "amount",
+            "balance_after",
+            "log_description",
+            "created_at",
+        ],
+        generate_point_histories(config.point_histories, config.wallets),
+        )
+
+    write_csv(
         output_dir / "artists.csv",
         [
             "id",
@@ -606,7 +689,7 @@ def generate_all(config: ScaleConfig, output_dir: Path) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Generate music content seed CSV files for performance testing."
+        description="Generate integrated seed CSV files for performance testing."
     )
     parser.add_argument(
         "--scale",

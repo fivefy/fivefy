@@ -11,7 +11,7 @@
 
 현재는 `integrated` 데이터셋을 제공합니다.
 
-`integrated` 데이터셋은 여러 파트 API 성능 검증에 사용할 수 있도록 사용자, 음악 컨텐츠, 댓글, 신청 데이터를 함께 생성하는 통합 seed 데이터셋입니다.
+`integrated` 데이터셋은 여러 파트 API 성능 검증에 사용할 수 있도록 사용자, 지갑/포인트, 음악 컨텐츠, 댓글, 신청 데이터를 함께 생성하는 통합 seed 데이터셋입니다.
 
 ## 구조
 
@@ -146,6 +146,8 @@ scripts/seed/run_seed.sh reset integrated local 42
 
 ```text
 users
+wallets
+point_histories
 artists
 albums
 tracks
@@ -164,8 +166,6 @@ billing_keys
 cash_orders
 payments
 point_orders
-wallets
-point_histories
 subscriptions
 playbacks
 popular_charts
@@ -197,7 +197,7 @@ scripts/seed/datasets/{dataset_name}/
 - 이미 `integrated` 데이터셋이 생성하는 테이블은 다른 데이터셋에서 중복 생성하지 않습니다.
 - 다른 데이터셋이 기존 데이터가 필요한 경우 `integrated`가 만든 id 범위를 참조합니다.
 - 공통 기반 테이블이 복잡해지면 별도의 `shared` 데이터셋 분리를 검토합니다.
-- 현재는 사용자와 음악 컨텐츠 기반 데이터가 여러 파트의 기준 데이터 역할을 합니다.
+- 현재는 사용자, 지갑/포인트, 음악 컨텐츠 기반 데이터가 여러 파트의 기준 데이터 역할을 합니다.
 
 ## 현재 적재 방식
 

@@ -7,6 +7,8 @@ TRUNCATE TABLE artist_applications;
 TRUNCATE TABLE tracks;
 TRUNCATE TABLE albums;
 TRUNCATE TABLE artists;
+TRUNCATE TABLE point_histories;
+TRUNCATE TABLE wallets;
 TRUNCATE TABLE users;
 
 SET FOREIGN_KEY_CHECKS = 1;

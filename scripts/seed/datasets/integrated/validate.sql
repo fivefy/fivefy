@@ -2,6 +2,10 @@ SELECT '==================== 1. ROW COUNT ====================' AS section;
 
 SELECT 'users' AS table_name, FORMAT(COUNT(*), 0) AS row_count FROM users
 UNION ALL
+SELECT 'wallets', FORMAT(COUNT(*), 0) FROM wallets
+UNION ALL
+SELECT 'point_histories', FORMAT(COUNT(*), 0) FROM point_histories
+UNION ALL
 SELECT 'artists', FORMAT(COUNT(*), 0) FROM artists
 UNION ALL
 SELECT 'albums', FORMAT(COUNT(*), 0) FROM albums
@@ -36,7 +40,43 @@ GROUP BY role
 ORDER BY role;
 
 
-SELECT '==================== 3. ARTIST DISTRIBUTION ====================' AS section;
+SELECT '==================== 3. WALLET DISTRIBUTION ====================' AS section;
+
+SELECT
+    'wallet_balance_summary' AS check_name,
+    FORMAT(COUNT(*), 0) AS wallet_count,
+    FORMAT(SUM(balance), 0) AS total_paid_balance,
+    FORMAT(SUM(event_balance), 0) AS total_event_balance,
+    FORMAT(SUM(total_balance), 0) AS total_balance,
+    FORMAT(ROUND(AVG(total_balance), 0), 0) AS avg_total_balance
+FROM wallets;
+
+SELECT
+    point_type,
+    FORMAT(COUNT(*), 0) AS row_count,
+    CONCAT(ROUND(COUNT(*) / (SELECT COUNT(*) FROM point_histories) * 100, 2), '%') AS ratio_percent
+FROM point_histories
+GROUP BY point_type
+ORDER BY point_type;
+
+SELECT
+    point_history_type,
+    FORMAT(COUNT(*), 0) AS row_count,
+    CONCAT(ROUND(COUNT(*) / (SELECT COUNT(*) FROM point_histories) * 100, 2), '%') AS ratio_percent
+FROM point_histories
+GROUP BY point_history_type
+ORDER BY point_history_type;
+
+SELECT
+    'wallet_point_history_relation_check' AS check_name,
+    FORMAT(COUNT(DISTINCT w.id), 0) AS wallet_count,
+    FORMAT(COUNT(DISTINCT ph.wallet_id), 0) AS wallet_with_history_count,
+    FORMAT(COUNT(ph.id), 0) AS point_history_count
+FROM wallets w
+         LEFT JOIN point_histories ph ON ph.wallet_id = w.id;
+
+
+SELECT '==================== 4. ARTIST DISTRIBUTION ====================' AS section;
 
 SELECT
     status,
@@ -63,7 +103,7 @@ SELECT
 FROM artists;
 
 
-SELECT '==================== 4. ALBUM DISTRIBUTION ====================' AS section;
+SELECT '==================== 5. ALBUM DISTRIBUTION ====================' AS section;
 
 SELECT
     status,
@@ -90,7 +130,7 @@ SELECT
 FROM albums;
 
 
-SELECT '==================== 5. TRACK DISTRIBUTION ====================' AS section;
+SELECT '==================== 6. TRACK DISTRIBUTION ====================' AS section;
 
 SELECT
     status,
@@ -135,7 +175,7 @@ GROUP BY track_type
 ORDER BY track_type;
 
 
-SELECT '==================== 6. TRACK COMMENT DISTRIBUTION ====================' AS section;
+SELECT '==================== 7. TRACK COMMENT DISTRIBUTION ====================' AS section;
 
 SELECT
     'track_comments_deleted_ratio' AS check_name,
@@ -169,7 +209,7 @@ ORDER BY COUNT(*) DESC
 LIMIT 20;
 
 
-SELECT '==================== 7. APPLICATION DISTRIBUTION ====================' AS section;
+SELECT '==================== 8. APPLICATION DISTRIBUTION ====================' AS section;
 
 SELECT 'artist_applications_status' AS target;
 
@@ -223,7 +263,7 @@ SELECT
 FROM track_applications;
 
 
-SELECT '==================== 8. NULL SAFETY CHECK ====================' AS section;
+SELECT '==================== 9. NULL SAFETY CHECK ====================' AS section;
 
 SELECT
     'tracks_deleted_at' AS target,
@@ -238,6 +278,13 @@ SELECT
     FORMAT(SUM(deleted_at IS NULL), 0),
     FORMAT(SUM(deleted_at IS NOT NULL), 0)
 FROM albums
+UNION ALL
+SELECT
+    'artists_deleted_at',
+    FORMAT(COUNT(*), 0),
+    FORMAT(SUM(deleted_at IS NULL), 0),
+    FORMAT(SUM(deleted_at IS NOT NULL), 0)
+FROM artists
 UNION ALL
 SELECT
     'track_comments_deleted_at',
