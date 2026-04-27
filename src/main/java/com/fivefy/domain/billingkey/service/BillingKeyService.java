@@ -1,10 +1,12 @@
 package com.fivefy.domain.billingkey.service;
 
+import com.fivefy.common.exception.BusinessException;
 import com.fivefy.common.portone.client.PortoneClient;
 import com.fivefy.common.portone.dto.PortoneBillingKeyResponse;
 import com.fivefy.domain.billingkey.dto.BillingKeyRegisterRequest;
 import com.fivefy.domain.billingkey.dto.BillingKeyResponse;
 import com.fivefy.domain.billingkey.entity.BillingKey;
+import com.fivefy.domain.billingkey.enums.BillingKeyErrorCode;
 import com.fivefy.domain.billingkey.repository.BillingKeyRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +42,7 @@ public class BillingKeyService {
 
         // 중복 등록 방지
         if (billingKeyRepository.existsByBillingKey(billingKeyToken)) {
-            throw new IllegalStateException("이미 등록된 카드입니다.");
+            throw new BusinessException(BillingKeyErrorCode.ERR_BILLING_KEY_ALREADY_EXISTS);
         }
 
         // 카드 정보 파싱 (끝 4자리)
@@ -88,10 +90,10 @@ public class BillingKeyService {
     public void deactivate(Long userId, Long billingKeyId) {
 
         BillingKey billingKey = billingKeyRepository.findById(billingKeyId)
-                .orElseThrow(() -> new IllegalArgumentException("빌링키를 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(BillingKeyErrorCode.ERR_BILLING_KEY_NOT_FOUND));
 
         if (!billingKey.getUserId().equals(userId)) {
-            throw new IllegalStateException("본인의 카드만 삭제할 수 있습니다.");
+            throw new BusinessException(BillingKeyErrorCode.ERR_BILLING_KEY_FORBIDDEN);
         }
 
         // 포트원 측 빌링키 삭제

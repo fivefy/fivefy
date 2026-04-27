@@ -1,8 +1,10 @@
 package com.fivefy.domain.wallet.service;
 
+import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.wallet.dto.PointHistoryResponse;
 import com.fivefy.domain.wallet.dto.WalletResponse;
 import com.fivefy.domain.wallet.entity.Wallet;
+import com.fivefy.domain.wallet.enums.WalletErrorCode;
 import com.fivefy.domain.wallet.repository.PointHistoryRepository;
 import com.fivefy.domain.wallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,15 +24,13 @@ public class WalletService {
     // 지갑 조회
     @Transactional(readOnly = true)
     public WalletResponse getMyWallet(Long userId) {
-        Wallet wallet = walletRepository.findByUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("지갑을 찾을 수 없습니다."));
-        return WalletResponse.from(wallet);
+        return WalletResponse.from(getWallet(userId));  // getWallet() 재사용
     }
 
     // 지갑 여부 확인 시
     private Wallet getWallet(Long userId) {
         return walletRepository.findByUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("지갑 없음"));
+                .orElseThrow(() -> new BusinessException(WalletErrorCode.ERR_WALLET_NOT_FOUND));
     }
 
     // 지갑 내역 확인 시

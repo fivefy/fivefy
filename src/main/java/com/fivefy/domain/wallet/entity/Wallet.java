@@ -1,10 +1,13 @@
 package com.fivefy.domain.wallet.entity;
 
 import com.fivefy.common.entity.BaseEntity;
+import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.wallet.enums.WalletErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -12,6 +15,7 @@ import java.time.LocalDateTime;
 
 import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
+@Slf4j
 @Entity
 @Getter
 @Table(name = "wallets")
@@ -90,7 +94,7 @@ public class Wallet extends BaseEntity {
      */
     public void useBalance(Long amount) {
         if (this.balance < amount) {
-            throw new IllegalArgumentException("유료 포인트 부족");
+            throw new BusinessException(WalletErrorCode.ERR_WALLET_PAID_BALANCE_INSUFFICIENT);
         }
         this.balance -= amount;
         this.totalBalance = this.balance + this.eventBalance;
@@ -103,7 +107,7 @@ public class Wallet extends BaseEntity {
      */
     public void useEventBalance(Long amount) {
         if (this.eventBalance < amount) {
-            throw new IllegalArgumentException("무료 포인트 부족");
+            throw new BusinessException(WalletErrorCode.ERR_WALLET_FREE_BALANCE_INSUFFICIENT);
         }
         this.eventBalance -= amount;
         this.totalBalance = this.balance + this.eventBalance;
@@ -116,9 +120,9 @@ public class Wallet extends BaseEntity {
      */
     public void useBalanceWithPriority(Long amount) {
         if (this.totalBalance < amount) {
-            throw new IllegalArgumentException(
-                "포인트 부족. 필요: " + amount + ", 보유: " + this.totalBalance
-            );
+            log.warn("포인트 부족 — 필요: {}P, 보유: {}P, 부족: {}P",
+                    amount, this.totalBalance, amount - this.totalBalance);
+            throw new BusinessException(WalletErrorCode.ERR_WALLET_TOTAL_BALANCE_INSUFFICIENT);
         }
         long fromFree = Math.min(this.eventBalance, amount);  // 무료에서 차감 가능한 양
         long fromPaid = amount - fromFree;                    // 나머지는 유료에서

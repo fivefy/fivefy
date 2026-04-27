@@ -1,6 +1,8 @@
 package com.fivefy.domain.cashorder.entity;
 
 import com.fivefy.common.entity.BaseEntity;
+import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.cashorder.enums.CashOrderErrorCode;
 import com.fivefy.domain.cashorder.enums.CashOrderStatus;
 import com.fivefy.domain.cashorder.enums.CashProductType;
 import jakarta.persistence.*;
@@ -72,7 +74,7 @@ public class CashOrder extends BaseEntity {
      */
     public void success(String webhookId) {
         if (this.status != CashOrderStatus.PENDING) {
-            throw new IllegalStateException("PENDING 상태에서만 성공 처리할 수 있습니다.");
+            throw new BusinessException(CashOrderErrorCode.ERR_CASH_ORDER_INVALID_STATUS_SUCCESS);
         }
         this.status = CashOrderStatus.SUCCESS;
         this.webhookId = webhookId;
@@ -84,7 +86,7 @@ public class CashOrder extends BaseEntity {
      */
     public void refund() {
         if (this.status != CashOrderStatus.SUCCESS) {
-            throw new IllegalStateException("SUCCESS 상태에서만 환불 처리할 수 있습니다.");
+            throw new BusinessException(CashOrderErrorCode.ERR_CASH_ORDER_INVALID_STATUS_REFUND);
         }
         this.status = CashOrderStatus.REFUNDED;
     }

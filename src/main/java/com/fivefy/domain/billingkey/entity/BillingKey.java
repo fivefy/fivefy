@@ -1,6 +1,8 @@
 package com.fivefy.domain.billingkey.entity;
 
 import com.fivefy.common.entity.BaseEntity;
+import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.billingkey.enums.BillingKeyErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -75,7 +77,7 @@ public class BillingKey extends BaseEntity {
     /** 빌링키 해지 (카드 삭제) */
     public void deactivate() {
         if (!this.active) {
-            throw new IllegalStateException("이미 해지된 빌링키입니다.");
+            throw new BusinessException(BillingKeyErrorCode.ERR_BILLING_KEY_ALREADY_DEACTIVATED);
         }
 
         this.active = false;
