@@ -49,7 +49,8 @@ public class SecurityConfig {
                                 "/api/popular-charts/**",
                                 "/test/**",
                                 "/api/portone/config",
-                                "/api/webhook/portone"
+                                "/api/webhook/portone",
+                                "/actuator/health" // 서버 연결 확인
                         ).permitAll()
                         .requestMatchers(
                                 HttpMethod.GET,

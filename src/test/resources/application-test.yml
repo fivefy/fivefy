@@ -31,3 +31,7 @@ portone:
   api-url: test
   channel-key: test
   webhook-secret: test
+
+scheduler:
+  charge-cron: "0 0 8 1 * *"
+  subscription-cron: "0 0 9 1 * *"

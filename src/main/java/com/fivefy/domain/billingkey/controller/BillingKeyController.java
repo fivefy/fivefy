@@ -1,0 +1,75 @@
+package com.fivefy.domain.billingkey.controller;
+
+import com.fivefy.domain.billingkey.dto.BillingKeyRegisterRequest;
+import com.fivefy.domain.billingkey.dto.BillingKeyResponse;
+import com.fivefy.domain.billingkey.entity.BillingKey;
+import com.fivefy.domain.billingkey.repository.BillingKeyRepository;
+import com.fivefy.domain.billingkey.service.BillingKeyService;
+import com.fivefy.domain.cashorder.service.CashOrderService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/v1/billing-keys")
+@RequiredArgsConstructor
+public class BillingKeyController {
+
+    private final BillingKeyService billingKeyService;
+    private final BillingKeyRepository billingKeyRepository;
+    private final CashOrderService cashOrderService;
+
+    /**
+     * 카드(빌링키) 등록
+     * POST /api/v1/billing-keys
+     *
+     * 프론트 흐름:
+     * 1. 포트원 SDK로 카드 등록 → billingKeyId 수령 : 아임포트? 인걸로 할 수 있다 함 : 이거 없어졌는데
+     *                                              -> 이게 포트원이래.
+     * 2. 이 API에 billingKeyId 전달
+     * 3. 서버가 포트원에서 빌링키 조회 후 DB 저장
+     */
+    @PostMapping
+    public ResponseEntity<BillingKeyResponse> register(
+            @AuthenticationPrincipal Long userId,
+            @Valid @RequestBody BillingKeyRegisterRequest request
+    ) {
+        return ResponseEntity.ok(billingKeyService.register(userId, request));
+    }
+
+    /**
+     * 카드(빌링키) 해지
+     * DELETE /api/v1/billing-keys/{billingKeyId}
+     */
+    @DeleteMapping("/{billingKeyId}")
+    public ResponseEntity<Void> deactivate(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long billingKeyId
+    ) {
+        billingKeyService.deactivate(userId, billingKeyId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * [테스트 전용] 빌링키 카드 청구 수동 실행
+     * POST /api/v1/billing-keys/test-charge
+     *
+     * 스케줄러(매월 1일 08:00)를 기다리지 않고 즉시 실행.
+     * 로그인한 유저의 활성 빌링키로 포트원에 카드 청구 → 포인트 충전.
+     * 테스트 완료 후 이 메서드는 삭제할 것.
+     */
+    @PostMapping("/test-charge")
+    public ResponseEntity<String> testCharge(
+            @AuthenticationPrincipal Long userId
+    ) {
+        BillingKey billingKey = billingKeyRepository.findByUserIdAndActiveTrue(userId)
+                .orElseThrow(() -> new IllegalArgumentException("활성 빌링키가 없습니다. 먼저 카드를 등록하세요."));
+
+        cashOrderService.processRecurringCharge(billingKey);
+
+        return ResponseEntity.ok("카드 청구 완료 — 지갑을 조회해서 포인트 충전을 확인하세요.");
+    }
+
+}

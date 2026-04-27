@@ -33,7 +33,7 @@ public class PlaylistService {
     @Transactional
     public PlaylistResponse createPlaylist(Long userId, PlaylistCreateRequest request) {
         // 플레이리스트 생성 전 구독 상태 검증
-        // TRIAL 또는 ACTIVE 상태인 경우에만 생성 가능
+        // FREE(체험) 또는 ACTIVE 상태인 경우에만 생성 가능
         validateSubscription(userId);
 
         // 중복 제목 여부 검사

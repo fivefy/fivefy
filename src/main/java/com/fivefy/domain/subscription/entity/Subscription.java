@@ -1,7 +1,6 @@
 package com.fivefy.domain.subscription.entity;
 
 import com.fivefy.common.entity.BaseEntity;
-import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
 import com.fivefy.domain.subscription.enums.SubscriptionStatus;
 import jakarta.persistence.*;
@@ -12,7 +11,6 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 import static com.fivefy.common.util.ValidationUtils.validateNonNull;
-import static com.fivefy.domain.subscription.enums.UserErrorCode.ERR_TYPE_BAD_REQUEST;
 
 @Entity
 @Getter
@@ -39,67 +37,59 @@ public class Subscription extends BaseEntity {
     private SubscriptionStatus status; // ACTIVE / INACTIVE / CANCELED / EXPIRE
 
     @Column(nullable = false)
-    private LocalDateTime startDate;
+    private LocalDateTime startDate; // 구매 시점
 
-    @Column(nullable = false)
-    private LocalDateTime expiryDate;
-
-    // 구독 취소 시 null
-    private LocalDateTime nextBillingDate;  // null이면 구독 취소 또는 정기구독이 아님
+    private LocalDateTime expiryDate;     // 활성화 시점에 계산, 그 전까지 null
+    private LocalDateTime nextBillingDate; // null이면 자동 갱신 없음 (취소된 상태)
 
     /**
-     * 구독
+     * 구독하기
+     * 구독 즉시 ACTIVE, expiryDate/nextBillingDate 바로 세팅
      * @param userId             : 사용자 식별자
      * @param pointOrderId       : 포인트 주문 ID
      * @param planType           : 월, 년, 무료
      *        SubscriptionStatus : 체험, 활성, 만료, 취소
      * @param startDate          : 구독 시작일(테이블 생성일과 구조가 다름)
-     * @param expiryDate         : 구독 만료일
-     * @param nextBillingDate    : 구독 다음 결제일(이게 없으면 구독 취소한 것)
+     *        expiryDate         : 구독 만료일
+     *        nextBillingDate    : 구독 다음 결제일(이게 없으면 구독 취소한 것)
      * @return
      */
-    public static Subscription create(Long userId, Long pointOrderId, SubscriptionPlanType planType, LocalDateTime startDate,
-                                      LocalDateTime expiryDate, LocalDateTime nextBillingDate) {
+    public static Subscription create(
+            Long userId,
+            Long pointOrderId,
+            SubscriptionPlanType planType,
+            LocalDateTime startDate
+    ) {
         validateNonNull(userId, "userId");
         validateNonNull(pointOrderId, "pointOrderId");
         validateNonNull(planType, "planType");
         validateNonNull(startDate, "startDate");
-        validateNonNull(expiryDate, "expiryDate");
 
         Subscription subscription = new Subscription();
             subscription.userId = userId;
             subscription.pointOrderId = pointOrderId;
             subscription.planType = planType;
-            subscription.status = (planType == SubscriptionPlanType.FREE)
-                            ? SubscriptionStatus.ACTIVE     // 체험이면 바로 활성화
-                            : SubscriptionStatus.INACTIVE;  // 아니면 비활성화
-            subscription.startDate = startDate;
-            subscription.expiryDate = expiryDate;
-            subscription.nextBillingDate = nextBillingDate;
+            subscription.status = SubscriptionStatus.ACTIVE;   // 바로 활성화
+
+            subscription.startDate = startDate; // 시작
+
+            // 만료일(구독일 + 1개월)
+            subscription.expiryDate = planType.calculateExpiryDate(startDate);
+            // 정기 구독 상태이면 다음 갱신일 1개월, 아니라면 null(구독 취소 된 상태. 남은 기간 이용 가능)
+            subscription.nextBillingDate = (planType == SubscriptionPlanType.RECURRING)
+                    ? startDate.plusMonths(1)
+                    : null;
+              // 테스트 용도
+//            subscription.nextBillingDate = (planType == SubscriptionPlanType.RECURRING)
+//                    ? subscription.expiryDate  // 만료일과 동일
+//                    : null;
 
         return subscription;
     }
 
     /**
-     * 구독 환불 (INACTIVE → CANCELED)
-     * 비활성(INACTIVE) 상태만 환불 가능
-     * 포인트 반환은 PointOrderService.refund()에서 처리
-     */
-    public void refund() {
-        // 활성화 거르기
-        if (this.status != SubscriptionStatus.INACTIVE) {
-            throw new BusinessException(ERR_TYPE_BAD_REQUEST);
-        }
-        // 환불 시 타입 변경
-        this.status = SubscriptionStatus.CANCELED;
-        // 환불 시 다음 갱신일 null(자동결제차단)
-        this.nextBillingDate = null;
-    }
-
-    /**
-     * 구독 취소 - 다음 결제 중단, 만료일까지는 이용 가능
-     * FREE 취소 불가
-     * 포인트 반환 없음, nextBillingDate만 null → 만료일까지 이용 가능
+     * 구독 취소 - 다음 결제 중단, 만료일까지 이용 가능
+     * FREE 취소 불가, ACTIVE 상태에서만 가능
      */
     public void cancel() {
         if (this.planType == SubscriptionPlanType.FREE) {
@@ -123,8 +113,8 @@ public class Subscription extends BaseEntity {
 
     /**
      * 정기 구독 갱신 (RECURRING 전용)
-     * nextBillingDate + 1개월, expiryDate + 1개월
-     * 구독 갱신은 PointOrderService에서 사용함
+     * expiryDate      += 1개월
+     * nextBillingDate  = 새 expiryDate 당일 00:00
      */
     public void renew() {
         if (this.planType != SubscriptionPlanType.RECURRING) {
@@ -143,34 +133,32 @@ public class Subscription extends BaseEntity {
      * @return
      */
     public boolean isActive() {
-        return this.status == SubscriptionStatus.ACTIVE && LocalDateTime.now().isBefore(this.expiryDate);
+        return this.status == SubscriptionStatus.ACTIVE
+                && this.expiryDate != null
+                && LocalDateTime.now().isBefore(this.expiryDate);
     }
 
-    /**
-     * 플랜별 만료일 계산
-     */
-    public static LocalDateTime calculateExpiryDate(
-            SubscriptionPlanType planType,
-            LocalDateTime startDate
-    ) {
-        return switch (planType) {
-            case MONTH, RECURRING -> startDate.plusMonths(1);
-            case YEAR -> startDate.plusYears(1);
-            case FREE -> startDate.plusDays(3);
-        };
-    }
+    // 플랜별 만료일은 SubscriptionPlanType 에서 관리
+
 
     /**
-     * 플랜별 다음 결제일 계산 (정기 구독만 해당)
-     * RECURRING만 +1개월, 나머지 null
+     * [테스트 전용] 1개월 갱신 시뮬레이션
+     * 포인트 차감 없이 날짜만 앞당김
+     * expiryDate      += 1개월
+     * nextBillingDate  = 새 expiryDate 당일 00:00
+     *
+     * 예) 현재: startDate       = 4월 23일 19:07,
+     *          expiryDate      = 5월 23일 19:07,
+     *          nextBillingDate = 5월 23일 00:00
+     *
+     *     이후: startDate      = 4월 23일 19:07,
+     *          expiryDate      = 6월 23일 19:07,
+     *          nextBillingDate = 6월 23일 00:00
      */
-    public static LocalDateTime calculateNextBillingDate(
-            SubscriptionPlanType planType,
-            LocalDateTime startDate
-    ) {
-        return switch (planType) {
-            case RECURRING -> startDate.plusMonths(1);
-            case MONTH, YEAR, FREE -> null;
-        };
+    public void skipOneMonth() {
+        if (this.expiryDate != null) {
+            this.expiryDate = this.expiryDate.plusMonths(1);
+            this.nextBillingDate = this.expiryDate.toLocalDate().atStartOfDay();
+        }
     }
 }

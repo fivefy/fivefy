@@ -270,7 +270,7 @@ VALUES
 
 
 -- ================================================================
--- 8. subscriptions (60건 — 기본 status: TRIAL)
+-- 8. subscriptions (60건 — 기본 status: FREE)
 -- ================================================================
 TRUNCATE TABLE subscriptions;
 
@@ -286,12 +286,11 @@ BEGIN
     DECLARE edate DATETIME;
     WHILE i <= 60 DO
             SET uid   = 15 + i;
-            SET plan  = ELT(1 + FLOOR(RAND() * 3), 'MONTH', 'YEAR', 'FREE');
-            SET stat  = ELT(1 + FLOOR(RAND() * 4), 'TRIAL', 'ACTIVE', 'EXPIRE', 'CANCELED');
+            SET plan = ELT(1 + FLOOR(RAND() * 2), 'FREE', 'RECURRING');
+            SET stat  = ELT(1 + FLOOR(RAND() * 4), 'FREE', 'ACTIVE', 'EXPIRE', 'CANCELED');
             SET sdate = DATE_SUB(NOW(), INTERVAL FLOOR(RAND() * 180) DAY);
-            SET edate = IF(plan='MONTH', DATE_ADD(sdate, INTERVAL 1 MONTH),
-                           IF(plan='YEAR',  DATE_ADD(sdate, INTERVAL 1 YEAR),
-                              DATE_ADD(sdate, INTERVAL 7 DAY)));
+            SET edate = IF(plan='RECURRING', DATE_ADD(sdate, INTERVAL 1 MONTH),
+                           DATE_ADD(sdate, INTERVAL 3 DAY));
             INSERT INTO subscriptions (id, user_id, plan_type, status, start_date, expiry_date, next_billing_date, created_at)
             VALUES (i, uid, plan, stat, sdate, edate, IF(stat='ACTIVE', edate, NULL), sdate);
             SET i = i + 1;
