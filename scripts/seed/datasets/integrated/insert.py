@@ -21,6 +21,10 @@ TABLE_SPECS: list[dict[str, Any]] = [
     {"table":"artists","file":"artists.csv","columns":["id","owner_user_id","name","artist_type","bio","profile_image_url","status","created_at","updated_at","deleted_at"],"nullable_columns":{"deleted_at"}},
     {"table":"albums","file":"albums.csv","columns":["id","artist_id","title","description","cover_image_url","status","scheduled_publish_at","published_at","track_count","total_duration_sec","created_at","updated_at","deleted_at"],"nullable_columns":{"description","cover_image_url","scheduled_publish_at","published_at","deleted_at"}},
     {"table":"tracks","file":"tracks.csv","columns":["id","owner_user_id","track_type","artist_id","album_id","track_number","title","lyrics","genre","audio_url","duration_sec","featured_artist_text","status","scheduled_publish_at","published_at","play_count","created_at","updated_at","deleted_at"],"nullable_columns":{"artist_id","album_id","track_number","lyrics","featured_artist_text","scheduled_publish_at","published_at","deleted_at"}},
+    {"table":"likes","file":"likes.csv","columns":["id","user_id","target_id","target_type","created_at"],"nullable_columns":set()},
+    {"table":"follows","file":"follows.csv","columns":["id","artist_id","user_id","notification_enabled","created_at"],"nullable_columns":set()},
+    {"table":"playbacks","file":"playbacks.csv","columns":["id","playlist_id","track_id","user_id","session_id","device_id","status","played_duration","started_at","last_played_at","ended_at"],"nullable_columns":{"device_id","ended_at"}},
+    {"table":"search_histories","file":"search_histories.csv","columns":["id","user_id","keyword","result_count","created_at"],"nullable_columns":{"user_id","result_count"}},
     {"table":"playlists","file":"playlists.csv","columns":["id","user_id","title","description","deleted","updated_at","deleted_at","created_at"],"nullable_columns":{"description","deleted_at"}},
     {"table":"playlist_tracks","file":"playlist_tracks.csv","columns":["id","playlist_id","track_id","position","created_at"],"nullable_columns":set()},
     {"table":"track_comments","file":"track_comments.csv","columns":["id","user_id","track_id","content","created_at","updated_at","deleted_at"],"nullable_columns":{"deleted_at"}},
@@ -29,7 +33,7 @@ TABLE_SPECS: list[dict[str, Any]] = [
     {"table":"track_applications","file":"track_applications.csv","columns":["id","requester_user_id","track_type","artist_id","album_id","track_number","title","lyrics","genre","audio_url","duration_sec","featured_artist_text","publish_delay_days","status","reviewed_by_admin_id","reviewed_at","rejection_reason","created_at","updated_at"],"nullable_columns":{"artist_id","album_id","track_number","lyrics","featured_artist_text","publish_delay_days","reviewed_by_admin_id","reviewed_at","rejection_reason"}},
 ]
 
-INT_COLUMNS = {"id","user_id","owner_user_id","requester_user_id","wallet_id","point_order_id","artist_id","album_id","track_id","playlist_id","track_number","position","duration_sec","play_count","track_count","total_duration_sec","balance","event_balance","total_balance","amount","balance_after","cash_amount","point_amount","subscription_amount","active","deleted","publish_delay_days","reviewed_by_admin_id"}
+INT_COLUMNS = {"active","album_id","amount","artist_id","balance","balance_after","cash_amount","deleted","duration_sec","event_balance","id","notification_enabled","owner_user_id","play_count","played_duration","playlist_id","point_amount","point_order_id","position","publish_delay_days","requester_user_id","result_count","reviewed_by_admin_id","subscription_amount","target_id","total_balance","total_duration_sec","track_count","track_id","track_number","user_id","wallet_id"}
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Insert integrated seed CSV files into MySQL.")

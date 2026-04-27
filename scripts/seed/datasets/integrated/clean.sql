@@ -1,5 +1,9 @@
 SET FOREIGN_KEY_CHECKS = 0;
 
+TRUNCATE TABLE search_histories;
+TRUNCATE TABLE playbacks;
+TRUNCATE TABLE follows;
+TRUNCATE TABLE likes;
 TRUNCATE TABLE playlist_tracks;
 TRUNCATE TABLE playlists;
 TRUNCATE TABLE track_comments;

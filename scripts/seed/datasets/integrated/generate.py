@@ -21,6 +21,10 @@ class ScaleConfig:
     artists: int
     albums: int
     tracks: int
+    likes: int
+    follows: int
+    playbacks: int
+    search_histories: int
     playlists: int
     playlist_tracks: int
     track_comments: int
@@ -29,10 +33,10 @@ class ScaleConfig:
     track_applications: int
 
 SCALE_CONFIGS = {
-    "smoke": ScaleConfig(1_000,1_000,2_000,500,2_000,1_000,1_500,800,1_000,3_000,10_000,1_000,5_000,30_000,1_000,2_000,3_000),
-    "test": ScaleConfig(10_000,10_000,20_000,5_000,20_000,10_000,15_000,8_000,10_000,30_000,100_000,10_000,50_000,300_000,10_000,20_000,30_000),
-    "local": ScaleConfig(100_000,100_000,200_000,50_000,200_000,100_000,150_000,80_000,100_000,300_000,1_000_000,100_000,500_000,3_000_000,100_000,200_000,300_000),
-    "dev": ScaleConfig(500_000,500_000,1_000_000,250_000,1_000_000,500_000,750_000,400_000,500_000,1_500_000,10_000_000,500_000,3_000_000,30_000_000,300_000,600_000,1_000_000),
+    "smoke": ScaleConfig(1_000,1_000,2_000,500,2_000,1_000,1_500,800,1_000,3_000,10_000,5_000,2_000,30_000,3_000,1_000,5_000,30_000,1_000,2_000,3_000),
+    "test": ScaleConfig(10_000,10_000,20_000,5_000,20_000,10_000,15_000,8_000,10_000,30_000,100_000,50_000,20_000,300_000,30_000,10_000,50_000,300_000,10_000,20_000,30_000),
+    "local": ScaleConfig(100_000,100_000,200_000,50_000,200_000,100_000,150_000,80_000,100_000,300_000,1_000_000,500_000,200_000,3_000_000,300_000,100_000,500_000,3_000_000,100_000,200_000,300_000),
+    "dev": ScaleConfig(500_000,500_000,1_000_000,250_000,1_000_000,500_000,750_000,400_000,500_000,1_500_000,10_000_000,3_000_000,1_000_000,30_000_000,1_000_000,500_000,3_000_000,30_000_000,300_000,600_000,1_000_000),
 }
 
 BASE_DATE = datetime(2024, 1, 1, 0, 0, 0)
@@ -156,6 +160,58 @@ def generate_tracks(count: int, user_count: int, artist_count: int, album_count:
         scheduled_publish_at=None if status=="PUBLISHED" else created_at+timedelta(days=random.randint(1,7))
         yield [track_id, owner_user_id, track_type, nullable(artist_id), nullable(album_id), nullable(track_number), f"Track {track_id}", f"Lyrics for track {track_id}", f"GENRE_{random.randint(1,20)}", f"https://cdn.fivefy.local/audio/{track_id}.mp3", random.randint(60,420), nullable(featured_artist_text), status, format_dt(scheduled_publish_at), format_dt(published_at), int(random.paretovariate(1.5)*100), format_dt(created_at), format_dt(updated_at), format_dt(random_datetime_between(updated_at,NOW) if random.random()<0.05 else None)]
 
+def generate_likes(count: int, user_count: int, track_count: int):
+    used = set()
+    for like_id in range(1, count + 1):
+        user_id = random.randint(1, user_count)
+        target_id = random.randint(1, track_count)
+        target_type = "TRACK"
+        retry = 0
+        while (user_id, target_id, target_type) in used and retry < 20:
+            user_id = random.randint(1, user_count)
+            target_id = random.randint(1, track_count)
+            retry += 1
+        if (user_id, target_id, target_type) in used:
+            continue
+        used.add((user_id, target_id, target_type))
+        created_at = random_datetime_between(BASE_DATE, NOW)
+        updated_at = random_datetime_between(created_at, NOW)
+        yield [like_id, user_id, target_id, target_type, format_dt(created_at)]
+
+def generate_follows(count: int, user_count: int, artist_count: int):
+    used = set()
+    for follow_id in range(1, count + 1):
+        user_id = random.randint(1, user_count)
+        artist_id = random.randint(1, artist_count)
+        retry = 0
+        while (user_id, artist_id) in used and retry < 20:
+            user_id = random.randint(1, user_count)
+            artist_id = random.randint(1, artist_count)
+            retry += 1
+        if (user_id, artist_id) in used:
+            continue
+        used.add((user_id, artist_id))
+        created_at = random_datetime_between(BASE_DATE, NOW)
+        updated_at = random_datetime_between(created_at, NOW)
+        yield [follow_id, artist_id, user_id, 1 if random.random() < 0.8 else 0, format_dt(created_at)]
+
+def generate_playbacks(count: int, user_count: int, playlist_count: int, track_count: int):
+    for playback_id in range(1, count + 1):
+        status = weighted_choice([("PLAYING", 10), ("PAUSED", 10), ("STOPPED", 5), ("SKIPPED", 5), ("COMPLETED", 70)])
+        started_at = random_datetime_between(BASE_DATE, NOW)
+        played_duration = random.randint(10, 420)
+        last_played_at = started_at + timedelta(seconds=random.randint(1, played_duration))
+        ended_at = started_at + timedelta(seconds=played_duration) if status in ("STOPPED", "SKIPPED", "COMPLETED") else None
+        device_id = None if random.random() < 0.2 else f"device-{random.randint(1, 10000)}"
+        yield [playback_id, random.randint(1, playlist_count), random.randint(1, track_count), random.randint(1, user_count), f"seed-session-{playback_id}", nullable(device_id), status, played_duration, format_dt(started_at), format_dt(last_played_at), format_dt(ended_at)]
+
+def generate_search_histories(count: int, user_count: int):
+    keywords = ["love","night","summer","dream","rain","dance","blue","star","moon","city","piano","rock","jazz","lofi","classic"]
+    for search_history_id in range(1, count + 1):
+        created_at = random_datetime_between(BASE_DATE, NOW)
+        updated_at = random_datetime_between(created_at, NOW)
+        yield [search_history_id, random.randint(1, user_count), random.choice(keywords), random.randint(0, 500), format_dt(created_at)]
+
 def generate_playlists(count: int, user_count: int):
     for playlist_id in range(1, count + 1):
         created_at = random_datetime_between(BASE_DATE, NOW)
@@ -236,6 +292,10 @@ def generate_all(config: ScaleConfig, output_dir: Path) -> None:
     write_csv(output_dir / "artists.csv", ["id","owner_user_id","name","artist_type","bio","profile_image_url","status","created_at","updated_at","deleted_at"], generate_artists(config.artists, config.users))
     write_csv(output_dir / "albums.csv", ["id","artist_id","title","description","cover_image_url","status","scheduled_publish_at","published_at","track_count","total_duration_sec","created_at","updated_at","deleted_at"], generate_albums(config.albums, config.artists))
     write_csv(output_dir / "tracks.csv", ["id","owner_user_id","track_type","artist_id","album_id","track_number","title","lyrics","genre","audio_url","duration_sec","featured_artist_text","status","scheduled_publish_at","published_at","play_count","created_at","updated_at","deleted_at"], generate_tracks(config.tracks, config.users, config.artists, config.albums))
+    write_csv(output_dir / "likes.csv", ["id","user_id","target_id","target_type","created_at"], generate_likes(config.likes, config.users, config.tracks))
+    write_csv(output_dir / "follows.csv", ["id","artist_id","user_id","notification_enabled","created_at"], generate_follows(config.follows, config.users, config.artists))
+    write_csv(output_dir / "playbacks.csv", ["id","playlist_id","track_id","user_id","session_id","device_id","status","played_duration","started_at","last_played_at","ended_at"], generate_playbacks(config.playbacks, config.users, config.playlists, config.tracks))
+    write_csv(output_dir / "search_histories.csv", ["id","user_id","keyword","result_count","created_at"], generate_search_histories(config.search_histories, config.users))
     write_csv(output_dir / "playlists.csv", ["id","user_id","title","description","deleted","updated_at","deleted_at","created_at"], generate_playlists(config.playlists, config.users))
     write_csv(output_dir / "playlist_tracks.csv", ["id","playlist_id","track_id","position","created_at"], generate_playlist_tracks(config.playlist_tracks, config.playlists, config.tracks))
     write_csv(output_dir / "track_comments.csv", ["id","user_id","track_id","content","created_at","updated_at","deleted_at"], generate_track_comments(config.track_comments, config.users, config.tracks))
