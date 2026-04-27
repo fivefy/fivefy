@@ -137,7 +137,7 @@ public class PortoneClient {
                         "currency": "KRW"
                     }
                     """
-                    .formatted(billingKey, description, amount, portoneProperties.storeId());
+                    .formatted(billingKey, description, amount);
 
             ResponseEntity<PortoneBillingPaymentResponse> response = restTemplate.exchange(
                     url, HttpMethod.POST, new HttpEntity<>(body, authHeaders()), PortoneBillingPaymentResponse.class
