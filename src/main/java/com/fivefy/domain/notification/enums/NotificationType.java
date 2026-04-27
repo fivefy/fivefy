@@ -5,5 +5,7 @@ public enum NotificationType {
     PUBLISH_TRACK,
     TRACK_LIKED,
     ALBUM_LIKED,
-    SUBSCRIBE
+    SUBSCRIBE,
+    SUBSCRIPTION_CANCEL,
+    SUBSCRIPTION_EXPIRE
 }

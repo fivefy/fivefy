@@ -1,7 +1,8 @@
 package com.fivefy.domain.subscription.service;
 
 import com.fivefy.common.exception.BusinessException;
-import com.fivefy.domain.pointorder.entity.PointOrder;
+import com.fivefy.domain.notification.enums.NotificationType;
+import com.fivefy.domain.notification.event.NotificationEvent;
 import com.fivefy.domain.pointorder.repository.PointOrderRepository;
 import com.fivefy.domain.subscription.dto.SubscriptionResponse;
 import com.fivefy.domain.subscription.entity.Subscription;
@@ -10,6 +11,7 @@ import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
 import com.fivefy.domain.subscription.enums.SubscriptionStatus;
 import com.fivefy.domain.subscription.repository.SubscriptionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +23,7 @@ public class SubscriptionService {
 
     private final SubscriptionRepository subscriptionRepository;
     private final PointOrderRepository pointOrderRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 내 구독 조회
@@ -53,5 +56,11 @@ public class SubscriptionService {
                 .orElseThrow(() -> new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_NOT_FOUND));
 
         subscription.cancel();
+
+        eventPublisher.publishEvent(NotificationEvent.of(
+                subscription.getUserId(),
+                NotificationType.SUBSCRIPTION_CANCEL,
+                "구독 취소 성공"
+        ));
     }
 }

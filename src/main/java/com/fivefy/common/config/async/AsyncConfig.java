@@ -1,4 +1,4 @@
-package com.fivefy.common.config.Async;
+package com.fivefy.common.config.async;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
