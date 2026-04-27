@@ -1,5 +1,7 @@
 SET FOREIGN_KEY_CHECKS = 0;
 
+TRUNCATE TABLE playlist_tracks;
+TRUNCATE TABLE playlists;
 TRUNCATE TABLE track_comments;
 TRUNCATE TABLE track_applications;
 TRUNCATE TABLE album_applications;

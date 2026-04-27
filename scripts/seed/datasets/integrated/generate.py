@@ -21,16 +21,18 @@ class ScaleConfig:
     artists: int
     albums: int
     tracks: int
+    playlists: int
+    playlist_tracks: int
     track_comments: int
     artist_applications: int
     album_applications: int
     track_applications: int
 
 SCALE_CONFIGS = {
-    "smoke": ScaleConfig(1_000,1_000,2_000,500,2_000,1_000,1_500,800,1_000,3_000,10_000,30_000,1_000,2_000,3_000),
-    "test": ScaleConfig(10_000,10_000,20_000,5_000,20_000,10_000,15_000,8_000,10_000,30_000,100_000,300_000,10_000,20_000,30_000),
-    "local": ScaleConfig(100_000,100_000,200_000,50_000,200_000,100_000,150_000,80_000,100_000,300_000,1_000_000,3_000_000,100_000,200_000,300_000),
-    "dev": ScaleConfig(500_000,500_000,1_000_000,250_000,1_000_000,500_000,750_000,400_000,500_000,1_500_000,10_000_000,30_000_000,300_000,600_000,1_000_000),
+    "smoke": ScaleConfig(1_000,1_000,2_000,500,2_000,1_000,1_500,800,1_000,3_000,10_000,1_000,5_000,30_000,1_000,2_000,3_000),
+    "test": ScaleConfig(10_000,10_000,20_000,5_000,20_000,10_000,15_000,8_000,10_000,30_000,100_000,10_000,50_000,300_000,10_000,20_000,30_000),
+    "local": ScaleConfig(100_000,100_000,200_000,50_000,200_000,100_000,150_000,80_000,100_000,300_000,1_000_000,100_000,500_000,3_000_000,100_000,200_000,300_000),
+    "dev": ScaleConfig(500_000,500_000,1_000_000,250_000,1_000_000,500_000,750_000,400_000,500_000,1_500_000,10_000_000,500_000,3_000_000,30_000_000,300_000,600_000,1_000_000),
 }
 
 BASE_DATE = datetime(2024, 1, 1, 0, 0, 0)
@@ -127,13 +129,15 @@ def generate_subscriptions(count: int, user_count: int, point_order_count: int):
 
 def generate_artists(count: int, user_count: int):
     for artist_id in range(1, count + 1):
-        created_at = random_datetime_between(BASE_DATE, NOW); updated_at = random_datetime_between(created_at, NOW)
+        created_at = random_datetime_between(BASE_DATE, NOW)
+        updated_at = random_datetime_between(created_at, NOW)
         yield [artist_id, random.randint(1,user_count), f"Artist {artist_id}", weighted_choice([("SOLO",90),("COLLABORATION",10)]), f"Bio for artist {artist_id}", f"https://cdn.fivefy.local/artists/{artist_id}.jpg", weighted_choice([("ACTIVE",90),("INACTIVE",10)]), format_dt(created_at), format_dt(updated_at), format_dt(random_datetime_between(updated_at, NOW) if random.random()<0.05 else None)]
 
 def generate_albums(count: int, artist_count: int):
     for album_id in range(1, count + 1):
         status = weighted_choice([("PUBLISHED",70),("UNPUBLISHED",20),("BLOCKED",10)])
-        created_at = random_datetime_between(BASE_DATE, NOW); updated_at = random_datetime_between(created_at, NOW)
+        created_at = random_datetime_between(BASE_DATE, NOW)
+        updated_at = random_datetime_between(created_at, NOW)
         published_at = random_datetime_between(created_at, NOW) if status == "PUBLISHED" else None
         scheduled_publish_at = None if status == "PUBLISHED" else created_at + timedelta(days=random.randint(1,7))
         yield [album_id, random.randint(1,artist_count), f"Album {album_id}", f"Description for album {album_id}", f"https://cdn.fivefy.local/albums/{album_id}.jpg", status, format_dt(scheduled_publish_at), format_dt(published_at), 0, 0, format_dt(created_at), format_dt(updated_at), format_dt(random_datetime_between(updated_at, NOW) if random.random()<0.05 else None)]
@@ -151,6 +155,33 @@ def generate_tracks(count: int, user_count: int, artist_count: int, album_count:
         published_at=random_datetime_between(created_at,NOW) if status=="PUBLISHED" else None
         scheduled_publish_at=None if status=="PUBLISHED" else created_at+timedelta(days=random.randint(1,7))
         yield [track_id, owner_user_id, track_type, nullable(artist_id), nullable(album_id), nullable(track_number), f"Track {track_id}", f"Lyrics for track {track_id}", f"GENRE_{random.randint(1,20)}", f"https://cdn.fivefy.local/audio/{track_id}.mp3", random.randint(60,420), nullable(featured_artist_text), status, format_dt(scheduled_publish_at), format_dt(published_at), int(random.paretovariate(1.5)*100), format_dt(created_at), format_dt(updated_at), format_dt(random_datetime_between(updated_at,NOW) if random.random()<0.05 else None)]
+
+def generate_playlists(count: int, user_count: int):
+    for playlist_id in range(1, count + 1):
+        created_at = random_datetime_between(BASE_DATE, NOW)
+        updated_at = random_datetime_between(created_at, NOW)
+        deleted = 1 if random.random() < 0.05 else 0
+        deleted_at = random_datetime_between(updated_at, NOW) if deleted else None
+        yield [playlist_id, random.randint(1, user_count), f"Playlist {playlist_id}", f"Seed playlist description {playlist_id}", deleted, format_dt(updated_at), format_dt(deleted_at), format_dt(created_at)]
+
+def generate_playlist_tracks(count: int, playlist_count: int, track_count: int):
+    used_pairs: set[tuple[int, int]] = set()
+    position_by_playlist: dict[int, int] = {}
+    for playlist_track_id in range(1, count + 1):
+        playlist_id = random.randint(1, playlist_count)
+        track_id = random.randint(1, track_count)
+        retry = 0
+        while (playlist_id, track_id) in used_pairs and retry < 10:
+            playlist_id = random.randint(1, playlist_count)
+            track_id = random.randint(1, track_count)
+            retry += 1
+        if (playlist_id, track_id) in used_pairs:
+            continue
+        used_pairs.add((playlist_id, track_id))
+        position = position_by_playlist.get(playlist_id, 0) + 1
+        position_by_playlist[playlist_id] = position
+        created_at = random_datetime_between(BASE_DATE, NOW)
+        yield [playlist_track_id, playlist_id, track_id, position, format_dt(created_at)]
 
 def generate_track_comments(count: int, user_count: int, track_count: int):
     hot_track_count=min(100,track_count); hot_comment_limit=count//2
@@ -205,6 +236,8 @@ def generate_all(config: ScaleConfig, output_dir: Path) -> None:
     write_csv(output_dir / "artists.csv", ["id","owner_user_id","name","artist_type","bio","profile_image_url","status","created_at","updated_at","deleted_at"], generate_artists(config.artists, config.users))
     write_csv(output_dir / "albums.csv", ["id","artist_id","title","description","cover_image_url","status","scheduled_publish_at","published_at","track_count","total_duration_sec","created_at","updated_at","deleted_at"], generate_albums(config.albums, config.artists))
     write_csv(output_dir / "tracks.csv", ["id","owner_user_id","track_type","artist_id","album_id","track_number","title","lyrics","genre","audio_url","duration_sec","featured_artist_text","status","scheduled_publish_at","published_at","play_count","created_at","updated_at","deleted_at"], generate_tracks(config.tracks, config.users, config.artists, config.albums))
+    write_csv(output_dir / "playlists.csv", ["id","user_id","title","description","deleted","updated_at","deleted_at","created_at"], generate_playlists(config.playlists, config.users))
+    write_csv(output_dir / "playlist_tracks.csv", ["id","playlist_id","track_id","position","created_at"], generate_playlist_tracks(config.playlist_tracks, config.playlists, config.tracks))
     write_csv(output_dir / "track_comments.csv", ["id","user_id","track_id","content","created_at","updated_at","deleted_at"], generate_track_comments(config.track_comments, config.users, config.tracks))
     write_csv(output_dir / "artist_applications.csv", ["id","requester_user_id","requested_name","artist_type","bio","profile_image_url","status","reviewed_by_admin_id","reviewed_at","rejection_reason","created_at","updated_at"], generate_artist_applications(config.artist_applications, config.users))
     write_csv(output_dir / "album_applications.csv", ["id","requester_user_id","artist_id","title","description","cover_image_url","publish_delay_days","status","reviewed_by_admin_id","reviewed_at","rejection_reason","created_at","updated_at"], generate_album_applications(config.album_applications, config.users, config.artists))
