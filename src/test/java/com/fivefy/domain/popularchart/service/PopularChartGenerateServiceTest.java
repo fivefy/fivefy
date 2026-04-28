@@ -17,6 +17,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static com.fivefy.domain.popularchart.service.PopularChartGenerateService.TOP_CHART_LIMIT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -57,7 +58,8 @@ class PopularChartGenerateServiceTest {
             given(playbackRepository.countWeeklyValidPlayByTrack(
                     startDateTime,
                     snapshotDateTime,
-                    MINIMUM_VALID_PLAY_SECONDS
+                    MINIMUM_VALID_PLAY_SECONDS,
+                    TOP_CHART_LIMIT
             )).willReturn(results);
 
             lenient().when(popularChartRepository.existsBySnapshotDate(snapshotDateTime))
@@ -100,7 +102,8 @@ class PopularChartGenerateServiceTest {
             given(playbackRepository.countWeeklyValidPlayByTrack(
                     startDateTime,
                     snapshotDateTime,
-                    MINIMUM_VALID_PLAY_SECONDS
+                    MINIMUM_VALID_PLAY_SECONDS,
+                    TOP_CHART_LIMIT
             )).willReturn(List.of());
 
             // when
@@ -128,7 +131,8 @@ class PopularChartGenerateServiceTest {
             given(playbackRepository.countWeeklyValidPlayByTrack(
                     startDateTime,
                     snapshotDateTime,
-                    30
+                    MINIMUM_VALID_PLAY_SECONDS,
+                    TOP_CHART_LIMIT
             )).willReturn(results);
 
             lenient().when(popularChartRepository.existsBySnapshotDate(any(LocalDateTime.class)))
@@ -157,7 +161,8 @@ class PopularChartGenerateServiceTest {
             given(playbackRepository.countWeeklyValidPlayByTrack(
                     startDateTime,
                     snapshotDateTime,
-                    MINIMUM_VALID_PLAY_SECONDS
+                    MINIMUM_VALID_PLAY_SECONDS,
+                    TOP_CHART_LIMIT
             )).willReturn(results);
 
             lenient().when(popularChartRepository.existsBySnapshotDate(snapshotDateTime))
