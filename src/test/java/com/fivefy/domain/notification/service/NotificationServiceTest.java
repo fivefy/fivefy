@@ -92,7 +92,7 @@ class NotificationServiceTest {
             notificationService.subscribe(USER_ID, null);
 
             // then
-            verify(notificationRepository, never()).findMissedNotifications(any(), any());
+            verify(notificationRepository, never()).findMissedNotifications(any(), any(), any(Pageable.class));
         }
 
         @Test
@@ -103,7 +103,7 @@ class NotificationServiceTest {
             Notification missed2 = makeNotification(USER_ID);
 
             given(notificationRepository.countByUserIdAndReadAtIsNull(USER_ID)).willReturn(2L);
-            given(notificationRepository.findMissedNotifications(USER_ID, LAST_EVENT_ID))
+            given(notificationRepository.findMissedNotifications(eq(USER_ID), eq(LAST_EVENT_ID), any(Pageable.class)))
                     .willReturn(List.of(missed1, missed2));
 
             // when
@@ -111,7 +111,7 @@ class NotificationServiceTest {
 
             // then
             assertThat(emitter).isNotNull();
-            verify(notificationRepository).findMissedNotifications(USER_ID, LAST_EVENT_ID);
+            verify(notificationRepository).findMissedNotifications(eq(USER_ID), eq(LAST_EVENT_ID), any(Pageable.class));
         }
 
         @Test
@@ -119,14 +119,14 @@ class NotificationServiceTest {
         void subscribe_withLastEventId_noMissed_noReplay() {
             // given
             given(notificationRepository.countByUserIdAndReadAtIsNull(USER_ID)).willReturn(0L);
-            given(notificationRepository.findMissedNotifications(USER_ID, LAST_EVENT_ID))
+            given(notificationRepository.findMissedNotifications(eq(USER_ID), eq(LAST_EVENT_ID), any(Pageable.class)))
                     .willReturn(List.of());
 
             // when
             notificationService.subscribe(USER_ID, LAST_EVENT_ID);
 
             // then — findMissedNotifications는 호출되지만 emitter.send()는 0번
-            verify(notificationRepository).findMissedNotifications(USER_ID, LAST_EVENT_ID);
+            verify(notificationRepository).findMissedNotifications(eq(USER_ID), eq(LAST_EVENT_ID), any(Pageable.class));
         }
     }
 
@@ -172,7 +172,9 @@ class NotificationServiceTest {
             // given
             Notification notification = makeNotification(USER_ID);
             given(notificationRepository.save(any())).willReturn(notification);
-            given(objectMapper.writeValueAsString(any())).willThrow(new RuntimeException("직렬화 실패"));
+            given(objectMapper.writeValueAsString(any())).willReturn("{}");
+            given(stringRedisTemplate.convertAndSend(any(), any(String.class)))
+                    .willThrow(new RuntimeException("Redis 장애"));
             given(sseEmitterRepository.findAllByUserId(USER_ID)).willReturn(List.of());
 
             // when
