@@ -73,13 +73,24 @@ class NotificationControllerTest {
         @DisplayName("구독 요청 시 200과 text/event-stream을 반환한다")
         void subscribe_returns200() throws Exception {
             // given
-            given(notificationService.subscribe(any())).willReturn(new SseEmitter());
+            given(notificationService.subscribe(any(), any())).willReturn(new SseEmitter());
 
             // when & then
             mockMvc.perform(get("/api/notifications/subscribe")
                             .accept(MediaType.TEXT_EVENT_STREAM))
                             .andExpect(status().isOk())
                             .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM));
+        }
+
+        @Test
+        @DisplayName("Last-Event-ID 헤더와 함께 재연결 시 200을 반환한다")
+        void subscribe_withLastEventId_returns200() throws Exception {
+            given(notificationService.subscribe(any(), eq(5L))).willReturn(new SseEmitter());
+
+            mockMvc.perform(get("/api/notifications/subscribe")
+                            .header("Last-Event-ID", "5")
+                            .accept(MediaType.TEXT_EVENT_STREAM))
+                            .andExpect(status().isOk());
         }
     }
 
