@@ -20,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -42,30 +43,21 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class NotificationServiceTest {
 
-    @Mock
-    private NotificationRepository notificationRepository;
-
-    @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private SseEmitterRepository sseEmitterRepository;
-
-    @Mock
-    private FollowRepository followRepository;
-
-    @Mock
-    private StringRedisTemplate stringRedisTemplate;
-
-    @Mock
-    private ObjectMapper objectMapper;
+    @Mock private NotificationRepository notificationRepository;
+    @Mock private UserRepository userRepository;
+    @Mock private SseEmitterRepository sseEmitterRepository;
+    @Mock private FollowRepository followRepository;
+    @Mock private StringRedisTemplate stringRedisTemplate;
+    @Mock private ObjectMapper objectMapper;
+    @Mock private RabbitTemplate rabbitTemplate;
 
     @InjectMocks
     private NotificationService notificationService;
 
-    private static final Long USER_ID = 1L;
-    private static final Long OTHER_USER_ID = 2L;
-    private static final Long NOTIFICATION_ID = 10L;
+    private static final Long USER_ID          = 1L;
+    private static final Long OTHER_USER_ID    = 2L;
+    private static final Long NOTIFICATION_ID  = 10L;
+    private static final Long LAST_EVENT_ID    = 5L;
 
     private Notification makeNotification(Long userId) {
         return Notification.create(userId, "테스트 알림", NotificationType.NEW_FOLLOWER, NotificationChannel.IN_APP);
@@ -76,18 +68,65 @@ class NotificationServiceTest {
     class Subscribe {
 
         @Test
-        @DisplayName("구독 시 SseEmitter를 저장하고 초기 이벤트를 전송한다")
-        void subscribe_savesEmitterAndSendsConnectEvent() throws Exception {
+        @DisplayName("최초 구독 시 SseEmitter를 저장하고 초기 이벤트를 전송한다")
+        void subscribe_savesEmitterAndSendsConnectEvent() {
             // given
             given(notificationRepository.countByUserIdAndReadAtIsNull(USER_ID)).willReturn(3L);
 
             // when
-            SseEmitter emitter = notificationService.subscribe(USER_ID);
+            SseEmitter emitter = notificationService.subscribe(USER_ID, null);
 
             // then
             assertThat(emitter).isNotNull();
             verify(sseEmitterRepository).save(eq(USER_ID), any(SseEmitter.class));
             verify(notificationRepository).countByUserIdAndReadAtIsNull(USER_ID);
+        }
+
+        @Test
+        @DisplayName("최초 구독 시 lastEventId가 null이면 미수신 알림 조회를 하지 않는다")
+        void subscribe_nullLastEventId_skipsReplay() {
+            // given
+            given(notificationRepository.countByUserIdAndReadAtIsNull(USER_ID)).willReturn(0L);
+
+            // when
+            notificationService.subscribe(USER_ID, null);
+
+            // then
+            verify(notificationRepository, never()).findMissedNotifications(any(), any());
+        }
+
+        @Test
+        @DisplayName("재연결 시 lastEventId 이후의 미수신 알림을 SSE로 재전송한다")
+        void subscribe_withLastEventId_replaysMissedNotifications() {
+            // given
+            Notification missed1 = makeNotification(USER_ID);
+            Notification missed2 = makeNotification(USER_ID);
+
+            given(notificationRepository.countByUserIdAndReadAtIsNull(USER_ID)).willReturn(2L);
+            given(notificationRepository.findMissedNotifications(USER_ID, LAST_EVENT_ID))
+                    .willReturn(List.of(missed1, missed2));
+
+            // when
+            SseEmitter emitter = notificationService.subscribe(USER_ID, LAST_EVENT_ID);
+
+            // then
+            assertThat(emitter).isNotNull();
+            verify(notificationRepository).findMissedNotifications(USER_ID, LAST_EVENT_ID);
+        }
+
+        @Test
+        @DisplayName("재연결 시 미수신 알림이 없으면 재전송하지 않는다")
+        void subscribe_withLastEventId_noMissed_noReplay() {
+            // given
+            given(notificationRepository.countByUserIdAndReadAtIsNull(USER_ID)).willReturn(0L);
+            given(notificationRepository.findMissedNotifications(USER_ID, LAST_EVENT_ID))
+                    .willReturn(List.of());
+
+            // when
+            notificationService.subscribe(USER_ID, LAST_EVENT_ID);
+
+            // then — findMissedNotifications는 호출되지만 emitter.send()는 0번
+            verify(notificationRepository).findMissedNotifications(USER_ID, LAST_EVENT_ID);
         }
     }
 
@@ -97,7 +136,7 @@ class NotificationServiceTest {
 
         @Test
         @DisplayName("Redis publish 성공 시 SENT 상태로 저장된다")
-        void send_withConnection_marksAsSent() throws Exception {
+        void send_redisSuccess_marksAsSent() throws Exception {
             // given
             Notification notification = makeNotification(USER_ID);
             given(notificationRepository.save(any())).willReturn(notification);
@@ -113,12 +152,28 @@ class NotificationServiceTest {
         }
 
         @Test
+        @DisplayName("Redis publish 성공 시 fallbackSseDirectPush를 호출하지 않는다")
+        void send_redisSuccess_doesNotCallFallback() throws Exception {
+            // given
+            Notification notification = makeNotification(USER_ID);
+            given(notificationRepository.save(any())).willReturn(notification);
+            given(objectMapper.writeValueAsString(any())).willReturn("{}");
+
+            // when
+            notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림");
+
+            // then
+            verify(sseEmitterRepository, never()).findAllByUserId(any());
+        }
+
+        @Test
         @DisplayName("Redis publish 실패 시 FAILED 상태로 저장된다")
-        void send_redisPublishFails_marksAsFailed() throws Exception {
+        void send_redisFails_marksAsFailed() throws Exception {
             // given
             Notification notification = makeNotification(USER_ID);
             given(notificationRepository.save(any())).willReturn(notification);
             given(objectMapper.writeValueAsString(any())).willThrow(new RuntimeException("직렬화 실패"));
+            given(sseEmitterRepository.findAllByUserId(USER_ID)).willReturn(List.of());
 
             // when
             notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림");
@@ -126,6 +181,60 @@ class NotificationServiceTest {
             // then
             assertThat(notification.getStatus()).isEqualTo(NotificationStatus.FAILED);
             verify(notificationRepository, times(2)).save(any());
+        }
+
+        @Test
+        @DisplayName("Redis publish 실패 시 연결된 SSE emitter에 직접 전송한다")
+        void send_redisFails_fallbackSseDirectPush() throws Exception {
+            // given
+            Notification notification = makeNotification(USER_ID);
+            SseEmitter emitter = mock(SseEmitter.class);
+
+            given(notificationRepository.save(any())).willReturn(notification);
+            given(objectMapper.writeValueAsString(any())).willThrow(new RuntimeException("Redis 장애"));
+            given(sseEmitterRepository.findAllByUserId(USER_ID)).willReturn(List.of(emitter));
+
+            // when
+            notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림");
+
+            // then
+            verify(sseEmitterRepository).findAllByUserId(USER_ID);
+            verify(emitter).send(any(SseEmitter.SseEventBuilder.class));
+        }
+
+        @Test
+        @DisplayName("Redis publish 실패 시 연결된 emitter가 없으면 SSE 전송을 시도하지 않는다")
+        void send_redisFails_noEmitter_skipsDirectPush() throws Exception {
+            // given
+            Notification notification = makeNotification(USER_ID);
+            given(notificationRepository.save(any())).willReturn(notification);
+            given(objectMapper.writeValueAsString(any())).willThrow(new RuntimeException("Redis 장애"));
+            given(sseEmitterRepository.findAllByUserId(USER_ID)).willReturn(List.of());
+
+            // when
+            notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림");
+
+            // then — emitter.send() 호출 없음
+            verify(sseEmitterRepository).findAllByUserId(USER_ID);
+        }
+
+        @Test
+        @DisplayName("SSE 직접 전송 중 IOException 발생 시 해당 emitter를 삭제한다")
+        void send_fallbackSseDirectPush_ioException_removesEmitter() throws Exception {
+            // given
+            Notification notification = makeNotification(USER_ID);
+            SseEmitter brokenEmitter = mock(SseEmitter.class);
+
+            given(notificationRepository.save(any())).willReturn(notification);
+            given(objectMapper.writeValueAsString(any())).willThrow(new RuntimeException("Redis 장애"));
+            given(sseEmitterRepository.findAllByUserId(USER_ID)).willReturn(List.of(brokenEmitter));
+            doThrow(new IOException("연결 끊김")).when(brokenEmitter).send(any(SseEmitter.SseEventBuilder.class));
+
+            // when
+            notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림");
+
+            // then
+            verify(sseEmitterRepository).delete(eq(USER_ID), eq(brokenEmitter));
         }
 
         @Test
