@@ -6,6 +6,7 @@ import com.fivefy.domain.popularchart.entity.PopularChart;
 import com.fivefy.domain.popularchart.repository.PopularChartRepository;
 import com.fivefy.domain.popularchart.utils.PopularChartDateUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,10 +18,13 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class PopularChartGenerateService {
 
     // 유효 재생 기준 (30초 이상 재생된 경우만 집계)
     private static final int MINIMUM_VALID_PLAY_SECONDS = 30;
+    // Top100 차트 제한
+    private static final int TOP_CHART_LIMIT = 100;
 
     private final PlaybackRepository playbackRepository;
     private final PopularChartRepository popularChartRepository;
@@ -28,74 +32,74 @@ public class PopularChartGenerateService {
     @Transactional
     public void generateWeeklyChart(LocalDate date) {
         // 1. 기준 날짜를 해당 주 월요일(snapshotDate)로 보정
-        // 차트는 "주 단위 스냅샷" 기준으로 관리
         LocalDate snapshotDate = PopularChartDateUtils.getSnapshotMonday(date);
-
-        // 2. 집계 구간 설정
-        // 이전 주 월요일 00:00 ~ 해당 주 월요일 00:00
         LocalDateTime snapshotDateTime = snapshotDate.atStartOfDay();
+
+        // 2. 집계 구간 설정 (이전 주 월요일 00:00 ~ 해당 주 월요일 00:00)
         LocalDateTime startDateTime = snapshotDateTime.minusWeeks(1);
 
-        // 개발 단계에서 로직 확인을 위한 로그 (운영 시 logger로 변경 예정)
-        System.out.println("snapshotDateTime = " + snapshotDateTime);
-        System.out.println("startDateTime = " + startDateTime);
+        log.info(
+                "주간 인기 차트 생성 시작 - startDateTime={}, snapshotDateTime={}",
+                startDateTime,
+                snapshotDateTime
+        );
 
-        /**
-         * 3. 유효 재생 기준을 반영한 Playback 집계
-         * - playedDuration >= 30초
-         * - 동일 sessionId + trackId는 1회만 집계
-         * - 종료된 재생(STOPPED, SKIPPED, COMPLETED)만 포함
-         */
-        List<TrackPlayCountProjection> results =
-                playbackRepository.countWeeklyValidPlayByTrack(
-                        startDateTime,
-                        snapshotDateTime,
-                        MINIMUM_VALID_PLAY_SECONDS
-                );
+        // 3. 유효 재생 기준으로 Playback 집계
+        // playedDuration >= 30초
+        // 동일 sessionId + trackId는 1회만 집계 (DISTINCT)
+        // 종료된 재생(STOPPED, SKIPPED, COMPLETED)만 포함
+        List<TrackPlayCountProjection> results = playbackRepository.countWeeklyValidPlayByTrack(
+                startDateTime,
+                snapshotDateTime,
+                MINIMUM_VALID_PLAY_SECONDS
+        );
 
-        System.out.println("results size = " + results.size());
-
-        // 4. 집계 결과가 없으면 종료 (불필요한 DB 작업 방지)
+        // 4. 집계 결과가 없으면 종료
         if (results.isEmpty()) {
-            System.out.println("집계 결과 없음");
+            log.info("주간 인기 차트 생성 종료 - 집계 결과 없음, snapshotDateTime={}", snapshotDateTime);
             return;
         }
 
-        // 5. 동일 snapshotDate 데이터가 존재하면 삭제 후 재생성
-        // 주간 차트는 snapshot 덮어쓰기 전략
+        // 5. 기존 차트가 존재하면 삭제 (snapshot 덮어쓰기)
         if (popularChartRepository.existsBySnapshotDate(snapshotDateTime)) {
-            System.out.println("기존 차트 삭제");
             popularChartRepository.deleteAllBySnapshotDate(snapshotDateTime);
+            log.info("기존 주간 인기 차트 삭제 완료 - snapshotDateTime={}", snapshotDateTime);
         }
 
+        // 6. Top100 차트 생성
+        List<PopularChart> charts = createTopCharts(results, snapshotDateTime);
+
+        // 7. 차트 저장
+        popularChartRepository.saveAllAndFlush(charts);
+
+        log.info(
+                "주간 인기 차트 생성 완료 - snapshotDateTime={}, chartCount={}",
+                snapshotDateTime,
+                charts.size()
+        );
+    }
+
+    // 집계 결과를 기반으로 Top100 차트 엔티티 생성
+    private List<PopularChart> createTopCharts(
+            List<TrackPlayCountProjection> results,
+            LocalDateTime snapshotDateTime
+    ) {
         List<PopularChart> charts = new ArrayList<>();
 
         int rank = 1;
 
-        // 6. 집계 결과 기반으로 차트 생성 (Top 100)
-        for (TrackPlayCountProjection result : results.stream().limit(100).toList()) {
-            System.out.println("trackId = " + result.getTrackId()
-                    + ", playCount = " + result.getPlayCount());
-
+        // 집계 결과를 순위 기반으로 Top100까지 차트 생성
+        for (TrackPlayCountProjection result : results.stream().limit(TOP_CHART_LIMIT).toList()) {
             charts.add(
                     PopularChart.create(
                             result.getTrackId(),   // 트랙 ID
                             rank++,                // 순위
                             result.getPlayCount(), // 재생 수
-                            snapshotDateTime       // 기준 snapshotDat
+                            snapshotDateTime       // 기준 snapshotDate
                     )
             );
         }
 
-        System.out.println("charts size before save = " + charts.size());
-
-        // 7. 차트 일괄 저장
-        popularChartRepository.saveAllAndFlush(charts);
-
-        System.out.println("차트 저장 완료");
-
-        // 8. 저장 결과 확인 (디버깅용)
-        long count = popularChartRepository.countBySnapshotDate(snapshotDateTime);
-        System.out.println("현재 snapshotDate 차트 개수 = " + count);
+        return charts;
     }
 }
