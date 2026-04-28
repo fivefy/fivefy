@@ -13,7 +13,14 @@ import java.time.LocalDateTime;
 @Table(
         name = "popular_charts",
         uniqueConstraints = {
-                @UniqueConstraint(name = "uk_snapshot_track", columnNames = {"snapshot_date", "track_id"})
+                @UniqueConstraint(
+                        name = "uk_popular_chart_snapshot_track",
+                        columnNames = {"snapshot_date", "track_id"}
+                ),
+                @UniqueConstraint(
+                        name = "uk_popular_chart_snapshot_rank",
+                        columnNames = {"snapshot_date", "chart_rank"}
+                )
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -23,16 +30,16 @@ public class PopularChart {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "track_id", nullable = false)
     private Long trackId;
 
-    @Column(nullable = false)
+    @Column(name = "chart_rank", nullable = false)
     private Integer chartRank;
 
-    @Column(nullable = false)
+    @Column(name = "play_count", nullable = false)
     private Long playCount;
 
-    @Column(nullable = false)
+    @Column(name = "snapshot_date", nullable = false)
     private LocalDateTime snapshotDate;
 
     public static PopularChart create(Long trackId, Integer chartRank, Long playCount, LocalDateTime snapshotDate) {

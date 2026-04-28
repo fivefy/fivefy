@@ -17,6 +17,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static com.fivefy.domain.popularchart.service.PopularChartGenerateService.TOP_CHART_LIMIT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -57,7 +58,8 @@ class PopularChartGenerateServiceTest {
             given(playbackRepository.countWeeklyValidPlayByTrack(
                     startDateTime,
                     snapshotDateTime,
-                    MINIMUM_VALID_PLAY_SECONDS
+                    MINIMUM_VALID_PLAY_SECONDS,
+                    TOP_CHART_LIMIT
             )).willReturn(results);
 
             lenient().when(popularChartRepository.existsBySnapshotDate(snapshotDateTime))
@@ -90,7 +92,7 @@ class PopularChartGenerateServiceTest {
         }
 
         @Test
-        @DisplayName("집계 결과가 없으면 저장하지 않고 종료한다")
+        @DisplayName("집계 결과가 없으면 기존 차트를 삭제하고 저장하지 않고 종료한다")
         void generateWeeklyChart_emptyResult() {
             // given
             LocalDate date = LocalDate.of(2026, 4, 16);
@@ -100,14 +102,45 @@ class PopularChartGenerateServiceTest {
             given(playbackRepository.countWeeklyValidPlayByTrack(
                     startDateTime,
                     snapshotDateTime,
-                    MINIMUM_VALID_PLAY_SECONDS
+                    MINIMUM_VALID_PLAY_SECONDS,
+                    TOP_CHART_LIMIT
             )).willReturn(List.of());
+
+            given(popularChartRepository.existsBySnapshotDate(snapshotDateTime))
+                    .willReturn(true);
 
             // when
             popularChartGenerateService.generateWeeklyChart(date);
 
             // then
-            verify(popularChartRepository, never()).existsBySnapshotDate(any(LocalDateTime.class));
+            verify(popularChartRepository).existsBySnapshotDate(snapshotDateTime);
+            verify(popularChartRepository).deleteAllBySnapshotDate(snapshotDateTime);
+            verify(popularChartRepository, never()).saveAllAndFlush(any());
+        }
+
+        @Test
+        @DisplayName("집계 결과가 없고 기존 차트도 없으면 저장하지 않고 종료한다")
+        void generateWeeklyChart_emptyResult_withoutExistingSnapshot() {
+            // given
+            LocalDate date = LocalDate.of(2026, 4, 16);
+            LocalDateTime snapshotDateTime = LocalDate.of(2026, 4, 13).atStartOfDay();
+            LocalDateTime startDateTime = snapshotDateTime.minusWeeks(1);
+
+            given(playbackRepository.countWeeklyValidPlayByTrack(
+                    startDateTime,
+                    snapshotDateTime,
+                    MINIMUM_VALID_PLAY_SECONDS,
+                    TOP_CHART_LIMIT
+            )).willReturn(List.of());
+
+            given(popularChartRepository.existsBySnapshotDate(snapshotDateTime))
+                    .willReturn(false);
+
+            // when
+            popularChartGenerateService.generateWeeklyChart(date);
+
+            // then
+            verify(popularChartRepository).existsBySnapshotDate(snapshotDateTime);
             verify(popularChartRepository, never()).deleteAllBySnapshotDate(any(LocalDateTime.class));
             verify(popularChartRepository, never()).saveAllAndFlush(any());
         }
@@ -128,52 +161,47 @@ class PopularChartGenerateServiceTest {
             given(playbackRepository.countWeeklyValidPlayByTrack(
                     startDateTime,
                     snapshotDateTime,
-                    30
+                    MINIMUM_VALID_PLAY_SECONDS,
+                    TOP_CHART_LIMIT
             )).willReturn(results);
 
-            lenient().when(popularChartRepository.existsBySnapshotDate(any(LocalDateTime.class)))
-                    .thenReturn(true);
+            given(popularChartRepository.existsBySnapshotDate(snapshotDateTime))
+                    .willReturn(true);
 
             // when
             popularChartGenerateService.generateWeeklyChart(date);
 
             // then
-            verify(popularChartRepository).deleteAllBySnapshotDate(any(LocalDateTime.class));
+            verify(popularChartRepository).existsBySnapshotDate(snapshotDateTime);
+            verify(popularChartRepository).deleteAllBySnapshotDate(snapshotDateTime);
             verify(popularChartRepository).saveAllAndFlush(any());
         }
 
         @Test
-        @DisplayName("집계 결과가 100개를 초과하면 상위 100개만 저장한다")
-        void generateWeeklyChart_saveOnlyTop100() {
+        @DisplayName("집계 쿼리에 Top100 제한 값을 전달한다")
+        void generateWeeklyChart_passTopChartLimitToQuery() {
             // given
             LocalDate date = LocalDate.of(2026, 4, 16);
             LocalDateTime snapshotDateTime = LocalDate.of(2026, 4, 13).atStartOfDay();
             LocalDateTime startDateTime = snapshotDateTime.minusWeeks(1);
 
-            List<TrackPlayCountProjection> results = java.util.stream.LongStream.rangeClosed(1, 120)
-                    .mapToObj(i -> mockProjection(i, 200L - i))
-                    .toList();
-
             given(playbackRepository.countWeeklyValidPlayByTrack(
                     startDateTime,
                     snapshotDateTime,
-                    MINIMUM_VALID_PLAY_SECONDS
-            )).willReturn(results);
-
-            lenient().when(popularChartRepository.existsBySnapshotDate(snapshotDateTime))
-                    .thenReturn(false);
+                    MINIMUM_VALID_PLAY_SECONDS,
+                    TOP_CHART_LIMIT
+            )).willReturn(List.of());
 
             // when
             popularChartGenerateService.generateWeeklyChart(date);
 
             // then
-            ArgumentCaptor<List<PopularChart>> captor = ArgumentCaptor.forClass(List.class);
-            verify(popularChartRepository).saveAllAndFlush(captor.capture());
-
-            List<PopularChart> savedCharts = captor.getValue();
-            assertThat(savedCharts).hasSize(100);
-            assertThat(savedCharts.get(0).getChartRank()).isEqualTo(1);
-            assertThat(savedCharts.get(99).getChartRank()).isEqualTo(100);
+            verify(playbackRepository).countWeeklyValidPlayByTrack(
+                    startDateTime,
+                    snapshotDateTime,
+                    MINIMUM_VALID_PLAY_SECONDS,
+                    TOP_CHART_LIMIT
+            );
         }
 
         private TrackPlayCountProjection mockProjection(Long trackId, Long playCount) {

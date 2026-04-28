@@ -25,7 +25,7 @@ public interface PlaybackRepository extends JpaRepository<Playback, Long> {
 
     List<Playback> findAllByUserIdOrderByIdDesc(Long userId);
 
-    // 주어진 기간(startDate ~ endDate) 동안 track별 재생 수 집계
+    // 주어진 기간(startDate ~ endDate) 동안 track별 유효 재생 수를 Top N까지만 집계
     @Query(value = """
         SELECT t.track_id AS trackId, COUNT(*) AS playCount
         FROM (
@@ -38,10 +38,12 @@ public interface PlaybackRepository extends JpaRepository<Playback, Long> {
         ) t
         GROUP BY t.track_id
         ORDER BY COUNT(*) DESC, t.track_id ASC
+        LIMIT :limit
         """, nativeQuery = true)
     List<TrackPlayCountProjection> countWeeklyValidPlayByTrack(
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate,
-            @Param("minimumPlayedDuration") int minimumPlayedDuration
+            @Param("minimumPlayedDuration") int minimumPlayedDuration,
+            @Param("limit") int limit
     );
 }

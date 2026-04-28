@@ -13,5 +13,4 @@ public interface PopularChartRepository extends JpaRepository<PopularChart, Long
     Optional<PopularChart> findFirstByOrderBySnapshotDateDesc();
     boolean existsBySnapshotDate(LocalDateTime snapshotDate);
     void deleteAllBySnapshotDate(LocalDateTime snapshotDate);
-    long countBySnapshotDate(LocalDateTime snapshotDate);
 }
