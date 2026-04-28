@@ -83,7 +83,6 @@ def insert_table(connection, input_dir: Path, spec: dict[str, Any], batch_size: 
         if batch:
             cursor.executemany(sql, batch)
             inserted += len(batch)
-    connection.commit()
     print(f"[insert] {table}: completed total={inserted}")
 
 def main() -> None:
