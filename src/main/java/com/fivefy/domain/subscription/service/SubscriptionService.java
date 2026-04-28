@@ -1,9 +1,11 @@
 package com.fivefy.domain.subscription.service;
 
+import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.pointorder.entity.PointOrder;
 import com.fivefy.domain.pointorder.repository.PointOrderRepository;
 import com.fivefy.domain.subscription.dto.SubscriptionResponse;
 import com.fivefy.domain.subscription.entity.Subscription;
+import com.fivefy.domain.subscription.enums.SubscriptionErrorCode;
 import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
 import com.fivefy.domain.subscription.enums.SubscriptionStatus;
 import com.fivefy.domain.subscription.repository.SubscriptionRepository;
@@ -48,7 +50,7 @@ public class SubscriptionService {
                         userId,
                         SubscriptionPlanType.RECURRING,
                         SubscriptionStatus.ACTIVE)
-                .orElseThrow(() -> new IllegalArgumentException("활성 구독 없음"));
+                .orElseThrow(() -> new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_NOT_FOUND));
 
         subscription.cancel();
     }

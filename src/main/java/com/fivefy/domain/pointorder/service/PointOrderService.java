@@ -1,8 +1,10 @@
 package com.fivefy.domain.pointorder.service;
 
+import com.fivefy.common.exception.BusinessException;
 import com.fivefy.common.lock.annotation.RedissonLock;
 import com.fivefy.domain.pointorder.dto.PointOrderPurchaseRequest;
 import com.fivefy.domain.pointorder.entity.PointOrder;
+import com.fivefy.domain.pointorder.enums.PointOrderErrorCode;
 import com.fivefy.domain.pointorder.repository.PointOrderRepository;
 import com.fivefy.domain.subscription.dto.SubscriptionResponse;
 import com.fivefy.domain.subscription.entity.Subscription;
@@ -13,6 +15,7 @@ import com.fivefy.domain.wallet.entity.PointHistory;
 import com.fivefy.domain.wallet.entity.Wallet;
 import com.fivefy.domain.wallet.enums.PointHistoryType;
 import com.fivefy.domain.wallet.enums.PointType;
+import com.fivefy.domain.wallet.enums.WalletErrorCode;
 import com.fivefy.domain.wallet.repository.PointHistoryRepository;
 import com.fivefy.domain.wallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
@@ -60,7 +63,7 @@ public class PointOrderService {
             boolean alreadyUsedFree = userOrders.stream()
                     .anyMatch(o -> o.getPlanType() == SubscriptionPlanType.FREE);
             if (alreadyUsedFree) {
-                throw new IllegalStateException("무료 체험은 1회만 가능합니다.");
+                throw new BusinessException(PointOrderErrorCode.ERR_FREE_PLAN_ALREADY_USED);
             }
         }
 
@@ -71,7 +74,7 @@ public class PointOrderService {
                     .anyMatch(s -> s.getPlanType() == SubscriptionPlanType.RECURRING
                             && s.getStatus() == SubscriptionStatus.ACTIVE);
             if (alreadyActive) {
-                throw new IllegalStateException("이미 구독 중입니다.");
+                throw new BusinessException(PointOrderErrorCode.ERR_SUBSCRIPTION_ALREADY_ACTIVE);
             }
         }
 
@@ -84,7 +87,7 @@ public class PointOrderService {
         Long price = planType.getPrice();
         if (price > 0) {
             Wallet wallet = walletRepository.findByUserId(userId)
-                    .orElseThrow(() -> new IllegalArgumentException("지갑 없음"));
+                    .orElseThrow(() -> new BusinessException(WalletErrorCode.ERR_WALLET_NOT_FOUND));
             // (무료 포인트 먼저 소진 후 유료 차감)
             wallet.useBalanceWithPriority(price);
 

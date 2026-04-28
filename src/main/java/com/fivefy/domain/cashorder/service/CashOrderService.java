@@ -1,5 +1,6 @@
 package com.fivefy.domain.cashorder.service;
 
+import com.fivefy.common.exception.BusinessException;
 import com.fivefy.common.lock.annotation.RedissonLock;
 import com.fivefy.common.portone.PortoneWebhookVerifier;
 import com.fivefy.common.portone.client.PortoneClient;
@@ -13,6 +14,7 @@ import com.fivefy.domain.cashorder.dto.CashOrderRefundRequest;
 import com.fivefy.domain.cashorder.dto.CashOrderResponse;
 import com.fivefy.domain.cashorder.dto.CashOrderVerifyRequest;
 import com.fivefy.domain.cashorder.entity.CashOrder;
+import com.fivefy.domain.cashorder.enums.CashOrderErrorCode;
 import com.fivefy.domain.cashorder.enums.CashOrderStatus;
 import com.fivefy.domain.cashorder.enums.CashProductType;
 import com.fivefy.domain.cashorder.repository.CashOrderRepository;
@@ -22,6 +24,7 @@ import com.fivefy.domain.wallet.entity.PointHistory;
 import com.fivefy.domain.wallet.entity.Wallet;
 import com.fivefy.domain.wallet.enums.PointHistoryType;
 import com.fivefy.domain.wallet.enums.PointType;
+import com.fivefy.domain.wallet.enums.WalletErrorCode;
 import com.fivefy.domain.wallet.repository.PointHistoryRepository;
 import com.fivefy.domain.wallet.repository.WalletRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -99,11 +102,11 @@ public class CashOrderService {
 
         // 주문 조회
         CashOrder cashOrder = cashOrderRepository.findByOrderNumber(request.orderNumber())
-                .orElseThrow(() -> new EntityNotFoundException("없는 주문"));
+                .orElseThrow(() -> new BusinessException(CashOrderErrorCode.ERR_CASH_ORDER_NOT_FOUND));
 
         // 본인 검증
         if (!cashOrder.getUserId().equals(userId))
-            throw new IllegalArgumentException("본인 주문만 환불 가능");
+            throw new BusinessException(CashOrderErrorCode.ERR_CASH_ORDER_FORBIDDEN);
 
         // Payment(CashOrder의 기록, pg트랜젝션과 멱등키가 있다.)에서 pgTransactionId 가져오기
         // Payment 상태 변경 (orderNumber로 조회 : 상태변경) : 포인트 구매 이력을 조회해서 orderNumber을 통해 환불(PaymentResponse)
@@ -119,7 +122,7 @@ public class CashOrderService {
 
         // 취소 응답 확인 : SUCCEEDED가 아니면 처리 중단
         if (!"SUCCEEDED".equals(cancelResponse.status())) {
-            throw new IllegalStateException("포트원 결제 취소 실패: " + cancelResponse.status());
+            throw new BusinessException(CashOrderErrorCode.ERR_CASH_ORDER_CANCEL_FAILED);
         }
 
         // 3. DB 상태 변경만 트랜잭션으로 처리
@@ -144,7 +147,7 @@ public class CashOrderService {
         // 포인트를 이미 사용한 경우 useBalance()에서 잔액 부족 예외 발생 가능
         //   → 스케줄러 도입 시 음수 잔액 허용 또는 별도 정책 필요
         Wallet wallet = walletRepository.findByUserId(cashOrder.getUserId())
-                .orElseThrow(() -> new IllegalArgumentException("지갑 없음"));
+                .orElseThrow(() -> new BusinessException(WalletErrorCode.ERR_WALLET_NOT_FOUND));
         wallet.refundBalance(cashOrder.getPointAmount());
 
         pointHistoryRepository.save(PointHistory.create(
@@ -193,7 +196,7 @@ public class CashOrderService {
         try {
             request = objectMapper.readValue(rawBody, PortoneWebhookRequest.class);
         } catch (Exception e) {
-            throw new IllegalArgumentException("웹훅 body 파싱 실패");
+            throw new BusinessException(CashOrderErrorCode.ERR_CASH_ORDER_WEBHOOK_PARSE_FAILED);
         }
 
         System.out.println("웹훅 타입: " + request.type());
@@ -219,7 +222,8 @@ public class CashOrderService {
 
         // CashOrder 조회 (orderNumber 기준)
         CashOrder cashOrder = cashOrderRepository.findByOrderNumber(pgPayment.orderNumber())
-                .orElseThrow(() -> new IllegalArgumentException("주문 없음"));
+                .orElseThrow(() -> new BusinessException(CashOrderErrorCode.ERR_CASH_ORDER_NOT_FOUND)
+                );
 
 
         // 상태(결제 대기) : PENDING이 아니면 이미 처리된 주문 → 무시
@@ -230,7 +234,7 @@ public class CashOrderService {
         // 금액 검증
         // PortonePaymentResponse에서 결제 대금을 totalAmount으로 두고, 포인트 구매에서 결제 대금을 CashAmount로 둔다.
         if (!pgPayment.totalAmount().equals(cashOrder.getCashAmount())) {
-            throw new IllegalStateException("결제 금액 불일치");
+            throw new BusinessException(CashOrderErrorCode.ERR_CASH_ORDER_AMOUNT_MISMATCH);
         }
 
         // CashOrder PENDING → SUCCESS, webhookId 저장
@@ -249,7 +253,7 @@ public class CashOrderService {
 
         // Wallet 충전
         Wallet wallet = walletRepository.findByUserId(cashOrder.getUserId())
-                .orElseThrow(() -> new IllegalArgumentException("지갑 없음"));
+                .orElseThrow(() -> new BusinessException(WalletErrorCode.ERR_WALLET_NOT_FOUND));
         wallet.chargeBalance(cashOrder.getPointAmount());   // 포인트 지급
         // 지갑 이력(PointHistory)
         pointHistoryRepository.save(PointHistory.create(

@@ -1,6 +1,8 @@
 package com.fivefy.domain.subscription.entity;
 
 import com.fivefy.common.entity.BaseEntity;
+import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.subscription.enums.SubscriptionErrorCode;
 import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
 import com.fivefy.domain.subscription.enums.SubscriptionStatus;
 import jakarta.persistence.*;
@@ -93,10 +95,10 @@ public class Subscription extends BaseEntity {
      */
     public void cancel() {
         if (this.planType == SubscriptionPlanType.FREE) {
-            throw new IllegalStateException("무료 구독은 취소할 수 없습니다");
+            throw new BusinessException(SubscriptionErrorCode.ERR_FREE_SUBSCRIPTION_CANNOT_CANCEL);
         }
         if (this.status != SubscriptionStatus.ACTIVE && this.status != SubscriptionStatus.INACTIVE) {
-            throw new IllegalStateException("활성/비활성 상태에서만 취소할 수 있습니다 현재: " + this.status);
+            throw new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_INVALID_STATUS_CANCEL);
         }
 
         this.status = SubscriptionStatus.CANCELED;
@@ -118,10 +120,10 @@ public class Subscription extends BaseEntity {
      */
     public void renew() {
         if (this.planType != SubscriptionPlanType.RECURRING) {
-            throw new IllegalStateException("RECURRING 플랜만 갱신할 수 있습니다.");
+            throw new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_NOT_RECURRING);
         }
         if (this.nextBillingDate == null) {
-            throw new IllegalStateException("취소된 구독은 갱신할 수 없습니다.");
+            throw new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_ALREADY_CANCELED);
         }
         this.nextBillingDate = this.nextBillingDate.plusMonths(1);
         this.expiryDate      = this.expiryDate.plusMonths(1);

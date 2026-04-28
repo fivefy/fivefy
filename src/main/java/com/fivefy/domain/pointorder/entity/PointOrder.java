@@ -1,6 +1,8 @@
 package com.fivefy.domain.pointorder.entity;
 
 import com.fivefy.common.entity.BaseEntity;
+import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.pointorder.enums.PointOrderErrorCode;
 import com.fivefy.domain.pointorder.enums.PointOrderStatus;
 import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
 import jakarta.persistence.*;
@@ -75,7 +77,7 @@ public class PointOrder extends BaseEntity {
      */
     public void success() {
         if (this.status != PointOrderStatus.PENDING) {
-            throw new IllegalStateException("PENDING 상태에서만 성공 처리할 수 있습니다.");
+            throw new BusinessException(PointOrderErrorCode.ERR_POINT_ORDER_INVALID_STATUS_SUCCESS);
         }
         this.status = PointOrderStatus.SUCCESS;
     }
@@ -86,7 +88,7 @@ public class PointOrder extends BaseEntity {
      */
     public void refund() {
         if (this.status != PointOrderStatus.SUCCESS) {
-            throw new IllegalStateException("SUCCESS 상태에서만 환불 처리할 수 있습니다.");
+            throw new BusinessException(PointOrderErrorCode.ERR_POINT_ORDER_INVALID_STATUS_REFUND);
         }
         this.status = PointOrderStatus.REFUNDED;
     }

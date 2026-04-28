@@ -1,7 +1,9 @@
 package com.fivefy.domain.payment.service;
 
+import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.payment.dto.PaymentResponse;
 import com.fivefy.domain.payment.entity.Payment;
+import com.fivefy.domain.payment.enums.PaymentErrorCode;
 import com.fivefy.domain.payment.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,10 +38,10 @@ public class PaymentService {
      */
     public PaymentResponse getPayment(Long userId, Long paymentId) {
         Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new IllegalArgumentException("결제 내역 없음"));
+                .orElseThrow(() -> new BusinessException(PaymentErrorCode.ERR_PAYMENT_NOT_FOUND));
 
         if (!payment.getUserId().equals(userId)) {
-            throw new IllegalStateException("본인 결제만 조회 가능");
+            throw new BusinessException(PaymentErrorCode.ERR_PAYMENT_FORBIDDEN);
         }
 
         return PaymentResponse.from(payment);
