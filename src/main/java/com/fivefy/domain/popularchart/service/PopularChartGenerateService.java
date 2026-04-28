@@ -20,11 +20,11 @@ import java.util.List;
 @Transactional(readOnly = true)
 @Slf4j
 public class PopularChartGenerateService {
+    // Top100 차트 제한
+    public static final int TOP_CHART_LIMIT = 100;
 
     // 유효 재생 기준 (30초 이상 재생된 경우만 집계)
     private static final int MINIMUM_VALID_PLAY_SECONDS = 30;
-    // Top100 차트 제한
-    private static final int TOP_CHART_LIMIT = 100;
 
     private final PlaybackRepository playbackRepository;
     private final PopularChartRepository popularChartRepository;
