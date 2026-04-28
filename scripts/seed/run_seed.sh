@@ -83,6 +83,8 @@ clean_seed() {
 }
 
 run_seed() {
+  assert_safe_clean_target
+
   if ! python3 -c "import pymysql" >/dev/null 2>&1; then
     echo "[seed] PyMySQL is not installed."
     echo "[seed] Install dependencies first:"
