@@ -36,6 +36,22 @@ if [ -z "${DB_PASSWORD:-}" ]; then
   exit 1
 fi
 
+assert_safe_clean_target() {
+  if [ "${DB_HOST}" != "127.0.0.1" ] && [ "${DB_HOST}" != "localhost" ]; then
+    echo "[seed] destructive command blocked."
+    echo "[seed] clean/reset is allowed only for local DB host."
+    echo "[seed] current DB_HOST=${DB_HOST}"
+    exit 1
+  fi
+
+  if [ "${DB_NAME}" != "fivefy_db" ]; then
+    echo "[seed] destructive command blocked."
+    echo "[seed] clean/reset is allowed only for fivefy_db."
+    echo "[seed] current DB_NAME=${DB_NAME}"
+    exit 1
+  fi
+}
+
 run_mysql_file() {
   local sql_file="$1"
 
@@ -48,6 +64,8 @@ run_mysql_file() {
 }
 
 clean_seed() {
+  assert_safe_clean_target
+
   local clean_file="${DATASET_DIR}/clean.sql"
 
   if [ ! -f "${clean_file}" ]; then
