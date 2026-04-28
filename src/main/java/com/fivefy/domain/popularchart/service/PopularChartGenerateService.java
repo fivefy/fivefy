@@ -51,7 +51,8 @@ public class PopularChartGenerateService {
         List<TrackPlayCountProjection> results = playbackRepository.countWeeklyValidPlayByTrack(
                 startDateTime,
                 snapshotDateTime,
-                MINIMUM_VALID_PLAY_SECONDS
+                MINIMUM_VALID_PLAY_SECONDS,
+                TOP_CHART_LIMIT
         );
 
         // 4. 집계 결과가 없으면 종료
@@ -89,7 +90,7 @@ public class PopularChartGenerateService {
         int rank = 1;
 
         // 집계 결과를 순위 기반으로 Top100까지 차트 생성
-        for (TrackPlayCountProjection result : results.stream().limit(TOP_CHART_LIMIT).toList()) {
+        for (TrackPlayCountProjection result : results) {
             charts.add(
                     PopularChart.create(
                             result.getTrackId(),   // 트랙 ID
