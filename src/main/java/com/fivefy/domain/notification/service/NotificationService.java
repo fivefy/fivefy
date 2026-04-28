@@ -46,6 +46,7 @@ public class NotificationService {
     private static final long SSE_TIMEOUT = 60 * 60 * 1000L;
     private static final String SSE_EVENT_CONNECT = "connect";
     private static final String REDIS_NOTIFICATION_CHANNEL = "notification:";
+    private static final String SSE_EVENT_NOTIFICATION = "notification";
     private static final int CHUNK_SIZE = 1000;
 
     private final NotificationRepository notificationRepository;
@@ -57,7 +58,7 @@ public class NotificationService {
     private final FollowRepository  followRepository;
 
     // 알림 구독
-    public SseEmitter subscribe(Long userId) {
+    public SseEmitter subscribe(Long userId, Long lastEventId) {
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
 
         sseEmitterRepository.save(userId, emitter);
@@ -68,7 +69,6 @@ public class NotificationService {
             emitter.complete();
         });
         emitter.onError(e -> sseEmitterRepository.delete(userId, emitter));
-
 
         // 연결 직후 초기 이벤트 전송
         try {
@@ -81,7 +81,36 @@ public class NotificationService {
             sseEmitterRepository.delete(userId, emitter);
         }
 
+        // last-event-id 기반 미수신 알림 재전송
+        if (lastEventId != null) {
+            replayMissedNotifications(userId, lastEventId, emitter);
+        }
+
         return emitter;
+    }
+
+    // 재연결 시 lastEventId 이후 알림 전송
+    private void replayMissedNotifications(Long userId, Long lastEventId, SseEmitter emitter) {
+        List<Notification> missed = notificationRepository.findMissedNotifications(userId, lastEventId);
+
+        if (missed.isEmpty()) {
+            return;
+        }
+
+        log.info("미수신 알림 재전송: userId={}, lastEventId={}, 건수={}", userId, lastEventId, missed.size());
+
+        for (Notification notification : missed) {
+            try {
+                emitter.send(SseEmitter.event()
+                        .id(String.valueOf(notification.getId()))
+                        .name(SSE_EVENT_NOTIFICATION)
+                        .data(NotificationGetResponse.from(notification)));
+            } catch (IOException e) {
+                log.warn("미수신 알림 재전송 실패: userId={}, lastEventId={}", userId, lastEventId);
+                sseEmitterRepository.delete(userId, emitter);
+                break;
+            }
+        }
     }
 
     // 알림 발송 (수신 -> 저장 -> sse push)

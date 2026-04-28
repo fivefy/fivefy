@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
     Page<Notification> findAllByUserId(Long userId, Pageable pageable);
@@ -19,4 +21,10 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     Integer markAllAsRead(@Param("userId") Long userId);
 
     void deleteAllByUserId(Long userId);
+
+    @Query("SELECT n FROM Notification n WHERE n.userId = :userId AND n.id > :lastEventId ORDER BY n.id ASC")
+    List<Notification> findMissedNotifications(
+            @Param("userId") Long userId,
+            @Param("lastEventId") Long lastEventId
+    );
 }
