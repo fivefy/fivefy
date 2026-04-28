@@ -92,7 +92,7 @@ class PopularChartGenerateServiceTest {
         }
 
         @Test
-        @DisplayName("집계 결과가 없으면 저장하지 않고 종료한다")
+        @DisplayName("집계 결과가 없으면 기존 차트를 삭제하고 저장하지 않고 종료한다")
         void generateWeeklyChart_emptyResult() {
             // given
             LocalDate date = LocalDate.of(2026, 4, 16);
@@ -106,11 +106,41 @@ class PopularChartGenerateServiceTest {
                     TOP_CHART_LIMIT
             )).willReturn(List.of());
 
+            given(popularChartRepository.existsBySnapshotDate(snapshotDateTime))
+                    .willReturn(true);
+
             // when
             popularChartGenerateService.generateWeeklyChart(date);
 
             // then
-            verify(popularChartRepository, never()).existsBySnapshotDate(any(LocalDateTime.class));
+            verify(popularChartRepository).existsBySnapshotDate(snapshotDateTime);
+            verify(popularChartRepository).deleteAllBySnapshotDate(snapshotDateTime);
+            verify(popularChartRepository, never()).saveAllAndFlush(any());
+        }
+
+        @Test
+        @DisplayName("집계 결과가 없고 기존 차트도 없으면 저장하지 않고 종료한다")
+        void generateWeeklyChart_emptyResult_withoutExistingSnapshot() {
+            // given
+            LocalDate date = LocalDate.of(2026, 4, 16);
+            LocalDateTime snapshotDateTime = LocalDate.of(2026, 4, 13).atStartOfDay();
+            LocalDateTime startDateTime = snapshotDateTime.minusWeeks(1);
+
+            given(playbackRepository.countWeeklyValidPlayByTrack(
+                    startDateTime,
+                    snapshotDateTime,
+                    MINIMUM_VALID_PLAY_SECONDS,
+                    TOP_CHART_LIMIT
+            )).willReturn(List.of());
+
+            given(popularChartRepository.existsBySnapshotDate(snapshotDateTime))
+                    .willReturn(false);
+
+            // when
+            popularChartGenerateService.generateWeeklyChart(date);
+
+            // then
+            verify(popularChartRepository).existsBySnapshotDate(snapshotDateTime);
             verify(popularChartRepository, never()).deleteAllBySnapshotDate(any(LocalDateTime.class));
             verify(popularChartRepository, never()).saveAllAndFlush(any());
         }
@@ -135,14 +165,15 @@ class PopularChartGenerateServiceTest {
                     TOP_CHART_LIMIT
             )).willReturn(results);
 
-            lenient().when(popularChartRepository.existsBySnapshotDate(any(LocalDateTime.class)))
-                    .thenReturn(true);
+            given(popularChartRepository.existsBySnapshotDate(snapshotDateTime))
+                    .willReturn(true);
 
             // when
             popularChartGenerateService.generateWeeklyChart(date);
 
             // then
-            verify(popularChartRepository).deleteAllBySnapshotDate(any(LocalDateTime.class));
+            verify(popularChartRepository).existsBySnapshotDate(snapshotDateTime);
+            verify(popularChartRepository).deleteAllBySnapshotDate(snapshotDateTime);
             verify(popularChartRepository).saveAllAndFlush(any());
         }
 
