@@ -191,7 +191,9 @@ class NotificationServiceTest {
             SseEmitter emitter = mock(SseEmitter.class);
 
             given(notificationRepository.save(any())).willReturn(notification);
-            given(objectMapper.writeValueAsString(any())).willThrow(new RuntimeException("Redis 장애"));
+            given(objectMapper.writeValueAsString(any())).willReturn("{}");
+            given(stringRedisTemplate.convertAndSend(any(), any(String.class)))
+                    .willThrow(new RuntimeException("Redis 장애"));
             given(sseEmitterRepository.findAllByUserId(USER_ID)).willReturn(List.of(emitter));
 
             // when
@@ -208,7 +210,9 @@ class NotificationServiceTest {
             // given
             Notification notification = makeNotification(USER_ID);
             given(notificationRepository.save(any())).willReturn(notification);
-            given(objectMapper.writeValueAsString(any())).willThrow(new RuntimeException("Redis 장애"));
+            given(objectMapper.writeValueAsString(any())).willReturn("{}");
+            given(stringRedisTemplate.convertAndSend(any(), any(String.class)))
+                    .willThrow(new RuntimeException("Redis 장애"));
             given(sseEmitterRepository.findAllByUserId(USER_ID)).willReturn(List.of());
 
             // when
@@ -226,7 +230,9 @@ class NotificationServiceTest {
             SseEmitter brokenEmitter = mock(SseEmitter.class);
 
             given(notificationRepository.save(any())).willReturn(notification);
-            given(objectMapper.writeValueAsString(any())).willThrow(new RuntimeException("Redis 장애"));
+            given(objectMapper.writeValueAsString(any())).willReturn("{}");
+            given(stringRedisTemplate.convertAndSend(any(), any(String.class)))
+                    .willThrow(new RuntimeException("Redis 장애"));
             given(sseEmitterRepository.findAllByUserId(USER_ID)).willReturn(List.of(brokenEmitter));
             doThrow(new IOException("연결 끊김")).when(brokenEmitter).send(any(SseEmitter.SseEventBuilder.class));
 
