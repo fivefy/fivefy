@@ -71,7 +71,7 @@ def generate_users(count: int):
         updated_at = random_datetime_between(created_at, NOW)
         deleted_at = random_datetime_between(updated_at, NOW) if status == "DELETED" else None
         last_active_at = random_datetime_between(created_at, NOW) if status == "ACTIVE" else None
-        yield [user_id, f"user{user_id}@fivefy.local", "$2a$10$seededPasswordHashForPerformanceTest", f"User {user_id}", role, status, format_dt(last_active_at), format_dt(created_at), format_dt(updated_at), format_dt(deleted_at)]
+        yield [user_id, f"user{user_id}@fivefy.local", "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy", f"User {user_id}", role, status, format_dt(last_active_at), format_dt(created_at), format_dt(updated_at), format_dt(deleted_at)]
 
 def generate_wallets(count: int):
     for wallet_id in range(1, count + 1):
