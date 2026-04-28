@@ -55,16 +55,16 @@ public class PopularChartGenerateService {
                 TOP_CHART_LIMIT
         );
 
-        // 4. 집계 결과가 없으면 종료
-        if (results.isEmpty()) {
-            log.info("주간 인기 차트 생성 종료 - 집계 결과 없음, snapshotDateTime={}", snapshotDateTime);
-            return;
-        }
-
-        // 5. 기존 차트가 존재하면 삭제 (snapshot 덮어쓰기)
+        // 4. 기존 snapshot 있으면 무조건 삭제
         if (popularChartRepository.existsBySnapshotDate(snapshotDateTime)) {
             popularChartRepository.deleteAllBySnapshotDate(snapshotDateTime);
             log.info("기존 주간 인기 차트 삭제 완료 - snapshotDateTime={}", snapshotDateTime);
+        }
+
+        // 5. 집계 결과가 없으면 종료
+        if (results.isEmpty()) {
+            log.info("주간 인기 차트 생성 종료 - 집계 결과 없음, snapshotDateTime={}", snapshotDateTime);
+            return;
         }
 
         // 6. Top100 차트 생성
