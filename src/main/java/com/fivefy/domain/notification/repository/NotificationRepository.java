@@ -25,6 +25,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Query("SELECT n FROM Notification n WHERE n.userId = :userId AND n.id > :lastEventId ORDER BY n.id ASC")
     List<Notification> findMissedNotifications(
             @Param("userId") Long userId,
-            @Param("lastEventId") Long lastEventId
+            @Param("lastEventId") Long lastEventId,
+            Pageable pageable
     );
 }

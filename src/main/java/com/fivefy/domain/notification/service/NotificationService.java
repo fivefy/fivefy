@@ -92,7 +92,8 @@ public class NotificationService {
 
     // 재연결 시 lastEventId 이후 알림 전송
     private void replayMissedNotifications(Long userId, Long lastEventId, SseEmitter emitter) {
-        List<Notification> missed = notificationRepository.findMissedNotifications(userId, lastEventId);
+        List<Notification> missed = notificationRepository.findMissedNotifications(
+                userId, lastEventId, PageRequest.of(0, 100));
 
         if (missed.isEmpty()) {
             return;
