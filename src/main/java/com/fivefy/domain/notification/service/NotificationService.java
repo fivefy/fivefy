@@ -35,6 +35,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -189,6 +190,31 @@ public class NotificationService {
             log.error("알림 발송 실패: userId={}, type={}", userId, type);
             saved.markAsFailed();
             notificationRepository.save(saved);
+
+            // redis 실패 보완 현재 연결된 emitter 직접 전송
+            fallbackSseDirectPush(saved);
+        }
+    }
+
+    private void fallbackSseDirectPush(Notification notification) {
+        List<SseEmitter> emitters = sseEmitterRepository.findAllByUserId(notification.getUserId());
+        if (emitters.isEmpty()) {
+            log.warn("SSE 직접 전송 불가 (연결된 emitter 없음): userId{}", notification.getUserId());
+            return;
+        }
+
+        for (SseEmitter emitter : emitters) {
+            try{
+                emitter.send(SseEmitter.event()
+                        .id(String.valueOf(notification.getId()))
+                        .name(SSE_EVENT_NOTIFICATION)
+                        .data(NotificationGetResponse.from(notification)));
+                log.info("SSE 직접 전송 성공: userId={}, notificationId={}",
+                        notification.getUserId(), notification.getId());
+            } catch (IOException e) {
+                log.warn("SSE 직접 전송 실패: userID={}", notification.getUserId());
+                sseEmitterRepository.delete(notification.getUserId(), emitter);
+            }
         }
     }
 
