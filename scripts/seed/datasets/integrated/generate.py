@@ -161,39 +161,22 @@ def generate_tracks(count: int, user_count: int, artist_count: int, album_count:
         yield [track_id, owner_user_id, track_type, nullable(artist_id), nullable(album_id), nullable(track_number), f"Track {track_id}", f"Lyrics for track {track_id}", f"GENRE_{random.randint(1,20)}", f"https://cdn.fivefy.local/audio/{track_id}.mp3", random.randint(60,420), nullable(featured_artist_text), status, format_dt(scheduled_publish_at), format_dt(published_at), int(random.paretovariate(1.5)*100), format_dt(created_at), format_dt(updated_at), format_dt(random_datetime_between(updated_at,NOW) if random.random()<0.05 else None)]
 
 def generate_likes(count: int, user_count: int, track_count: int):
-    used = set()
     for like_id in range(1, count + 1):
-        user_id = random.randint(1, user_count)
-        target_id = random.randint(1, track_count)
+        user_id = ((like_id - 1) % user_count) + 1
+        target_id = (((like_id - 1) // user_count) % track_count) + 1
         target_type = "TRACK"
-        retry = 0
-        while (user_id, target_id, target_type) in used and retry < 20:
-            user_id = random.randint(1, user_count)
-            target_id = random.randint(1, track_count)
-            retry += 1
-        if (user_id, target_id, target_type) in used:
-            continue
-        used.add((user_id, target_id, target_type))
         created_at = random_datetime_between(BASE_DATE, NOW)
-        updated_at = random_datetime_between(created_at, NOW)
+
         yield [like_id, user_id, target_id, target_type, format_dt(created_at)]
 
 def generate_follows(count: int, user_count: int, artist_count: int):
-    used = set()
     for follow_id in range(1, count + 1):
-        user_id = random.randint(1, user_count)
-        artist_id = random.randint(1, artist_count)
-        retry = 0
-        while (user_id, artist_id) in used and retry < 20:
-            user_id = random.randint(1, user_count)
-            artist_id = random.randint(1, artist_count)
-            retry += 1
-        if (user_id, artist_id) in used:
-            continue
-        used.add((user_id, artist_id))
+        user_id = ((follow_id - 1) % user_count) + 1
+        artist_id = (((follow_id - 1) // user_count) % artist_count) + 1
+        notification_enabled = 1 if random.random() < 0.8 else 0
         created_at = random_datetime_between(BASE_DATE, NOW)
-        updated_at = random_datetime_between(created_at, NOW)
-        yield [follow_id, artist_id, user_id, 1 if random.random() < 0.8 else 0, format_dt(created_at)]
+
+        yield [follow_id, artist_id, user_id, notification_enabled, format_dt(created_at)]
 
 def generate_playbacks(count: int, user_count: int, playlist_count: int, track_count: int):
     for playback_id in range(1, count + 1):
