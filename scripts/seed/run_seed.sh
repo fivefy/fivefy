@@ -112,7 +112,11 @@ run_seed() {
     --scale "${SCALE}" \
     --input-dir "${OUTPUT_ROOT_DIR}/${DATASET}"
 
-  run_mysql_file "${DATASET_DIR}/validate.sql"
+  if ! run_mysql_file "${DATASET_DIR}/validate.sql"; then
+    echo "[seed] validate failed. cleaning seeded data."
+    clean_seed
+    exit 1
+  fi
 
   echo "[seed] completed."
 }
