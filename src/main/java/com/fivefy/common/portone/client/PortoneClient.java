@@ -26,14 +26,18 @@ public class PortoneClient {
     /**
      * 포트원 결제(실제돈 → 포인트) 단건 조회
      * 웹훅에서 받은 paymentId(= orderNumber)로 포트원에 실제 결제 정보를 조회
+     *             = CashOrder에서 포트원이 부여한 결제 ID를 orderNumber에 넣음(CashOrderService 75)
      * 금액 검증, orderNumber 확인에 사용
      *
-     * + storeId 누락 시 포트원이 어느 상점인지 모르므로 에러(404) 반환 (필수)
+     * + storeId 누락 시 포트원이 어느 상점(대표, 하위(n))인지 모르므로 에러(404) 반환 (필수)
      * -> String url = BASE_URL + "/payments/" + paymentId + "?storeId=" + portoneProperties.storeId();
      * ++ 2026-04-22 : 하위 상점은  storeId가 필요하지만, 대표 상점은 필요 없다. 그래서 storeId 삭제
      * -> String url = BASE_URL + "/payments/" + paymentId;
      */
     public PortonePaymentResponse getPayment(String paymentId) {
+
+        log.debug("[PortoneClient] 결제 단건 조회 요청 paymentId={}", paymentId);
+
         String url = BASE_URL + "/payments/" + paymentId;
 
         HttpHeaders headers = new HttpHeaders();
@@ -51,6 +55,8 @@ public class PortoneClient {
             throw new BusinessException(PortoneErrorCode.ERR_PORTONE_PAYMENT_NOT_FOUND);
         }
 
+        log.debug("[PortoneClient] 결제 단건 조회 완료 paymentId={}", paymentId);
+
         return response.getBody();
     }
 
@@ -62,6 +68,9 @@ public class PortoneClient {
      * 전액 환불: amount = cashOrder.getCashAmount()
      */
     public PortoneCancelResponse cancelPayment(String paymentId, Long amount, String reason) {
+
+        log.info("[PortoneClient] 결제 취소 요청 paymentId={}", paymentId);
+
         String url = BASE_URL + "/payments/"
                 + paymentId + "/cancel"
                 + "?storeId=" + portoneProperties.storeId();  // storeId 추가
@@ -88,6 +97,8 @@ public class PortoneClient {
             throw new BusinessException(PortoneErrorCode.ERR_PORTONE_CANCEL_FAILED);
         }
 
+        log.info("[PortoneClient] 결제 취소 완료 paymentId={}, status={}", paymentId, response.getBody().status());
+
         return response.getBody();
     }
 
@@ -100,6 +111,9 @@ public class PortoneClient {
      * @param billingKeyId 포트원이 발급한 빌링키 ID (프론트에서 전달)
      */
      public PortoneBillingKeyResponse getBillingKey(String billingKeyId) {
+
+         log.debug("[PortoneClient] 빌링키 조회 요청 billingKeyId={}", billingKeyId);
+
          String url = BASE_URL + "/billing-keys/" + billingKeyId;
 
          ResponseEntity<PortoneBillingKeyResponse> response = restTemplate.exchange(
@@ -127,6 +141,9 @@ public class PortoneClient {
             Long amount,
             String description
     ) {
+
+        log.info("[PortoneClient] 빌링키 청구 요청 orderNumber={}", orderNumber);
+
         String url = BASE_URL + "/payments/" + orderNumber + "/billing-key";
 
         String body = """
@@ -148,6 +165,10 @@ public class PortoneClient {
         if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
             throw new BusinessException(PortoneErrorCode.ERR_PORTONE_BILLING_CHARGE_FAILED);
         }
+        // amount는 debug 한정
+        log.debug("[PortoneClient] 빌링키 청구 금액 orderNumber={}, amount={}", orderNumber, amount);
+        log.info("[PortoneClient] 빌링키 청구 완료 orderNumber={}", orderNumber);
+
         return response.getBody();
     }
 
@@ -157,6 +178,9 @@ public class PortoneClient {
      * @param billingKeyId 포트원이 발급한 빌링키 ID
      */
     public void deleteBillingKey(String billingKeyId) {
+
+        log.info("[PortoneClient] 빌링키 삭제 요청 billingKeyId={}", billingKeyId);
+
         String url = BASE_URL + "/billing-keys/" + billingKeyId;
 
         ResponseEntity<Void> response = restTemplate.exchange(
@@ -166,8 +190,11 @@ public class PortoneClient {
         if (response.getStatusCode() != HttpStatus.OK) {
             throw new BusinessException(PortoneErrorCode.ERR_PORTONE_BILLING_KEY_DELETE_FAILED);
         }
+
+        log.info("[PortoneClient] 빌링키 삭제 완료 billingKeyId={}", billingKeyId);
     }
 
+    // 조회 전용
     private HttpHeaders authHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "PortOne " + portoneProperties.apiSecret());

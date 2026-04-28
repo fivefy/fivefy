@@ -35,6 +35,8 @@ public class BillingKeyService {
     @Transactional
     public BillingKeyResponse register(Long userId, BillingKeyRegisterRequest request) {
 
+        log.info("[BillingKey] 등록 요청 userId={}, billingKeyId={}", userId, request.billingKeyId());
+
         // 1. 포트원에서 빌링키 정보 조회
         PortoneBillingKeyResponse portoneResponse = portoneClient.getBillingKey(request.billingKeyId());
 
@@ -56,6 +58,7 @@ public class BillingKeyService {
             cardName = portoneResponse.card().name();
             String number = portoneResponse.card().number();
             if (number != null && number.length() >= 4) {
+                // 4자리만
                 cardLast4 = number.substring(number.length() - 4);
             }
             // 난 카드 안씀 -> 카카오페이 추가
@@ -88,6 +91,8 @@ public class BillingKeyService {
      */
     @Transactional
     public void deactivate(Long userId, Long billingKeyId) {
+
+        log.info("[BillingKey] 해지 요청 userId={}, billingKeyId={}", userId, billingKeyId);
 
         BillingKey billingKey = billingKeyRepository.findById(billingKeyId)
                 .orElseThrow(() -> new BusinessException(BillingKeyErrorCode.ERR_BILLING_KEY_NOT_FOUND));

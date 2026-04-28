@@ -19,6 +19,7 @@ import com.fivefy.domain.cashorder.enums.CashOrderStatus;
 import com.fivefy.domain.cashorder.enums.CashProductType;
 import com.fivefy.domain.cashorder.repository.CashOrderRepository;
 import com.fivefy.domain.payment.entity.Payment;
+import com.fivefy.domain.payment.enums.PaymentErrorCode;
 import com.fivefy.domain.payment.repository.PaymentRepository;
 import com.fivefy.domain.wallet.entity.PointHistory;
 import com.fivefy.domain.wallet.entity.Wallet;
@@ -27,7 +28,6 @@ import com.fivefy.domain.wallet.enums.PointType;
 import com.fivefy.domain.wallet.enums.WalletErrorCode;
 import com.fivefy.domain.wallet.repository.PointHistoryRepository;
 import com.fivefy.domain.wallet.repository.WalletRepository;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -74,9 +74,13 @@ public class CashOrderService {
         // 포트원 SDK에 넘길 주문 식별자 (포트원이 이 값을 paymentId로 사용)
         String orderNumber = "ORD-" + UUID.randomUUID().toString().substring(0, 8);
 
+        log.info("[CashOrder] 포인트 충전 주문 시작 userId={}, productType={}", userId, productType);
+
         // PENDING 상태로 저장 — webhookId는 웹훅 수신 시 채워짐
         CashOrder cashOrder = CashOrder.create(userId, productType, orderNumber);
         cashOrderRepository.save(cashOrder);
+
+        log.info("[CashOrder] 주문 생성 완료 userId={}, orderNumber={}", userId, orderNumber);
 
         //  orderNumber만 반환 (결제 완료는 웹훅이 처리)
         return new CashOrderPurchaseResponse(orderNumber);
@@ -100,6 +104,7 @@ public class CashOrderService {
     @Transactional
     public CashOrderResponse refund(Long userId, CashOrderRefundRequest request) {
 
+        log.info("[CashOrder] 환불 요청 userId={}, orderNumber={}", userId, request.orderNumber());
         // 주문 조회
         CashOrder cashOrder = cashOrderRepository.findByOrderNumber(request.orderNumber())
                 .orElseThrow(() -> new BusinessException(CashOrderErrorCode.ERR_CASH_ORDER_NOT_FOUND));
@@ -111,7 +116,7 @@ public class CashOrderService {
         // Payment(CashOrder의 기록, pg트랜젝션과 멱등키가 있다.)에서 pgTransactionId 가져오기
         // Payment 상태 변경 (orderNumber로 조회 : 상태변경) : 포인트 구매 이력을 조회해서 orderNumber을 통해 환불(PaymentResponse)
         Payment payment = paymentRepository.findByOrderNumber(request.orderNumber())
-             .orElseThrow(() -> new EntityNotFoundException("결제 내역 없음"));
+             .orElseThrow(() -> new BusinessException(PaymentErrorCode.ERR_PAYMENT_NOT_FOUND));
 
         // 포트원에 취소 요청(외부 API 호출) (참고 코드의 cancelPaymentByImpUid에 해당)
         PortoneCancelResponse cancelResponse = portoneClient.cancelPayment(
@@ -122,8 +127,11 @@ public class CashOrderService {
 
         // 취소 응답 확인 : SUCCEEDED가 아니면 처리 중단
         if (!"SUCCEEDED".equals(cancelResponse.status())) {
+            log.error("[CashOrder] 포트원 결제 취소 실패입니다 orderNumber={}, status={}", request.orderNumber(), cancelResponse.status());
             throw new BusinessException(CashOrderErrorCode.ERR_CASH_ORDER_CANCEL_FAILED);
         }
+
+        log.info("[CashOrder] 환불 완료 userId={}, orderNumber={}", userId, request.orderNumber());
 
         // 3. DB 상태 변경만 트랜잭션으로 처리
         return saveRefundResult(cashOrder, payment, request.reason());
@@ -186,24 +194,25 @@ public class CashOrderService {
             String rawBody
     ) {
         // 웹훅 수신 즉시 로그(디버깅용)
-        System.out.println("=== 웹훅 수신 ===");
-        System.out.println("webhookId: " + webhookId);
-        System.out.println("rawBody: " + rawBody);
-        System.out.println("=================");
+        log.debug("[Webhook] 수신 webhookId={}", webhookId);
+        log.debug("[Webhook] rawBody={}", rawBody);
+
 
         // 웹훅 body 파싱 : rawBody → PortoneWebhookRequest
         PortoneWebhookRequest request;
         try {
             request = objectMapper.readValue(rawBody, PortoneWebhookRequest.class);
         } catch (Exception e) {
+            log.error("[Webhook] 파싱 실패입니다 webhookId={}", webhookId, e);
             throw new BusinessException(CashOrderErrorCode.ERR_CASH_ORDER_WEBHOOK_PARSE_FAILED);
         }
 
-        System.out.println("웹훅 타입: " + request.type());
+        log.debug("[Webhook] 타입 확인합니다 type={}", request.type());
 
         // 구독(포인트 소모) 결제 승인(Transaction.Paid)만 처리, 나머지 타입은 무시
         // 구독 결제 취소(Transaction.Cancelled) 등 다른 타입은 여기서 걸러짐
         if (!"Transaction.Paid".equals(request.type())) {
+            log.debug("[Webhook] 처리 대상 아닙니다 type={}", request.type());
             return;
         }
         // 시그니처 + 타임스탬프 검증 (위변조 / 리플레이 방지)
@@ -211,11 +220,13 @@ public class CashOrderService {
 
         // webhook-id 중복 체크 (멱등성 보장, 이미 처리된 웹훅이면 즉시 종료)
         if (cashOrderRepository.existsByWebhookId(webhookId)) {
+            log.warn("[Webhook] 중복 수신 무시합니다 webhookId={}", webhookId);
             return;
         }
 
         // 포트원 단건 조회
         String pgPaymentId = request.data().paymentId();  // ORD-xxxxxx : 포트원이 부여한 결제 ID (= orderNumber)
+        log.info("[Webhook] 결제 검증 시작합니다 webhookId={}, pgPaymentId={}", webhookId, pgPaymentId);    // 웹훅 ID와 결제 ID
 
         //                                  실제 결제 데이터 확인
         PortonePaymentResponse pgPayment = portoneClient.getPayment(pgPaymentId);
@@ -228,12 +239,14 @@ public class CashOrderService {
 
         // 상태(결제 대기) : PENDING이 아니면 이미 처리된 주문 → 무시
         if (cashOrder.getStatus() != CashOrderStatus.PENDING) {
+            log.warn("[Webhook] 이미 처리된 주문입니다 orderNumber={}, status={}", cashOrder.getOrderNumber(), cashOrder.getStatus());
             return;
         }
 
         // 금액 검증
         // PortonePaymentResponse에서 결제 대금을 totalAmount으로 두고, 포인트 구매에서 결제 대금을 CashAmount로 둔다.
         if (!pgPayment.totalAmount().equals(cashOrder.getCashAmount())) {
+            log.error("[Webhook] 결제 금액이 일치하지 않습니다 orderNumber={}", cashOrder.getOrderNumber());
             throw new BusinessException(CashOrderErrorCode.ERR_CASH_ORDER_AMOUNT_MISMATCH);
         }
 
@@ -264,6 +277,8 @@ public class CashOrderService {
                 wallet.getBalance(),        // 충전 후 잔액 스냅샷
             "포인트 충전 (" + cashOrder.getProductType().getDescription() + ")"
         ));
+
+        log.info("[Webhook] 결제 확정 완료 orderNumber={}, pgPaymentId={}", cashOrder.getOrderNumber(), pgPaymentId);
     }
 
 
@@ -286,6 +301,8 @@ public class CashOrderService {
         Long userId = billingKey.getUserId();
         CashProductType productType = CashProductType.PRODUCT_4_RECURRING;
         String orderNumber = "REC-" + UUID.randomUUID().toString().substring(0, 8);
+
+        log.info("[정기충전] 시작 userId={}, orderNumber={}", userId, orderNumber);
 
         // 1. 포트원 빌링키 청구
         PortoneBillingPaymentResponse pgResponse;

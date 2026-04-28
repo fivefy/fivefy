@@ -57,6 +57,8 @@ public class PointOrderService {
         LocalDateTime now = LocalDateTime.now();
         String orderNumber = "SUB-" + UUID.randomUUID().toString().substring(0, 8);
 
+        log.info("[PointOrder] 구독 구매 요청 userId={}, planType={}", userId, planType);
+
         // 1. FREE 1회 제한(중복 체크)
         if (planType == SubscriptionPlanType.FREE) {
             List<PointOrder> userOrders = pointOrderRepository.findAllByUserId(userId);
@@ -127,7 +129,7 @@ public class PointOrderService {
         Long price = SubscriptionPlanType.RECURRING.getPrice(); // 50P
 
         Wallet wallet = walletRepository.findByUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("지갑 없음"));
+                .orElseThrow(() -> new BusinessException(WalletErrorCode.ERR_WALLET_NOT_FOUND));
 
         // 잔액 부족 시 구독 만료
         if (wallet.getTotalBalance() < price) {
