@@ -221,23 +221,19 @@ def generate_playlists(count: int, user_count: int):
         yield [playlist_id, random.randint(1, user_count), f"Playlist {playlist_id}", f"Seed playlist description {playlist_id}", deleted, format_dt(updated_at), format_dt(deleted_at), format_dt(created_at)]
 
 def generate_playlist_tracks(count: int, playlist_count: int, track_count: int):
-    used_pairs: set[tuple[int, int]] = set()
-    position_by_playlist: dict[int, int] = {}
-    for playlist_track_id in range(1, count + 1):
-        playlist_id = random.randint(1, playlist_count)
-        track_id = random.randint(1, track_count)
-        retry = 0
-        while (playlist_id, track_id) in used_pairs and retry < 10:
-            playlist_id = random.randint(1, playlist_count)
-            track_id = random.randint(1, track_count)
-            retry += 1
-        if (playlist_id, track_id) in used_pairs:
-            continue
-        used_pairs.add((playlist_id, track_id))
-        position = position_by_playlist.get(playlist_id, 0) + 1
-        position_by_playlist[playlist_id] = position
-        created_at = random_datetime_between(BASE_DATE, NOW)
-        yield [playlist_track_id, playlist_id, track_id, position, format_dt(created_at)]
+    playlist_track_id = 1
+    base_per_playlist = count // playlist_count
+    remainder = count % playlist_count
+
+    for playlist_id in range(1, playlist_count + 1):
+        track_limit = base_per_playlist + (1 if playlist_id <= remainder else 0)
+
+        for position in range(1, track_limit + 1):
+            track_id = ((playlist_id - 1) * track_limit + position - 1) % track_count + 1
+            created_at = random_datetime_between(BASE_DATE, NOW)
+
+            yield [playlist_track_id, playlist_id, track_id, position, format_dt(created_at)]
+            playlist_track_id += 1
 
 def generate_track_comments(count: int, user_count: int, track_count: int):
     hot_track_count=min(100,track_count); hot_comment_limit=count//2
