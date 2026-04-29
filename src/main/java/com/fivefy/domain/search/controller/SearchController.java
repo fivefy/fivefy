@@ -25,7 +25,7 @@ public class SearchController {
     @GetMapping("/search")
     public ResponseEntity<BaseResponse<SearchResponse>> search(
             @RequestParam String keyword,
-            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable,
+            @PageableDefault(size = 20, sort = "relevance", direction = Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal Long userId) {
         SearchResponse response = searchService.search(keyword, pageable, userId);
 
