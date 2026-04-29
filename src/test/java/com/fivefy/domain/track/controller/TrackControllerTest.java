@@ -3,6 +3,7 @@ package com.fivefy.domain.track.controller;
 import com.fivefy.common.config.security.JwtUtil;
 import com.fivefy.common.docs.RestDocsSupport;
 import com.fivefy.common.dto.response.PageResponse;
+import com.fivefy.common.dto.response.SliceResponse;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.common.filter.LastActiveAtFilter;
 import com.fivefy.domain.artist.enums.ArtistErrorCode;
@@ -20,6 +21,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.SliceImpl;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -186,8 +188,8 @@ class TrackControllerTest extends RestDocsSupport {
                     LocalDateTime.of(2026, 5, 1, 18, 0, 0)
             );
 
-            PageResponse<PublicTrackListResponse> response = PageResponse.from(
-                    new PageImpl<>(List.of(content), PageRequest.of(0, 20), 1)
+            SliceResponse<PublicTrackListResponse> response = SliceResponse.from(
+                    new SliceImpl<>(List.of(content), PageRequest.of(0, 20), true)
             );
 
             given(trackService.getPublicTracks(any(Pageable.class))).willReturn(response);
@@ -202,8 +204,7 @@ class TrackControllerTest extends RestDocsSupport {
                     .andExpect(jsonPath("$.data.content[0].trackId").value(1L))
                     .andExpect(jsonPath("$.data.page").value(0))
                     .andExpect(jsonPath("$.data.size").value(20))
-                    .andExpect(jsonPath("$.data.totalElements").value(1))
-                    .andExpect(jsonPath("$.data.totalPages").value(1))
+                    .andExpect(jsonPath("$.data.hasNext").value(true))
                     .andDo(document("tracks-get-list",
                             queryParameters(
                                     parameterWithName("page").optional().description("페이지 번호"),
@@ -215,7 +216,7 @@ class TrackControllerTest extends RestDocsSupport {
                             ).and(
                                     publicTrackListResponseFields()
                             ).and(
-                                    pageResponseFields()
+                                    sliceResponseFields()
                             )
                     ));
         }
@@ -346,6 +347,14 @@ class TrackControllerTest extends RestDocsSupport {
                 fieldWithPath("data.size").type(NUMBER).description("페이지 크기"),
                 fieldWithPath("data.totalElements").type(NUMBER).description("전체 데이터 수"),
                 fieldWithPath("data.totalPages").type(NUMBER).description("전체 페이지 수")
+        };
+    }
+
+    private FieldDescriptor[] sliceResponseFields() {
+        return new FieldDescriptor[]{
+                fieldWithPath("data.page").type(NUMBER).description("현재 페이지"),
+                fieldWithPath("data.size").type(NUMBER).description("페이지 크기"),
+                fieldWithPath("data.hasNext").type(BOOLEAN).description("다음 페이지 존재 여부")
         };
     }
 
