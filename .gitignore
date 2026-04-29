@@ -53,5 +53,7 @@ pull.sh
 ### 메모장 ###
 대략적인가이드라인.txt
 
+### 로깅 ###
+logs/
 ### output ###
 scripts/seed/output/
