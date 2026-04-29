@@ -107,7 +107,9 @@ public class PointOrderService {
                     PointHistoryType.USE,
                     price,
                     wallet.getBalance(),
-                    "구독 결제 (" + planType.getDescription() + ")"
+                    "구독 결제 (" + planType.getDescription() + ")",
+                    null,      // cashOrderId
+                    pointOrder.getId()
             ));
         }
 
@@ -174,7 +176,9 @@ public class PointOrderService {
                 PointHistoryType.USE,
                 price,
                 wallet.getBalance(),
-                "정기 구독 자동 결제"
+                "정기 구독 자동 결제",
+                null,      // cashOrderId
+                pointOrder.getId()
         ));
 
         // 구독 갱신 (nextBillingDate +1개월, expiryDate +1개월)

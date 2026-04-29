@@ -97,7 +97,8 @@ public class TestDefaultUserInitializer implements ApplicationRunner {
         // 유료 포인트 충전 이력
         pointHistoryRepository.save(PointHistory
                 .create(wallet.getId(), PointType.PAID, PointHistoryType.CHARGE,
-                paidAmount, paidAmount, "테스트 유료 포인트 충전"
+                paidAmount, paidAmount, "테스트 유료 포인트 충전",
+                null, null
                 )
         );
 
@@ -105,7 +106,8 @@ public class TestDefaultUserInitializer implements ApplicationRunner {
         if (eventAmount > 0) {
             pointHistoryRepository.save(PointHistory
                     .create(wallet.getId(), PointType.FREE, PointHistoryType.CHARGE,
-                    eventAmount, eventAmount, "테스트 이벤트 포인트 지급"
+                    eventAmount, eventAmount, "테스트 이벤트 포인트 지급",
+                    null, null
                     )
             );
         }

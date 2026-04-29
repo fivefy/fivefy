@@ -12,7 +12,13 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
 @Entity
 @Getter
-@Table(name = "point_histories")
+@Table(
+    name = "point_histories",
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"cash_order_id", "point_history_type"}),
+        @UniqueConstraint(columnNames = {"point_order_id", "point_history_type"})
+    }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PointHistory extends BaseEntity {
 
@@ -40,6 +46,12 @@ public class PointHistory extends BaseEntity {
     @Column(nullable = false)
     private String logDescription;
 
+    @Column
+    private Long cashOrderId;   // CashOrder 관련 이력일 때 : 포인트 이력 추적용(충전)
+
+    @Column
+    private Long pointOrderId;  // PointOrder 관련 이력일 때 : 포인트 이력 추적용(사용)
+
     /**
      * 지갑 사용 내역
      * @param walletId          : 포인트 지갑 식별자
@@ -51,7 +63,9 @@ public class PointHistory extends BaseEntity {
      * @return
      */
     public static PointHistory create(Long walletId, PointType pointType, PointHistoryType pointHistoryType,
-                                      Long amount, Long balanceAfter, String logDescription) {
+                                      Long amount, Long balanceAfter, String logDescription,
+                                      Long cashOrderId, Long pointOrderId
+    ) {
         validateNonNull(walletId, "walletId");
         validateNonNull(pointType, "pointType");
         validateNonNull(pointHistoryType, "pointHistoryType");
@@ -66,6 +80,8 @@ public class PointHistory extends BaseEntity {
             history.amount = amount;
             history.balanceAfter = balanceAfter;
             history.logDescription = logDescription;
+            history.cashOrderId = cashOrderId;
+            history.pointOrderId = pointOrderId;
 
         return history;
     }
