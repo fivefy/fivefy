@@ -124,6 +124,7 @@ public class PointOrderService {
      * 잔액 부족 시 구독 만료
      */
     @RedissonLock(key = "'wallet:' + #subscription.userId")
+    @Transactional
     public void processRecurringPayment(Subscription subscription) {
         Long userId = subscription.getUserId();
         Long price = SubscriptionPlanType.RECURRING.getPrice(); // 50P
