@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -25,6 +26,7 @@ public class SearchService {
     private final SearchQueryRepository searchQueryRepository;
     private final SearchHistoryService searchHistoryService;
 
+    @Transactional(readOnly = true)
     public SearchResponse search(String keyword, Pageable pageable, Long userId) {
         String trimmedKeyword = keyword.trim();
 

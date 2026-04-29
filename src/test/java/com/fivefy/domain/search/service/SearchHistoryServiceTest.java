@@ -83,7 +83,7 @@ class SearchHistoryServiceTest {
             searchHistoryService.saveSearchHistory(null, KEYWORD, 10);
 
             // then
-            verify(redisTemplate, never()).execute(any(RedisScript.class), anyList(), any());
+            verifyNoInteractions(redisTemplate);
             verify(searchHistoryRepository, times(1)).save(any()); // DB는 저장
         }
     }

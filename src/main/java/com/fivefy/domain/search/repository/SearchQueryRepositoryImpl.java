@@ -195,6 +195,8 @@ public class SearchQueryRepositoryImpl implements SearchQueryRepository {
     private String sanitizeKeyword(String keyword) {
         return keyword
                 .replace("\\", "\\\\")
-                .replace("'", "''");
+                .replace("'", "''")
+                .replace("%", "\\%")   // LIKE 와일드카드 이스케이프
+                .replace("_", "\\_");  // LIKE 단일문자 와일드카드 이스케이프
     }
 }

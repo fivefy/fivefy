@@ -3,6 +3,7 @@ package com.fivefy.domain.search.service;
 import com.fivefy.domain.search.entity.SearchHistory;
 import com.fivefy.domain.search.repository.SearchHistoryRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SearchHistoryService {
@@ -46,13 +48,17 @@ public class SearchHistoryService {
         // Redis에 최근 기록 저장
         if (userId != null) {
             String key = RECENT_SEARCH_KEY + userId;
-            redisTemplate.execute(
-                    PUSH_RECENT_SEARCH_SCRIPT,
-                    List.of(key),
-                    keyword,
-                    String.valueOf(MAX_RECENT_SEARCH),
-                    String.valueOf(RECENT_SEARCH_TTL.toSeconds())
-            );
+            try {
+                redisTemplate.execute(
+                        PUSH_RECENT_SEARCH_SCRIPT,
+                        List.of(key),
+                        keyword,
+                        String.valueOf(MAX_RECENT_SEARCH),
+                        String.valueOf(RECENT_SEARCH_TTL.toSeconds())
+                );
+            } catch (Exception e) {
+                log.warn("Redis 최근 검색어 저장 실패: userId={}, keyword={}", userId, keyword);
+            }
         }
     }
 
