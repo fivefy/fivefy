@@ -55,3 +55,5 @@ pull.sh
 
 ### 로깅 ###
 logs/
+### output ###
+scripts/seed/output/
