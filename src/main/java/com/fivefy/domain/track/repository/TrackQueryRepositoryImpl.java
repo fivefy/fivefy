@@ -6,9 +6,7 @@ import com.fivefy.domain.track.enums.TrackType;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -49,7 +47,9 @@ public class TrackQueryRepositoryImpl implements TrackQueryRepository {
      * 공개 트랙 목록 조회
      */
     @Override
-    public Page<PublicTrackListProjection> searchPublicTracks(Pageable pageable) {
+    public Slice<PublicTrackListProjection> searchPublicTracks(Pageable pageable) {
+
+        int pageSize = pageable.getPageSize();
 
         // 공개된 트랙만 조회 (삭제되지 않았고 PUBLISHED 상태)
         List<PublicTrackListProjection> content = queryFactory
@@ -83,31 +83,18 @@ public class TrackQueryRepositoryImpl implements TrackQueryRepository {
                 )
                 // 최신 공개순 정렬 (명세 기준)
                 .orderBy(track.publishedAt.desc())
-                // 페이지네이션 적용
+                // Slice 응답을 위해 다음 페이지 존재 여부 확인용으로 1건 더 조회
                 .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
+                .limit(pageSize + 1)
                 .fetch();
 
-        // 전체 개수 조회 (PageResponse 생성용)
-        Long total = queryFactory
-                .select(track.count())
-                .from(track)
-                .leftJoin(artist).on(track.artistId.eq(artist.id))
-                .leftJoin(album).on(track.albumId.eq(album.id))
-                .where(
-                        track.deletedAt.isNull(),
-                        track.status.eq(TrackStatus.PUBLISHED),
-                        track.trackType.eq(TrackType.FREE_CREATION)
-                                .or(
-                                        track.trackType.eq(TrackType.OFFICIAL_RELEASE)
-                                                .and(album.deletedAt.isNull())
-                                                .and(album.status.eq(com.fivefy.domain.album.enums.AlbumStatus.PUBLISHED))
-                                                .and(artist.deletedAt.isNull())
-                                )
-                )
-                .fetchOne();
+        boolean hasNext = content.size() > pageSize;
 
-        return new PageImpl<>(content, pageable, total == null ? 0 : total);
+        if (hasNext) {
+            content = content.subList(0, pageSize);
+        }
+
+        return new SliceImpl<>(content, pageable, hasNext);
     }
 
     /**
