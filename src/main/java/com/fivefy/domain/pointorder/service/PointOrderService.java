@@ -2,6 +2,8 @@ package com.fivefy.domain.pointorder.service;
 
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.common.lock.annotation.RedissonLock;
+import com.fivefy.domain.notification.enums.NotificationType;
+import com.fivefy.domain.notification.event.NotificationEvent;
 import com.fivefy.domain.pointorder.dto.PointOrderPurchaseRequest;
 import com.fivefy.domain.pointorder.entity.PointOrder;
 import com.fivefy.domain.pointorder.enums.PointOrderErrorCode;
@@ -20,10 +22,12 @@ import com.fivefy.domain.wallet.repository.PointHistoryRepository;
 import com.fivefy.domain.wallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,6 +40,9 @@ public class PointOrderService {
     private final PointOrderRepository pointOrderRepository;
     private final WalletRepository walletRepository;
     private final PointHistoryRepository pointHistoryRepository;
+    private final ApplicationEventPublisher eventPublisher;
+
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy년 MM월 dd일");
 
     /**
      * 구독 구매 (포인트 → 구독)
@@ -114,6 +121,9 @@ public class PointOrderService {
         log.info("구독 구매 완료 — userId={}, planType={}, price={}P, expiryDate={}",
                 userId, planType, price, subscription.getExpiryDate());
 
+        String content = buildSubscribeContent(planType, subscription.getExpiryDate());
+        eventPublisher.publishEvent(NotificationEvent.of(userId, NotificationType.SUBSCRIBE, content));
+
         return SubscriptionResponse.from(subscription);
     }
 
@@ -138,6 +148,13 @@ public class PointOrderService {
                     userId, price, wallet.getTotalBalance());
             subscription.expire();
             subscriptionRepository.save(subscription);
+
+            eventPublisher.publishEvent(NotificationEvent.of(
+                    userId,
+                    NotificationType.SUBSCRIPTION_EXPIRE,
+                    "포인트 잔액이 부족하여 구독이 만료되었습니다."
+            ));
+
             return;
         }
 
@@ -166,5 +183,18 @@ public class PointOrderService {
 
         log.info("[정기구독] 결제 완료 — userId={}, orderNumber={}, price={}P",
                 userId, orderNumber, price);
+
+        eventPublisher.publishEvent(NotificationEvent.of(
+                userId,
+                NotificationType.SUBSCRIBE,
+                "정기 구독이 갱신되었습니다. 다음 만료일: " + subscription.getExpiryDate().format(DATE_FORMATTER)
+        ));
+    }
+
+    private String buildSubscribeContent(SubscriptionPlanType planType, LocalDateTime expiryDate) {
+        return switch (planType) {
+            case FREE -> "무료 체험 구독이 시작되었습니다. 만료일: " + expiryDate.format(DATE_FORMATTER);
+            case RECURRING -> "정기 구독이 시작되었습니다. 다음 갱신일: " + expiryDate.format(DATE_FORMATTER);
+        };
     }
 }

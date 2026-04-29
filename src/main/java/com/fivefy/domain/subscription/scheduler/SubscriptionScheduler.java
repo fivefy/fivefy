@@ -1,5 +1,7 @@
 package com.fivefy.domain.subscription.scheduler;
 
+import com.fivefy.domain.notification.enums.NotificationType;
+import com.fivefy.domain.notification.event.NotificationEvent;
 import com.fivefy.domain.pointorder.service.PointOrderService;
 import com.fivefy.domain.subscription.entity.Subscription;
 import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
@@ -7,6 +9,7 @@ import com.fivefy.domain.subscription.enums.SubscriptionStatus;
 import com.fivefy.domain.subscription.repository.SubscriptionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +23,7 @@ public class SubscriptionScheduler {
 
     private final SubscriptionRepository subscriptionRepository;
     private final PointOrderService pointOrderService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 정기 구독 결제
@@ -79,6 +83,13 @@ public class SubscriptionScheduler {
             try {
                 subscription.expire();
                 subscriptionRepository.save(subscription);
+
+                eventPublisher.publishEvent(NotificationEvent.of(
+                        subscription.getUserId(),
+                        NotificationType.SUBSCRIPTION_EXPIRE,
+                        "구독이 만료되었습니다."
+                ));
+
                 log.info("[만료 스케줄러] 만료 처리 — subscriptionId={}, userId={}",
                         subscription.getId(), subscription.getUserId());
             } catch (Exception e) {

@@ -24,8 +24,10 @@ public class NotificationController {
     private final NotificationService notificationService;
 
     @GetMapping(value = "/notifications/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter subscribe(@AuthenticationPrincipal Long userId) {
-        return notificationService.subscribe(userId);
+    public SseEmitter subscribe(
+            @AuthenticationPrincipal Long userId,
+            @RequestHeader(value = "last-event-id", required = false) Long lastEventId) {
+        return notificationService.subscribe(userId, lastEventId);
     }
 
     @GetMapping("/notifications")
