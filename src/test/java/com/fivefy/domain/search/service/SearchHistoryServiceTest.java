@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.ListOperations;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.RedisScript;
 
 import java.util.List;
 
@@ -44,9 +45,6 @@ class SearchHistoryServiceTest {
         @Test
         @DisplayName("검색 기록 저장 시 DB에 INSERT 된다")
         void saveSearchHistory_savesToDB() {
-            // given
-            given(redisTemplate.opsForList()).willReturn(listOperations);
-
             // when
             searchHistoryService.saveSearchHistory(USER_ID, KEYWORD, 10);
 
@@ -55,43 +53,27 @@ class SearchHistoryServiceTest {
         }
 
         @Test
-        @DisplayName("검색 기록 저장 시 Redis에 leftPush 된다")
-        void saveSearchHistory_leftPushToRedis() {
-            // given
-            given(redisTemplate.opsForList()).willReturn(listOperations);
-
+        @DisplayName("검색 기록 저장 시 개별 Redis 명령(leftPush, trim, remove)을 직접 호출하지 않는다")
+        void saveSearchHistory_doesNotCallIndividualRedisOps() {
             // when
             searchHistoryService.saveSearchHistory(USER_ID, KEYWORD, 10);
 
-            // then
-            verify(listOperations, times(1)).leftPush(REDIS_KEY, KEYWORD);
+            // then — Lua Script로 원자화되었으므로 개별 호출 없음
+            verify(redisTemplate, never()).opsForList();
         }
 
         @Test
-        @DisplayName("Redis 최근 기록 10개 초과 시 trim 된다")
-        void saveSearchHistory_trimAfterPush() {
-            // given
-            given(redisTemplate.opsForList()).willReturn(listOperations);
-
+        @DisplayName("TTL이 Lua Script 내부에서 설정된다")
+        void saveSearchHistory_setsTTLviaLuaScript() {
             // when
             searchHistoryService.saveSearchHistory(USER_ID, KEYWORD, 10);
 
-            // then
-            verify(listOperations, times(1)).trim(REDIS_KEY, 0, 9);
-        }
-
-        @Test
-        @DisplayName("중복 키워드 저장 시 remove 후 leftPush 된다")
-        void saveSearchHistory_removeThenLeftPushForDuplicate() {
-            // given
-            given(redisTemplate.opsForList()).willReturn(listOperations);
-
-            // when
-            searchHistoryService.saveSearchHistory(USER_ID, KEYWORD, 10);
-
-            // then
-            verify(listOperations, times(1)).remove(REDIS_KEY, 0, KEYWORD);
-            verify(listOperations, times(1)).leftPush(REDIS_KEY, KEYWORD);
+            // then — EXPIRE 명령도 Lua Script 내부에서 처리, execute 1번 호출로 검증
+            verify(redisTemplate, times(1)).execute(
+                    any(RedisScript.class),
+                    anyList(),
+                    any(), any(), any()
+            );
         }
 
         @Test
@@ -101,7 +83,7 @@ class SearchHistoryServiceTest {
             searchHistoryService.saveSearchHistory(null, KEYWORD, 10);
 
             // then
-            verify(redisTemplate, never()).opsForList();
+            verify(redisTemplate, never()).execute(any(RedisScript.class), anyList(), any());
             verify(searchHistoryRepository, times(1)).save(any()); // DB는 저장
         }
     }
@@ -124,6 +106,20 @@ class SearchHistoryServiceTest {
             // then
             assertThat(result).hasSize(3);
             assertThat(result).containsExactly("아이유", "루나", "뉴진스");
+        }
+
+        @Test
+        @DisplayName("Redis에서 null 반환 시 빈 리스트를 반환한다")
+        void getRecentSearchHistories_redisReturnsNull_returnsEmptyList() {
+            // given
+            given(redisTemplate.opsForList()).willReturn(listOperations);
+            given(listOperations.range(REDIS_KEY, 0, -1)).willReturn(null);
+
+            // when
+            List<String> result = searchHistoryService.getRecentSearchHistories(USER_ID);
+
+            // then
+            assertThat(result).isEmpty();
         }
 
         @Test
