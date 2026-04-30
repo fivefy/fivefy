@@ -22,6 +22,7 @@ import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -35,7 +36,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 
@@ -49,6 +51,7 @@ public class NotificationService {
     private static final String REDIS_NOTIFICATION_CHANNEL = "notification:";
     private static final String SSE_EVENT_NOTIFICATION = "notification";
     private static final int CHUNK_SIZE = 1000;
+    private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
@@ -119,7 +122,8 @@ public class NotificationService {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleNotificationEvent(NotificationEvent event) {
-        send(event.targetUserId(), event.type(), event.content());
+        send(event.targetUserId(), event.type(), event.content(),
+                event.actorId(), event.resourceId());
     }
 
     @Async
@@ -168,9 +172,21 @@ public class NotificationService {
     }
 
     // Redis publish
-    public void send(Long userId, NotificationType type, String content) {
-        Notification notification = Notification.create(userId, content, type, NotificationChannel.IN_APP);
-        Notification saved = notificationRepository.save(notification);
+    public void send(Long userId, NotificationType type, String content,
+                     Long actorId, Long resourceId) {
+        String idempotencyKey = buildIdempotencyKey(userId, type, actorId, resourceId);
+
+        Notification saved;
+        try {
+            Notification notification = Notification.create(
+                    userId, content, type, NotificationChannel.IN_APP,
+                    actorId, resourceId, idempotencyKey);
+            saved = notificationRepository.save(notification);
+        } catch (DataIntegrityViolationException e) {
+            // 동일 키로 이미 발송된 알림 — 중복 스킵
+            log.info("중복 알림 스킵: userId={}, type={}, key={}", userId, type, idempotencyKey);
+            return;
+        }
 
         try {
             NotificationMessage message = new NotificationMessage(
@@ -195,6 +211,37 @@ public class NotificationService {
             // redis 실패 보완 현재 연결된 emitter 직접 전송
             fallbackSseDirectPush(saved);
         }
+    }
+
+    /**
+     * idempotency key 생성
+     *
+     * actorId / resourceId 가 있는 타입 → 행위자/리소스 기반으로 세분화
+     *   NEW_FOLLOWER  : {userId}:NEW_FOLLOWER:{actorId}          (다른 사람이 팔로우 = 다른 알림)
+     *   TRACK_LIKED   : {userId}:TRACK_LIKED:{resourceId}:{actorId}
+     *   ALBUM_LIKED   : {userId}:ALBUM_LIKED:{resourceId}:{actorId}
+     *   PUBLISH_TRACK : {userId}:PUBLISH_TRACK:{resourceId}      (같은 트랙 발매 알림 중복 방지)
+     *
+     * actorId / resourceId 없는 타입 → 월 단위로 관리
+     *   SUBSCRIBE, SUBSCRIPTION_CANCEL, SUBSCRIPTION_EXPIRE : {userId}:{type}:{yyyy-MM}
+     */
+
+    private String buildIdempotencyKey(Long userId, NotificationType type,
+                                       Long actorId, Long resourceId) {
+        return switch (type) {
+            case NEW_FOLLOWER ->
+                    userId + ":NEW_FOLLOWER:" + actorId;
+            case TRACK_LIKED ->
+                    userId + ":TRACK_LIKED:" + resourceId + ":" + actorId;
+            case ALBUM_LIKED ->
+                    userId + ":ALBUM_LIKED:" + resourceId + ":" + actorId;
+            case PUBLISH_TRACK ->
+                    userId + ":PUBLISH_TRACK:" + resourceId;
+            case SUBSCRIBE, SUBSCRIPTION_CANCEL, SUBSCRIPTION_EXPIRE -> {
+                String month = LocalDateTime.now().format(MONTH_FORMATTER);
+                yield userId + ":" + type.name() + ":" + month;
+            }
+        };
     }
 
     private void fallbackSseDirectPush(Notification notification) {

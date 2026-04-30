@@ -89,7 +89,9 @@ public class LikeService {
                     eventPublisher.publishEvent(NotificationEvent.of(
                             artist.getOwnerUserId(),
                             NotificationType.TRACK_LIKED,
-                            user.getName() + "님이 \"" + track.getTitle() + "\" 트랙을 좋아합니다"
+                            user.getName() + "님이 \"" + track.getTitle() + "\" 트랙을 좋아합니다",
+                            user.getId(),
+                            track.getId()
                     ));
                 }
                 case ALBUM -> {
@@ -98,7 +100,9 @@ public class LikeService {
                     eventPublisher.publishEvent(NotificationEvent.of(
                             artist.getOwnerUserId(),
                             NotificationType.ALBUM_LIKED,
-                            user.getName() + "님이 \"" + album.getTitle() + "\" 앨범을 좋아합니다"
+                            user.getName() + "님이 \"" + album.getTitle() + "\" 앨범을 좋아합니다",
+                            user.getId(),
+                            album.getId()
                     ));
                 }
             }

@@ -48,7 +48,9 @@ public class FollowService {
             eventPublisher.publishEvent(NotificationEvent.of(
                     artist.getOwnerUserId(),
                     NotificationType.NEW_FOLLOWER,
-                    user.getName() + "님이 팔로우했습니다"
+                    user.getName() + "님이 팔로우했습니다",
+                    user.getId(),
+                    null
             ));
 
             return FollowCreateResponse.from(follow);
