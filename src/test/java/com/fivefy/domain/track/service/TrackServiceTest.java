@@ -34,10 +34,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -1990,7 +1987,7 @@ class TrackServiceTest {
             );
 
             when(trackRepository.searchPublicTracks(pageable))
-                    .thenReturn(new PageImpl<>(List.of(projection1, projection2), pageable, 2));
+                    .thenReturn(new SliceImpl<>(List.of(projection1, projection2), pageable, true));
 
             SliceResponse<PublicTrackListResponse> response =
                     trackService.getPublicTracks(pageable);
@@ -2011,6 +2008,7 @@ class TrackServiceTest {
 
             assertThat(response.page()).isEqualTo(0);
             assertThat(response.size()).isEqualTo(20);
+            assertThat(response.hasNext()).isTrue();
         }
 
         @Test
@@ -2032,7 +2030,7 @@ class TrackServiceTest {
             );
 
             when(trackRepository.searchPublicTracks(pageable))
-                    .thenReturn(new PageImpl<>(List.of(projection), pageable, 1));
+                    .thenReturn(new SliceImpl<>(List.of(projection), pageable, false));
 
             SliceResponse<PublicTrackListResponse> response =
                     trackService.getPublicTracks(pageable);
@@ -2049,6 +2047,7 @@ class TrackServiceTest {
             assertThat(response.content().get(0).playCount()).isEqualTo(300L);
             assertThat(response.content().get(0).publishedAt())
                     .isEqualTo(LocalDateTime.of(2026, 5, 2, 12, 0, 0));
+            assertThat(response.hasNext()).isFalse();
         }
 
         @Test
@@ -2057,7 +2056,7 @@ class TrackServiceTest {
             Pageable pageable = PageRequest.of(0, 20);
 
             when(trackRepository.searchPublicTracks(pageable))
-                    .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+                    .thenReturn(new SliceImpl<>(List.of(), pageable, false));
 
             SliceResponse<PublicTrackListResponse> response =
                     trackService.getPublicTracks(pageable);
@@ -2065,6 +2064,7 @@ class TrackServiceTest {
             assertThat(response.content()).isEmpty();
             assertThat(response.page()).isEqualTo(0);
             assertThat(response.size()).isEqualTo(20);
+            assertThat(response.hasNext()).isFalse();
         }
     }
 
