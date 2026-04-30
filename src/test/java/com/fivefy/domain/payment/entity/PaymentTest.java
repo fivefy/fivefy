@@ -1,5 +1,6 @@
 package com.fivefy.domain.payment.entity;
 
+import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.payment.enums.PaymentStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,7 +25,8 @@ class PaymentTest {
     }
 
     // ─────────────────────────────────────────
-    // complete() — REQUESTED → COMPLETED
+    // complete() — 결제 완료(REQUESTED)    → COMPLETED
+    //              승인(COMPLETED)        → COMPLETED    : 재호출
     // ─────────────────────────────────────────
 
     @Test
@@ -39,7 +41,8 @@ class PaymentTest {
     }
 
     // ─────────────────────────────────────────
-    // refund() — COMPLETED → REFUNDED
+    // refund() — 결제 완료(REQUESTED)  → 환불(REFUNDED)
+    //            승인(COMPLETED)      → 환불(REFUNDED)
     // ─────────────────────────────────────────
 
     @Test
@@ -53,6 +56,17 @@ class PaymentTest {
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.REFUNDED);
         assertThat(payment.getRefundedAt()).isNotNull();
         assertThat(payment.getRefundReason()).isEqualTo("단순 변심");
+    }
+
+    @Test
+    @DisplayName("REFUNDED 상태에서 refund() 재호출 시 예외가 발생한다")
+    void refund_REFUNDED에서_재호출_예외() {
+        Payment payment = Payment.create(1L, 1000L, "ORD-12345678", "pg-tx-001", "webhook-001");
+        payment.complete();
+        payment.refund("첫 번째 환불");
+
+        assertThatThrownBy(() -> payment.refund("두 번째 환불"))
+                .isInstanceOf(BusinessException.class);
     }
 
     @Test

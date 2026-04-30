@@ -89,7 +89,8 @@ class SubscriptionTest {
     }
 
     // ─────────────────────────────────────────
-    // expire() — → EXPIRE
+    //  expire() —  활성화(ACTIVE)    → 만료(EXPIRE)
+    //              취소(CANCLE)      → 만료(EXPIRE)
     // ─────────────────────────────────────────
 
     @Test
@@ -101,6 +102,27 @@ class SubscriptionTest {
 
         assertThat(subscription.getStatus()).isEqualTo(SubscriptionStatus.EXPIRE);
         assertThat(subscription.getNextBillingDate()).isNull();
+    }
+
+    @Test
+    @DisplayName("CANCELED 상태에서 expire() 호출 시 EXPIRE로 전이된다 — 취소 후 만료일 지나면 만료 처리")
+    void expire_CANCELED에서_EXPIRE로() {
+        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.RECURRING, NOW);
+        subscription.cancel();
+
+        subscription.expire();
+
+        assertThat(subscription.getStatus()).isEqualTo(SubscriptionStatus.EXPIRE);
+    }
+
+    @Test
+    @DisplayName("EXPIRE 상태에서 expire() 재호출 시 예외가 발생한다 — 만료 재호출 차단")
+    void expire_EXPIRE에서_재호출_예외() {
+        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.RECURRING, NOW);
+        subscription.expire();
+
+        assertThatThrownBy(() -> subscription.expire())
+                .isInstanceOf(BusinessException.class);
     }
 
     // ─────────────────────────────────────────
