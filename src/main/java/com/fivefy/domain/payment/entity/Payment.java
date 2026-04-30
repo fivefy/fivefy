@@ -1,6 +1,8 @@
     package com.fivefy.domain.payment.entity;
 
     import com.fivefy.common.entity.BaseEntity;
+    import com.fivefy.common.exception.BusinessException;
+    import com.fivefy.domain.payment.enums.PaymentErrorCode;
     import com.fivefy.domain.payment.enums.PaymentStatus;
     import jakarta.persistence.*;
     import lombok.AccessLevel;
@@ -86,10 +88,20 @@
          * 결제 완료 처리 (REQUESTED → COMPLETED)
          * create() 직후 processWebhook()에서 호출
          * 결제시각(paidAt) 기록
+         *
+         * 허용: REQUESTED → COMPLETED (일반 경로)
+         *      COMPLETED → COMPLETED (재호출 허용 — 멱등 처리)
+         * 차단: REFUNDED (환불 완료 후 재결제 불가)
          */
         public void complete() {
+            if (this.status == PaymentStatus.REFUNDED) {
+                throw new BusinessException(PaymentErrorCode.ERR_PAYMENT_INVALID_STATUS_COMPLETE);
+            }
+
             this.status = PaymentStatus.COMPLETED;
-            this.paidAt = LocalDateTime.now();
+            if (this.paidAt == null) {
+                this.paidAt = LocalDateTime.now();  // 최초 완료 시각만 기록
+            }
         }
 
         /**
@@ -102,9 +114,18 @@
         /**
          * 환불 처리 (COMPLETED → REFUNDED)
          * CashOrderService.refund()에서 포트원 취소 API 성공 확인 후 호출
+         *
+         * 허용: REQUESTED → REFUNDED (예외적 강제 환불)
+         *       COMPLETED → REFUNDED (일반 환불 경로)
+         * 차단: REFUNDED (이미 환불 완료)
+         *
          * 환불 이유, 환불 시각 기록
          */
         public void refund(String reason) {
+            if (this.status == PaymentStatus.REFUNDED) {
+                throw new BusinessException(PaymentErrorCode.ERR_PAYMENT_INVALID_STATUS_REFUND);
+            }
+
             validateNonNull(reason, "환불 사유");
             this.status = PaymentStatus.REFUNDED;
             this.refundReason = reason;
