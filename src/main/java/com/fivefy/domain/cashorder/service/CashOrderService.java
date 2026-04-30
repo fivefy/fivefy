@@ -164,7 +164,9 @@ public class CashOrderService {
                 PointHistoryType.REFUND,
                 cashOrder.getPointAmount(),
                 wallet.getBalance(),
-                "포인트 환불 (" + reason + ")"
+                "포인트 환불 (" + reason + ")",
+                cashOrder.getId(),  
+                null                // pointOrderId
         ));
 
         return CashOrderResponse.from(cashOrder);
@@ -275,7 +277,9 @@ public class CashOrderService {
                 PointHistoryType.CHARGE,
                 cashOrder.getPointAmount(),
                 wallet.getBalance(),        // 충전 후 잔액 스냅샷
-            "포인트 충전 (" + cashOrder.getProductType().getDescription() + ")"
+            "포인트 충전 (" + cashOrder.getProductType().getDescription() + ")",
+                cashOrder.getId(),
+                null                        // pointOrderId
         ));
 
         log.info("[Webhook] 결제 확정 완료 orderNumber={}, pgPaymentId={}", cashOrder.getOrderNumber(), pgPaymentId);
@@ -355,7 +359,9 @@ public class CashOrderService {
                 PointHistoryType.CHARGE,
                 productType.getPointAmount(),
                 wallet.getBalance(),
-                "정기 포인트 자동 충전"
+                "정기 포인트 자동 충전",
+                cashOrder.getId(),
+                null            // pointOrderId
         ));
 
         log.info("[정기충전] 완료 — userId={}, orderNumber={}, 충전P={}",
