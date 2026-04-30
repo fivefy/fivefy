@@ -2,6 +2,7 @@ package com.fivefy.domain.track.controller;
 
 import com.fivefy.common.dto.response.BaseResponse;
 import com.fivefy.common.dto.response.PageResponse;
+import com.fivefy.common.dto.response.SliceResponse;
 import com.fivefy.domain.track.dto.response.ArtistFreeCreationTrackResponse;
 import com.fivefy.domain.track.dto.response.PublicTrackListResponse;
 import com.fivefy.domain.track.dto.response.TrackDetailResponse;
@@ -44,7 +45,7 @@ public class TrackController {
      * 공개 트랙 목록 조회 API
      */
     @GetMapping("/tracks")
-    public ResponseEntity<BaseResponse<PageResponse<PublicTrackListResponse>>> getPublicTracks(
+    public ResponseEntity<BaseResponse<SliceResponse<PublicTrackListResponse>>> getPublicTracks(
             @PageableDefault(
                     size = 20,
                     sort = "publishedAt",
@@ -53,7 +54,7 @@ public class TrackController {
     ) {
 
         // 공개 트랙 목록 조회
-        PageResponse<PublicTrackListResponse> response =
+        SliceResponse<PublicTrackListResponse> response =
                 trackService.getPublicTracks(pageable);
 
         return ResponseEntity.status(HttpStatus.OK)

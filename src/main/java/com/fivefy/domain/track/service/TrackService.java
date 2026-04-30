@@ -1,6 +1,7 @@
 package com.fivefy.domain.track.service;
 
 import com.fivefy.common.dto.response.PageResponse;
+import com.fivefy.common.dto.response.SliceResponse;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.album.entity.Album;
@@ -30,6 +31,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -270,15 +272,15 @@ public class TrackService {
      * 공개 트랙 목록 조회
      */
     @Transactional(readOnly = true)
-    public PageResponse<PublicTrackListResponse> getPublicTracks(Pageable pageable) {
+    public SliceResponse<PublicTrackListResponse> getPublicTracks(Pageable pageable) {
 
         // 공개 트랙 목록 조회 (Querydsl)
-        Page<PublicTrackListProjection> page =
+        Slice<PublicTrackListProjection> slice =
                 trackRepository.searchPublicTracks(pageable);
 
         // Projection → 응답 DTO 변환
-        return PageResponse.from(
-                page.map(projection -> PublicTrackListResponse.of(
+        return SliceResponse.from(
+                slice.map(projection -> PublicTrackListResponse.of(
                         projection.trackId(),
                         projection.trackType(),
                         projection.title(),

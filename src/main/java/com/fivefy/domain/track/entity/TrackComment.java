@@ -19,7 +19,8 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
         name = "track_comments",
         indexes = {
                 @Index(name = "idx_track_comment_track_id", columnList = "track_id"),
-                @Index(name = "idx_track_comment_user_id", columnList = "user_id")
+                @Index(name = "idx_track_comment_user_id", columnList = "user_id"),
+                @Index(name = "idx_track_comment_track_deleted_created", columnList = "track_id, deleted_at, created_at")
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

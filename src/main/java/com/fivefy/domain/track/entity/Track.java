@@ -26,7 +26,8 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
                 @Index(name = "idx_track_owner_user_id", columnList = "owner_user_id"),
                 @Index(name = "idx_track_artist_id", columnList = "artist_id"),
                 @Index(name = "idx_track_album_id", columnList = "album_id"),
-                @Index(name = "idx_track_status", columnList = "status")
+                @Index(name = "idx_track_status", columnList = "status"),
+                @Index(name = "idx_track_status_deleted_published", columnList = "status, deleted_at, published_at")
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
