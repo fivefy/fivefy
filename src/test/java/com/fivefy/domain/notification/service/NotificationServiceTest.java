@@ -21,6 +21,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -60,7 +61,8 @@ class NotificationServiceTest {
     private static final Long LAST_EVENT_ID    = 5L;
 
     private Notification makeNotification(Long userId) {
-        return Notification.create(userId, "테스트 알림", NotificationType.NEW_FOLLOWER, NotificationChannel.IN_APP);
+        return Notification.create(userId, "테스트 알림", NotificationType.NEW_FOLLOWER,
+                NotificationChannel.IN_APP, null, null, null);
     }
 
     @Nested
@@ -143,7 +145,7 @@ class NotificationServiceTest {
             given(objectMapper.writeValueAsString(any())).willReturn("{}");
 
             // when
-            notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림");
+            notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림", null, null);
 
             // then
             assertThat(notification.getStatus()).isEqualTo(NotificationStatus.SENT);
@@ -160,7 +162,7 @@ class NotificationServiceTest {
             given(objectMapper.writeValueAsString(any())).willReturn("{}");
 
             // when
-            notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림");
+            notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림", null, null);
 
             // then
             verify(sseEmitterRepository, never()).findAllByUserId(any());
@@ -178,7 +180,7 @@ class NotificationServiceTest {
             given(sseEmitterRepository.findAllByUserId(USER_ID)).willReturn(List.of());
 
             // when
-            notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림");
+            notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림", null, null);
 
             // then
             assertThat(notification.getStatus()).isEqualTo(NotificationStatus.FAILED);
@@ -199,7 +201,7 @@ class NotificationServiceTest {
             given(sseEmitterRepository.findAllByUserId(USER_ID)).willReturn(List.of(emitter));
 
             // when
-            notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림");
+            notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림", null, null);
 
             // then
             verify(sseEmitterRepository).findAllByUserId(USER_ID);
@@ -218,7 +220,7 @@ class NotificationServiceTest {
             given(sseEmitterRepository.findAllByUserId(USER_ID)).willReturn(List.of());
 
             // when
-            notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림");
+            notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림", null, null);
 
             // then — emitter.send() 호출 없음
             verify(sseEmitterRepository).findAllByUserId(USER_ID);
@@ -239,7 +241,7 @@ class NotificationServiceTest {
             doThrow(new IOException("연결 끊김")).when(brokenEmitter).send(any(SseEmitter.SseEventBuilder.class));
 
             // when
-            notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림");
+            notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림", null, null);
 
             // then
             verify(sseEmitterRepository).delete(eq(USER_ID), eq(brokenEmitter));
@@ -254,10 +256,46 @@ class NotificationServiceTest {
             given(objectMapper.writeValueAsString(any())).willReturn("{}");
 
             // when
-            notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림");
+            notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "테스트 알림", null, null);
 
             // then
             verify(stringRedisTemplate).convertAndSend(any(), any(String.class));
+        }
+
+        @Test
+        @DisplayName("동일 idempotency key로 중복 발송 시 스킵된다")
+        void send_duplicateIdempotencyKey_skips() throws Exception {
+            // given
+            Notification notification = makeNotification(USER_ID);
+            given(objectMapper.writeValueAsString(any())).willReturn("{}");
+
+            given(notificationRepository.save(any()))
+                    .willReturn(notification)   // 1번째 send() 최초 저장
+                    .willReturn(notification)   // 1번째 send() markAsSent 저장
+                    .willThrow(new DataIntegrityViolationException("중복 키")); // 2번째 send() 중복 차단
+
+            // when
+            notificationService.send(USER_ID, NotificationType.SUBSCRIBE, "구독 시작", null, null);
+            notificationService.send(USER_ID, NotificationType.SUBSCRIBE, "구독 시작", null, null);
+
+            // then — Redis publish는 1번만 호출
+            verify(stringRedisTemplate, times(1)).convertAndSend(any(), any(String.class));
+        }
+
+        @Test
+        @DisplayName("다른 actorId의 NEW_FOLLOWER 알림은 중복으로 처리되지 않는다")
+        void send_differentActorId_notDuplicate() throws Exception {
+            // given
+            Notification notification = makeNotification(USER_ID);
+            given(notificationRepository.save(any())).willReturn(notification);
+            given(objectMapper.writeValueAsString(any())).willReturn("{}");
+
+            // when — 다른 사람이 팔로우 (actorId 다름)
+            notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "A 팔로우", 1L, null);
+            notificationService.send(USER_ID, NotificationType.NEW_FOLLOWER, "B 팔로우", 2L, null);
+
+            // then — 둘 다 Redis publish 호출
+            verify(stringRedisTemplate, times(2)).convertAndSend(any(), any(String.class));
         }
     }
 
