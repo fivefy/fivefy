@@ -11,6 +11,7 @@ import com.fivefy.domain.artist.entity.Artist;
 import com.fivefy.domain.artist.enums.ArtistErrorCode;
 import com.fivefy.domain.artist.enums.ArtistType;
 import com.fivefy.domain.artist.repository.ArtistRepository;
+import com.fivefy.domain.track.dto.cache.TrackDetailCache;
 import com.fivefy.domain.track.dto.request.FreeTrackApplicationCreateRequest;
 import com.fivefy.domain.track.dto.request.OfficialTrackApplicationCreateRequest;
 import com.fivefy.domain.track.dto.response.*;
@@ -44,8 +45,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 /**
  * TrackService의 비즈니스 로직을 검증하는 단위 테스트
@@ -84,6 +85,9 @@ class TrackServiceTest {
 
     @Mock
     private ApplicationEventPublisher eventPublisher;
+
+    @Mock
+    private TrackDetailCacheService trackDetailCacheService;
 
     @InjectMocks
     private TrackService trackService;
@@ -1678,6 +1682,7 @@ class TrackServiceTest {
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
             when(trackRepository.findTrackDetailById(trackId))
                     .thenReturn(new TrackDetailProjection("아이유", "Palette"));
+            stubTrackDetailCacheMiss(trackId);
 
             TrackDetailResponse response = trackService.getTrack(trackId);
 
@@ -1726,6 +1731,7 @@ class TrackServiceTest {
 
             when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
             when(trackRepository.findTrackDetailById(trackId)).thenReturn(null);
+            stubTrackDetailCacheMiss(trackId);
 
             TrackDetailResponse response = trackService.getTrack(trackId);
 
@@ -1849,6 +1855,8 @@ class TrackServiceTest {
             when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
             when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
 
+            stubTrackDetailCacheMiss(trackId);
+
             assertThatThrownBy(() -> trackService.getTrack(trackId))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackErrorCode.ERR_TRACK_NOT_FOUND.getMessage());
@@ -1888,6 +1896,8 @@ class TrackServiceTest {
 
             when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
             when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
+
+            stubTrackDetailCacheMiss(trackId);
 
             assertThatThrownBy(() -> trackService.getTrack(trackId))
                     .isInstanceOf(BusinessException.class)
@@ -1945,9 +1955,79 @@ class TrackServiceTest {
             when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
 
+            stubTrackDetailCacheMiss(trackId);
+
             assertThatThrownBy(() -> trackService.getTrack(trackId))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackErrorCode.ERR_TRACK_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("캐시가 있으면 트랙 상세 핵심 정보는 캐시를 사용하고 댓글과 재생 수는 실시간 조회")
+        void getTrack_success_whenCacheHit() {
+            Long trackId = 1L;
+
+            Track track = Track.createFreeCreation(
+                    1L,
+                    "캐시 이전 제목",
+                    "가사",
+                    "BALLAD",
+                    "https://example.com/audio.mp3",
+                    210L
+            );
+            ReflectionTestUtils.setField(track, "id", trackId);
+            ReflectionTestUtils.setField(track, "playCount", 999L);
+            ReflectionTestUtils.setField(
+                    track,
+                    "publishedAt",
+                    LocalDateTime.of(2026, 5, 1, 18, 0, 0)
+            );
+
+            TrackDetailCache cache = new TrackDetailCache(
+                    trackId,
+                    TrackType.FREE_CREATION,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    "캐시된 제목",
+                    "캐시된 가사",
+                    "BALLAD",
+                    "https://example.com/cached-audio.mp3",
+                    200L,
+                    null,
+                    LocalDateTime.of(2026, 5, 1, 18, 0, 0)
+            );
+
+            TrackComment comment = mock(TrackComment.class);
+            when(comment.getId()).thenReturn(10L);
+            when(comment.getUserId()).thenReturn(3L);
+            when(comment.getTrackId()).thenReturn(trackId);
+            when(comment.getContent()).thenReturn("실시간 댓글");
+            when(comment.getCreatedAt()).thenReturn(LocalDateTime.of(2026, 5, 2, 10, 0, 0));
+            when(comment.getUpdatedAt()).thenReturn(LocalDateTime.of(2026, 5, 2, 10, 0, 0));
+
+            when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
+            when(trackDetailCacheService.getOrLoad(eq(trackId), any()))
+                    .thenReturn(cache);
+            when(trackCommentRepository.getRecentTrackComments(trackId, 5))
+                    .thenReturn(List.of(comment));
+
+            TrackDetailResponse response = trackService.getTrack(trackId);
+
+            assertThat(response.trackId()).isEqualTo(trackId);
+            assertThat(response.title()).isEqualTo("캐시된 제목");
+            assertThat(response.lyrics()).isEqualTo("캐시된 가사");
+            assertThat(response.audioUrl()).isEqualTo("https://example.com/cached-audio.mp3");
+            assertThat(response.durationSec()).isEqualTo(200L);
+            assertThat(response.playCount()).isEqualTo(999L);
+            assertThat(response.comments()).hasSize(1);
+            assertThat(response.comments().get(0).content()).isEqualTo("실시간 댓글");
+
+            verify(trackRepository, never()).findTrackDetailById(trackId);
+            verify(albumRepository, never()).findById(any());
+            verify(artistRepository, never()).findById(any());
         }
     }
 
@@ -2151,5 +2231,14 @@ class TrackServiceTest {
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void stubTrackDetailCacheMiss(Long trackId) {
+        when(trackDetailCacheService.getOrLoad(eq(trackId), any()))
+                .thenAnswer(invocation -> {
+                    java.util.function.Supplier<TrackDetailCache> loader = invocation.getArgument(1);
+                    return loader.get();
+                });
     }
 }
