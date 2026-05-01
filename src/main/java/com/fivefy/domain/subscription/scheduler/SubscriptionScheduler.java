@@ -7,11 +7,13 @@ import com.fivefy.domain.subscription.entity.Subscription;
 import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
 import com.fivefy.domain.subscription.enums.SubscriptionStatus;
 import com.fivefy.domain.subscription.repository.SubscriptionRepository;
+import com.fivefy.domain.subscription.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,12 +26,14 @@ public class SubscriptionScheduler {
     private final SubscriptionRepository subscriptionRepository;
     private final PointOrderService pointOrderService;
     private final ApplicationEventPublisher eventPublisher;
+    private final SubscriptionService subscriptionService;
 
     /**
      * 정기 구독 결제
      * 매월 1일 09:00
      * 대상: RECURRING + ACTIVE + nextBillingDate 지난 구독
      */
+    @Transactional
     @Scheduled(cron = "${scheduler.subscription-cron}")
     public void processRecurringPayments() {
         LocalDateTime now = LocalDateTime.now();
@@ -65,15 +69,25 @@ public class SubscriptionScheduler {
      * 구독 만료 처리
      * 매일 00:00
      * 대상: expiryDate 지난 ACTIVE 구독
+     *
+     * 트랜젝션은 건별로 붙임(subscriptionService.expireOne())
      */
     @Scheduled(cron = "0 0 0 * * *")
     public void expireSubscriptions() {
         LocalDateTime now = LocalDateTime.now();
         log.info("[만료 스케줄러] 실행 시작 — {}", now);
 
+        // 기존 활성화 조회 → 활성화, 취소 조회
+        /**
+         * (기존) 활성화 조회
+         * (수정) 활성화, 취소 조회
+         * 이유 : 활성화 시 취소하는 경우 ACTIVE → 취소 → CANCELED → 만료일 경과 → EXPIRE
+         * 이때, CANCELED를 조회하지 않으면 상태값이 만료되지 않고 CANCELED에 남기에 수정함
+         */
         List<Subscription> expiredTargets = subscriptionRepository
                 .findAllByStatusAndExpiryDateBefore(
-                        SubscriptionStatus.ACTIVE,
+                        // SubscriptionStatus.ACTIVE,
+                        List.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.CANCELED),
                         now
                 );
 
@@ -81,8 +95,8 @@ public class SubscriptionScheduler {
 
         for (Subscription subscription : expiredTargets) {
             try {
-                subscription.expire();
-                subscriptionRepository.save(subscription);
+                subscriptionService.expireOne(subscription.getId()); // 건별 트랜잭션
+                // subscriptionRepository.save(subscription);
 
                 eventPublisher.publishEvent(NotificationEvent.of(
                         subscription.getUserId(),

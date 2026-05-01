@@ -5,6 +5,7 @@ import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.subscription.enums.SubscriptionErrorCode;
 import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
 import com.fivefy.domain.subscription.enums.SubscriptionStatus;
+import com.fivefy.domain.subscription.state.*;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -36,7 +37,7 @@ public class Subscription extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private SubscriptionStatus status; // ACTIVE / INACTIVE / CANCELED / EXPIRE
+    private SubscriptionStatus status; // ACTIVE / INACTIVE / CANCELED / EXPIRE / CANCELED / REFUND
 
     @Column(nullable = false)
     private LocalDateTime startDate; // 구매 시점
@@ -89,6 +90,8 @@ public class Subscription extends BaseEntity {
         return subscription;
     }
 
+    // 2026-04-30 : 상태 패턴 적용. if문 → state() 교체
+
     /**
      * 구독 취소 - 다음 결제 중단, 만료일까지 이용 가능
      *
@@ -96,16 +99,19 @@ public class Subscription extends BaseEntity {
      * 차단: CANCELED (이미 취소), EXPIRE (이미 만료)
      * 제약: FREE(무료) 플랜 취소 불가, RECURRING(정기 구독) 플랜만 가능
      */
+//    public void cancel() {
+//        if (this.planType == SubscriptionPlanType.FREE) {
+//            throw new BusinessException(SubscriptionErrorCode.ERR_FREE_SUBSCRIPTION_CANNOT_CANCEL);
+//        }
+//        if (this.status != SubscriptionStatus.ACTIVE && this.status != SubscriptionStatus.INACTIVE) {
+//            throw new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_INVALID_STATUS_CANCEL);
+//        }
+//
+//        this.status = SubscriptionStatus.CANCELED;
+//        this.nextBillingDate = null;
+//    }
     public void cancel() {
-        if (this.planType == SubscriptionPlanType.FREE) {
-            throw new BusinessException(SubscriptionErrorCode.ERR_FREE_SUBSCRIPTION_CANNOT_CANCEL);
-        }
-        if (this.status != SubscriptionStatus.ACTIVE && this.status != SubscriptionStatus.INACTIVE) {
-            throw new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_INVALID_STATUS_CANCEL);
-        }
-
-        this.status = SubscriptionStatus.CANCELED;
-        this.nextBillingDate = null;
+        state().cancel(this);
     }
 
     /**
@@ -116,13 +122,16 @@ public class Subscription extends BaseEntity {
      *
      * 만료 이후 재구독은 별개의 Subscription 객체를 생성한다.
      */
+//    public void expire() {
+//        if (this.status == SubscriptionStatus.EXPIRE) {
+//            throw new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_ALREADY_EXPIRED);
+//        }
+//
+//        this.status = SubscriptionStatus.EXPIRE;
+//        this.nextBillingDate = null;
+//    }
     public void expire() {
-        if (this.status == SubscriptionStatus.EXPIRE) {
-            throw new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_ALREADY_EXPIRED);
-        }
-
-        this.status = SubscriptionStatus.EXPIRE;
-        this.nextBillingDate = null;
+        state().expire(this);
     }
 
     /**
@@ -133,16 +142,52 @@ public class Subscription extends BaseEntity {
      * 허용: ACTIVE + nextBillingDate 존재
      * 차단: FREE 플랜, 취소된 구독 (nextBillingDate = null)
      */
+//    public void renew() {
+//        if (this.planType != SubscriptionPlanType.RECURRING) {
+//            throw new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_NOT_RECURRING);
+//        }
+//
+//        if (this.nextBillingDate == null) {
+//            throw new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_ALREADY_CANCELED);
+//        }
+//
+//        this.nextBillingDate = this.nextBillingDate.plusMonths(1);
+//        this.expiryDate      = this.expiryDate.plusMonths(1);
+//        this.status          = SubscriptionStatus.ACTIVE;
+//    }
+
     public void renew() {
-        if (this.planType != SubscriptionPlanType.RECURRING) {
-            throw new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_NOT_RECURRING);
-        }
-        if (this.nextBillingDate == null) {
-            throw new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_ALREADY_CANCELED);
-        }
+        state().renew(this);
+    }
+    
+    /**
+     * 서비스에서 읽어옴
+     *      → subscriptionRepository.findByUserIdAndPlanTypeAndStatus(...)
+     *  DB에서 status를 가져와서 적용해봄
+     * @return
+     */
+    private SubscriptionState state() {
+        return switch (this.status) {
+            case ACTIVE -> ActiveState.INSTANCE;
+            case INACTIVE -> InactiveState.INSTANCE;
+            case CANCELED -> CanceledState.INSTANCE;
+            case EXPIRE -> ExpiredState.INSTANCE;
+            default -> throw new IllegalStateException("Unsupported status: " + this.status);
+        };
+    }
+
+
+    public void changeStatus(SubscriptionStatus status) {
+        this.status = status;
+    }
+
+    public void clearNextBillingDate() {
+        this.nextBillingDate = null;
+    }
+
+    public void extendOneMonth() {
+        this.expiryDate = this.expiryDate.plusMonths(1);
         this.nextBillingDate = this.nextBillingDate.plusMonths(1);
-        this.expiryDate      = this.expiryDate.plusMonths(1);
-        this.status          = SubscriptionStatus.ACTIVE;
     }
 
     /**
