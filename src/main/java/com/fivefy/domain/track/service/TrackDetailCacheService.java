@@ -27,16 +27,16 @@ public class TrackDetailCacheService {
      * 트랙 상세 캐시 조회
      */
     public Optional<TrackDetailCache> get(Long trackId) {
-        String cacheValue = stringRedisTemplate.opsForValue().get(createKey(trackId));
-
-        if (cacheValue == null) {
-            return Optional.empty();
-        }
-
         try {
+            String cacheValue = stringRedisTemplate.opsForValue().get(createKey(trackId));
+
+            if (cacheValue == null) {
+                return Optional.empty();
+            }
+
             return Optional.of(objectMapper.readValue(cacheValue, TrackDetailCache.class));
         } catch (Exception e) {
-            evict(trackId);
+            safeEvict(trackId);
             return Optional.empty();
         }
     }
@@ -76,11 +76,20 @@ public class TrackDetailCacheService {
      * 트랙 상세 캐시 제거
      */
     public void evict(Long trackId) {
-        stringRedisTemplate.delete(createKey(trackId));
+        safeEvict(trackId);
     }
 
     // trackId 기준으로 트랙 상세 캐시 key 생성
     private String createKey(Long trackId) {
         return TRACK_DETAIL_CACHE_KEY_PREFIX + trackId;
+    }
+
+    // 캐시 삭제 실패는 상세 조회 흐름을 막지 않음
+    private void safeEvict(Long trackId) {
+        try {
+            stringRedisTemplate.delete(createKey(trackId));
+        } catch (Exception ignored) {
+            // 캐시 삭제 실패는 상세 조회 흐름을 막지 않음
+        }
     }
 }

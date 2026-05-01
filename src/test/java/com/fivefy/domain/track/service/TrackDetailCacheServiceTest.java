@@ -99,6 +99,19 @@ class TrackDetailCacheServiceTest {
             assertThat(response).isEmpty();
             verify(stringRedisTemplate).delete(CACHE_KEY);
         }
+
+        @Test
+        @DisplayName("Redis 조회 실패 시 빈 Optional 반환")
+        void get_empty_whenRedisGetFail() {
+            Long trackId = 1L;
+
+            when(stringRedisTemplate.opsForValue())
+                    .thenThrow(new RuntimeException("Redis 조회 실패"));
+
+            Optional<TrackDetailCache> response = trackDetailCacheService.get(trackId);
+
+            assertThat(response).isEmpty();
+        }
     }
 
     @Nested
@@ -195,6 +208,17 @@ class TrackDetailCacheServiceTest {
             trackDetailCacheService.evict(trackId);
 
             verify(stringRedisTemplate).delete(CACHE_KEY);
+        }
+
+        @Test
+        @DisplayName("캐시 제거 실패 시 예외를 전파하지 않음")
+        void evict_ignore_whenRedisDeleteFail() {
+            Long trackId = 1L;
+
+            when(stringRedisTemplate.delete(CACHE_KEY))
+                    .thenThrow(new RuntimeException("Redis 삭제 실패"));
+
+            trackDetailCacheService.evict(trackId);
         }
     }
 
