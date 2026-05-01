@@ -1,6 +1,7 @@
 package com.fivefy.domain.track.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fivefy.domain.track.dto.cache.TrackDetailCache;
 import com.fivefy.domain.track.entity.Track;
 import com.fivefy.domain.track.enums.TrackType;
 
@@ -51,6 +52,34 @@ public record TrackDetailResponse(
                 track.getFeaturedArtistText(),
                 track.getPlayCount(),
                 track.getPublishedAt(),
+                comments
+        );
+    }
+
+    /**
+     * 캐시된 트랙 상세 정보 기반 응답 생성
+     */
+    public static TrackDetailResponse of(
+            TrackDetailCache cache,
+            Long playCount,
+            List<TrackCommentResponse> comments
+    ) {
+        return new TrackDetailResponse(
+                cache.trackId(),
+                cache.trackType(),
+                cache.artistId(),
+                cache.artistName(),
+                cache.albumId(),
+                cache.albumTitle(),
+                cache.trackNumber(),
+                cache.title(),
+                cache.lyrics(),
+                cache.genre(),
+                cache.audioUrl(),
+                cache.durationSec(),
+                cache.featuredArtistText(),
+                playCount,
+                cache.publishedAt(),
                 comments
         );
     }
