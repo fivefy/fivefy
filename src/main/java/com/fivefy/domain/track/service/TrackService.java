@@ -12,6 +12,7 @@ import com.fivefy.domain.artist.entity.Artist;
 import com.fivefy.domain.artist.enums.ArtistErrorCode;
 import com.fivefy.domain.artist.enums.ArtistStatus;
 import com.fivefy.domain.artist.repository.ArtistRepository;
+import com.fivefy.domain.track.dto.cache.TrackDetailCache;
 import com.fivefy.domain.track.dto.request.FreeTrackApplicationCreateRequest;
 import com.fivefy.domain.track.dto.request.OfficialTrackApplicationCreateRequest;
 import com.fivefy.domain.track.dto.response.*;
@@ -52,6 +53,7 @@ public class TrackService {
     private final TrackRepository trackRepository;
     private final TrackCommentRepository trackCommentRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final TrackDetailCacheService trackDetailCacheService;
 
     /**
      * 자유 창작 트랙 등록 신청
@@ -247,25 +249,28 @@ public class TrackService {
      */
     @Transactional(readOnly = true)
     public TrackDetailResponse getTrack(Long trackId) {
+        // 공개 가능한 트랙 조회 및 실시간 playCount 확보
         Track track = findPublishedTrack(trackId);
 
-        // 정식 발매 트랙은 연관 앨범/아티스트 공개 가능 상태까지 검증
+        // 정식 발매 트랙은 캐시 조회 전 연관 앨범/아티스트 공개 상태 검증
         if (track.getTrackType() == TrackType.OFFICIAL_RELEASE) {
             validateOfficialTrackVisibility(track);
         }
 
-        TrackDetailProjection projection = trackRepository.findTrackDetailById(trackId);
+        // 댓글과 playCount를 제외한 상세 핵심 정보 캐시 조회
+        TrackDetailCache cache = trackDetailCacheService.getOrLoad(
+                trackId,
+                () -> loadTrackDetailCache(track)
+        );
 
-        String artistName = projection == null ? null : projection.artistName();
-        String albumTitle = projection == null ? null : projection.albumTitle();
-
+        // 최근 댓글은 정합성 유지를 위해 캐시하지 않고 매번 조회
         List<TrackCommentResponse> comments = trackCommentRepository
                 .getRecentTrackComments(trackId, 5)
                 .stream()
                 .map(TrackCommentResponse::from)
                 .toList();
 
-        return TrackDetailResponse.of(track, artistName, albumTitle, comments);
+        return TrackDetailResponse.of(cache, track.getPlayCount(), comments);
     }
 
     /**
@@ -550,5 +555,17 @@ public class TrackService {
         }
 
         return LocalDateTime.now().plusDays(publishDelayDays);
+    }
+
+    // 트랙 상세 캐시 로딩
+    private TrackDetailCache loadTrackDetailCache(Track track) {
+
+        // artistName, albumTitle 조회
+        TrackDetailProjection projection = trackRepository.findTrackDetailById(track.getId());
+
+        String artistName = projection == null ? null : projection.artistName();
+        String albumTitle = projection == null ? null : projection.albumTitle();
+
+        return TrackDetailCache.of(track, artistName, albumTitle);
     }
 }
