@@ -61,7 +61,9 @@ public class SubscriptionService {
         eventPublisher.publishEvent(NotificationEvent.of(
                 subscription.getUserId(),
                 NotificationType.SUBSCRIPTION_CANCEL,
-                "구독 취소 성공"
+                "구독 취소 성공",
+                null,
+                subscription.getId()
         ));
     }
 

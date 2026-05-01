@@ -36,8 +36,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.time.Duration;
 import java.util.List;
 
 
@@ -51,7 +50,8 @@ public class NotificationService {
     private static final String REDIS_NOTIFICATION_CHANNEL = "notification:";
     private static final String SSE_EVENT_NOTIFICATION = "notification";
     private static final int CHUNK_SIZE = 1000;
-    private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
+    private static final String IDEM_KEY_PREFIX = "notif:v1:";
+    private static final Duration IDEM_TTL = Duration.ofDays(1);
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
@@ -177,6 +177,18 @@ public class NotificationService {
         String idempotencyKey = buildIdempotencyKey(userId, type, actorId, resourceId);
 
         Notification saved;
+
+        try {
+            Boolean isFirst = stringRedisTemplate.opsForValue()
+                    .setIfAbsent(IDEM_KEY_PREFIX + idempotencyKey, "1", IDEM_TTL);
+            if (Boolean.FALSE.equals(isFirst)) {
+                log.info("중복 알림 스킵 (Redis): userId={}, type={}, key={}", userId, type, idempotencyKey);
+                return;
+            }
+        } catch (Exception e) {
+            log.warn("Redis idempotency 실패, DB 제약으로 폴백: key={}", idempotencyKey);
+        }
+
         try {
             Notification notification = Notification.create(
                     userId, content, type, NotificationChannel.IN_APP,
@@ -222,8 +234,9 @@ public class NotificationService {
      *   ALBUM_LIKED   : {userId}:ALBUM_LIKED:{resourceId}:{actorId}
      *   PUBLISH_TRACK : {userId}:PUBLISH_TRACK:{resourceId}      (같은 트랙 발매 알림 중복 방지)
      *
-     * actorId / resourceId 없는 타입 → 월 단위로 관리
-     *   SUBSCRIBE, SUBSCRIPTION_CANCEL, SUBSCRIPTION_EXPIRE : {userId}:{type}:{yyyy-MM}
+     *   SUBSCRIBE           : {userId}:SUBSCRIBE:{subscriptionId}
+     *   SUBSCRIPTION_CANCEL : {userId}:SUBSCRIPTION_CANCEL:{subscriptionId}
+     *   SUBSCRIPTION_EXPIRE : {userId}:SUBSCRIPTION_EXPIRE:{subscriptionId}
      */
 
     private String buildIdempotencyKey(Long userId, NotificationType type,
@@ -237,10 +250,12 @@ public class NotificationService {
                     userId + ":ALBUM_LIKED:" + resourceId + ":" + actorId;
             case PUBLISH_TRACK ->
                     userId + ":PUBLISH_TRACK:" + resourceId;
-            case SUBSCRIBE, SUBSCRIPTION_CANCEL, SUBSCRIPTION_EXPIRE -> {
-                String month = LocalDateTime.now().format(MONTH_FORMATTER);
-                yield userId + ":" + type.name() + ":" + month;
-            }
+            case SUBSCRIBE ->
+                    userId + ":SUBSCRIBE:" + resourceId; // resourceId = subscriptionId
+            case SUBSCRIPTION_CANCEL ->
+                    userId + ":SUBSCRIPTION_CANCEL:" + resourceId;
+            case SUBSCRIPTION_EXPIRE ->
+                    userId + ":SUBSCRIPTION_EXPIRE:" + resourceId;
         };
     }
 

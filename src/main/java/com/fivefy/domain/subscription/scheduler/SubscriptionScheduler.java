@@ -101,7 +101,10 @@ public class SubscriptionScheduler {
                 eventPublisher.publishEvent(NotificationEvent.of(
                         subscription.getUserId(),
                         NotificationType.SUBSCRIPTION_EXPIRE,
-                        "구독이 만료되었습니다."
+                        "구독이 만료되었습니다.",
+                        null,
+                        subscription.getId()
+
                 ));
 
                 log.info("[만료 스케줄러] 만료 처리 — subscriptionId={}, userId={}",

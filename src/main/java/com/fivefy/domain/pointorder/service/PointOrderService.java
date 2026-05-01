@@ -125,7 +125,11 @@ public class PointOrderService {
                 userId, planType, price, subscription.getExpiryDate());
 
         String content = buildSubscribeContent(planType, subscription.getExpiryDate());
-        eventPublisher.publishEvent(NotificationEvent.of(userId, NotificationType.SUBSCRIBE, content));
+        eventPublisher.publishEvent(NotificationEvent.of(
+                userId,
+                NotificationType.SUBSCRIBE, content,
+                null,
+                subscription.getId()));
 
         return SubscriptionResponse.from(subscription);
     }
@@ -155,7 +159,9 @@ public class PointOrderService {
             eventPublisher.publishEvent(NotificationEvent.of(
                     userId,
                     NotificationType.SUBSCRIPTION_EXPIRE,
-                    "포인트 잔액이 부족하여 구독이 만료되었습니다."
+                    "포인트 잔액이 부족하여 구독이 만료되었습니다.",
+                    null,
+                    subscription.getId()
             ));
 
             return;
@@ -192,7 +198,9 @@ public class PointOrderService {
         eventPublisher.publishEvent(NotificationEvent.of(
                 userId,
                 NotificationType.SUBSCRIBE,
-                "정기 구독이 갱신되었습니다. 다음 만료일: " + subscription.getExpiryDate().format(DATE_FORMATTER)
+                "정기 구독이 갱신되었습니다. 다음 만료일: " + subscription.getExpiryDate().format(DATE_FORMATTER),
+                null,
+                subscription.getId()
         ));
     }
 
