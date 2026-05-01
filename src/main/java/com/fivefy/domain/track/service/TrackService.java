@@ -252,6 +252,11 @@ public class TrackService {
         // 공개 가능한 트랙 조회 및 실시간 playCount 확보
         Track track = findPublishedTrack(trackId);
 
+        // 정식 발매 트랙은 캐시 조회 전 연관 앨범/아티스트 공개 상태 검증
+        if (track.getTrackType() == TrackType.OFFICIAL_RELEASE) {
+            validateOfficialTrackVisibility(track);
+        }
+
         // 댓글과 playCount를 제외한 상세 핵심 정보 캐시 조회
         TrackDetailCache cache = trackDetailCacheService.getOrLoad(
                 trackId,
@@ -554,10 +559,6 @@ public class TrackService {
 
     // 트랙 상세 캐시 로딩
     private TrackDetailCache loadTrackDetailCache(Track track) {
-        // 정식 발매 트랙은 캐시 저장 전 연관 앨범/아티스트 공개 상태 검증
-        if (track.getTrackType() == TrackType.OFFICIAL_RELEASE) {
-            validateOfficialTrackVisibility(track);
-        }
 
         // artistName, albumTitle 조회
         TrackDetailProjection projection = trackRepository.findTrackDetailById(track.getId());

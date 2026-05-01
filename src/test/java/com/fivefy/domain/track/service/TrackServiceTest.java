@@ -1855,8 +1855,6 @@ class TrackServiceTest {
             when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
             when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
 
-            stubTrackDetailCacheMiss(trackId);
-
             assertThatThrownBy(() -> trackService.getTrack(trackId))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackErrorCode.ERR_TRACK_NOT_FOUND.getMessage());
@@ -1896,8 +1894,6 @@ class TrackServiceTest {
 
             when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
             when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
-
-            stubTrackDetailCacheMiss(trackId);
 
             assertThatThrownBy(() -> trackService.getTrack(trackId))
                     .isInstanceOf(BusinessException.class)
@@ -1954,8 +1950,6 @@ class TrackServiceTest {
             when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
             when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
-
-            stubTrackDetailCacheMiss(trackId);
 
             assertThatThrownBy(() -> trackService.getTrack(trackId))
                     .isInstanceOf(BusinessException.class)
@@ -2028,6 +2022,53 @@ class TrackServiceTest {
             verify(trackRepository, never()).findTrackDetailById(trackId);
             verify(albumRepository, never()).findById(any());
             verify(artistRepository, never()).findById(any());
+        }
+
+        @Test
+        @DisplayName("캐시가 있어도 정식 발매 트랙의 앨범이 삭제되면 상세 조회 실패")
+        void getTrack_fail_whenCacheHitAndAlbumDeleted() {
+            Long trackId = 1L;
+            Long artistId = 10L;
+            Long albumId = 100L;
+
+            Track track = Track.createOfficialRelease(
+                    1L,
+                    artistId,
+                    albumId,
+                    1L,
+                    "밤편지",
+                    "가사",
+                    "BALLAD",
+                    "https://example.com/audio.mp3",
+                    230L,
+                    "feat. 10cm",
+                    null
+            );
+            track.publish();
+            ReflectionTestUtils.setField(track, "id", trackId);
+
+            Album album = Album.create(
+                    artistId,
+                    "Palette",
+                    "정규 앨범",
+                    "https://example.com/cover.jpg",
+                    null
+            );
+            ReflectionTestUtils.setField(album, "id", albumId);
+            ReflectionTestUtils.setField(
+                    album,
+                    "deletedAt",
+                    LocalDateTime.of(2026, 5, 2, 12, 0, 0)
+            );
+
+            when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
+            when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
+
+            assertThatThrownBy(() -> trackService.getTrack(trackId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackErrorCode.ERR_TRACK_NOT_FOUND.getMessage());
+
+            verify(trackDetailCacheService, never()).getOrLoad(any(), any());
         }
     }
 
