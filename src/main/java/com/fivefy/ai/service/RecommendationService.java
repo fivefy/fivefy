@@ -8,6 +8,7 @@ import com.fivefy.ai.repository.UserEmbeddingRepository;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -147,10 +148,19 @@ public class RecommendationService {
      */
     private RecommendationResponse coldStartFallback(Long userId, int limit) {
         String sql = """
-            SELECT t.id, t.title, t.artist, t.album_cover_url
-            FROM track t
-            JOIN popular_chart pc ON pc.track_id = t.id
-            ORDER BY pc.rank ASC
+            SELECT
+                t.id,
+                t.title,
+                ar.name AS artist,
+                al.cover_image_url AS cover
+            FROM popular_charts pc
+            JOIN tracks t ON t.id = pc.track_id
+            LEFT JOIN artists ar ON ar.id = t.artist_id
+            LEFT JOIN albums  al ON al.id = t.album_id
+            WHERE pc.snapshot_date = (SELECT MAX(snapshot_date) FROM popular_charts)
+              AND t.deleted_at IS NULL
+              AND t.status = 'PUBLISHED'
+            ORDER BY pc.chart_rank ASC
             LIMIT ?
             """;
 
@@ -159,7 +169,7 @@ public class RecommendationService {
                         rs.getLong("id"),
                         rs.getString("title"),
                         rs.getString("artist"),
-                        rs.getString("album_cover_url"),
+                        rs.getString("cover"),
                         0.5f
                 ),
                 limit);
@@ -172,19 +182,38 @@ public class RecommendationService {
      */
     private List<Long> fetchRecentlyPlayedIds(Long userId, int limit) {
         return primaryJdbcTemplate.queryForList("""
-                SELECT DISTINCT track_id
-                FROM user_action
-                WHERE user_id = ?
-                  AND action_at > NOW() - INTERVAL 7 DAY
-                ORDER BY action_at DESC
+                SELECT track_id
+                FROM (
+                    SELECT track_id, last_played_at AS at_ts
+                    FROM playbacks
+                    WHERE user_id = ?
+                      AND last_played_at > NOW() - INTERVAL 7 DAY
+                    UNION ALL
+                    SELECT target_id AS track_id, created_at AS at_ts
+                    FROM likes
+                    WHERE user_id = ?
+                      AND target_type = 'TRACK'
+                      AND created_at > NOW() - INTERVAL 7 DAY
+                ) recent
+                GROUP BY track_id
+                ORDER BY MAX(at_ts) DESC
                 LIMIT ?
-                """, Long.class, userId, limit);
+                """, Long.class, userId, userId, limit);
     }
 
+    /**
+     * 90일 내 유저 액션 수 (basedOnCount, 추천 신뢰도 지표).
+     */
     private int getActionCount(Long userId) {
-        Integer count = primaryJdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM user_action WHERE user_id = ? AND action_at > NOW() - INTERVAL 90 DAY",
-                Integer.class, userId);
+        Integer count = primaryJdbcTemplate.queryForObject("""
+                SELECT (
+                    (SELECT COUNT(*) FROM playbacks
+                     WHERE user_id = ? AND last_played_at > NOW() - INTERVAL 90 DAY)
+                  + (SELECT COUNT(*) FROM likes
+                     WHERE user_id = ? AND target_type = 'TRACK'
+                       AND created_at > NOW() - INTERVAL 90 DAY)
+                ) AS total
+                """, Integer.class, userId, userId);
         return count == null ? 0 : count;
     }
 
@@ -202,7 +231,13 @@ public class RecommendationService {
 
         if (finalIds.isEmpty()) return List.of();
 
-        String sql = "SELECT id, title, artist, album_cover_url FROM track WHERE id IN (:ids)";
+        String sql = """
+        SELECT t.id, t.title, ar.name AS artist, al.cover_image_url AS cover
+        FROM tracks t
+        LEFT JOIN artists ar ON ar.id = t.artist_id
+        LEFT JOIN albums  al ON al.id = t.album_id
+        WHERE t.id IN (:ids)
+        """;
         MapSqlParameterSource params = new MapSqlParameterSource("ids", finalIds);
 
         Map<Long, RawTrack> meta = new HashMap<>();
@@ -212,7 +247,7 @@ public class RecommendationService {
                             rs.getLong("id"),
                             rs.getString("title"),
                             rs.getString("artist"),
-                            rs.getString("album_cover_url")));
+                            rs.getString("cover")));
         });
 
         // finalIds 순서대로 결과 구성

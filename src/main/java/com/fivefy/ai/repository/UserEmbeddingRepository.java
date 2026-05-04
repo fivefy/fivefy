@@ -4,6 +4,7 @@ import com.fivefy.ai.domain.UserEmbedding;
 import com.pgvector.PGvector;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -15,6 +16,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserEmbeddingRepository {
 
+    @Qualifier("vectorJdbcTemplate")
     private final JdbcTemplate vectorJdbcTemplate;
 
     public Optional<UserEmbedding> findByUserId(Long userId) {
@@ -26,10 +28,16 @@ public class UserEmbeddingRepository {
         try {
             UserEmbedding ue = vectorJdbcTemplate.queryForObject(sql,
                     (rs, rn) -> {
-                        PGvector v = (PGvector) rs.getObject("embedding");
+                        org.postgresql.util.PGobject pgObj = (org.postgresql.util.PGobject) rs.getObject("embedding");
+
+                        float[] vectorArray = null;
+                        if (pgObj != null && pgObj.getValue() != null) {
+                            vectorArray = new com.pgvector.PGvector(pgObj.getValue()).toArray();
+                        }
+
                         return UserEmbedding.builder()
                                 .userId(rs.getLong("user_id"))
-                                .embedding(v.toArray())
+                                .embedding(vectorArray)
                                 .basedOnCount(rs.getInt("based_on_count"))
                                 .computedAt(rs.getTimestamp("computed_at").toLocalDateTime())
                                 .build();

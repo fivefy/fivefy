@@ -11,7 +11,8 @@ public record TrackForEmbedding(
         String artist,
         String album,
         String genre,
-        Integer releaseYear
+        Integer releaseYear,
+        String featuredArtists
 ) {
     /**
      * 임베딩 모델에 입력할 텍스트 생성.
@@ -23,6 +24,7 @@ public record TrackForEmbedding(
         StringBuilder sb = new StringBuilder();
         appendIfNotBlank(sb, "Title", title);
         appendIfNotBlank(sb, "Artist", artist);
+        appendIfNotBlank(sb, "Featuring", featuredArtists);
         appendIfNotBlank(sb, "Album", album);
         appendIfNotBlank(sb, "Genre", genre);
         if (releaseYear != null) {

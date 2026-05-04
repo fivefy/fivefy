@@ -4,6 +4,7 @@ import com.fivefy.ai.domain.TrackEmbedding;
 import com.pgvector.PGvector;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -32,7 +33,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class TrackEmbeddingRepository {
 
+    @Qualifier("vectorJdbcTemplate")
     private final JdbcTemplate vectorJdbcTemplate;
+    @Qualifier("vectorNamedJdbcTemplate")
     private final NamedParameterJdbcTemplate vectorNamedJdbcTemplate;
 
     /**
@@ -152,8 +155,11 @@ public class TrackEmbeddingRepository {
 
         Map<Long, float[]> result = new HashMap<>();
         vectorNamedJdbcTemplate.query(sql, params, rs -> {
-            PGvector v = (PGvector) rs.getObject("embedding");
-            result.put(rs.getLong("track_id"), v.toArray());
+            org.postgresql.util.PGobject pgObj = (org.postgresql.util.PGobject) rs.getObject("embedding");
+            if (pgObj != null) {
+                com.pgvector.PGvector v = new com.pgvector.PGvector(pgObj.getValue());
+                result.put(rs.getLong("track_id"), v.toArray());
+            }
         });
         return result;
     }

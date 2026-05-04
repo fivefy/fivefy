@@ -107,21 +107,33 @@ public class TrackEmbeddingJob {
      */
     private List<TrackForEmbedding> fetchTrackChunk(long lastTrackId, int size) {
         String sql = """
-            SELECT id, title, artist, album, genre, release_year
-            FROM track
-            WHERE id > ?
-            ORDER BY id
+            SELECT
+                t.id              AS track_id,
+                t.title           AS title,
+                ar.name           AS artist,
+                al.title          AS album,
+                t.genre           AS genre,
+                YEAR(t.published_at) AS release_year,
+                t.featured_artist_text AS featured
+            FROM tracks t
+            LEFT JOIN artists ar ON ar.id = t.artist_id
+            LEFT JOIN albums  al ON al.id = t.album_id
+            WHERE t.id > ?
+              AND t.deleted_at IS NULL
+              AND t.status = 'PUBLISHED'
+            ORDER BY t.id
             LIMIT ?
             """;
 
         return primaryJdbcTemplate.query(sql,
                 (rs, rn) -> new TrackForEmbedding(
-                        rs.getLong("id"),
+                        rs.getLong("track_id"),
                         rs.getString("title"),
                         rs.getString("artist"),
                         rs.getString("album"),
                         rs.getString("genre"),
-                        (Integer) rs.getObject("release_year")
+                        rs.getInt("release_year"),
+                        rs.getString("featured")
                 ),
                 lastTrackId, size);
     }

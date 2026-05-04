@@ -117,10 +117,40 @@ public class UserVectorBuilder {
      */
     private List<UserAction> fetchRecentActions(Long userId, int limit) {
         String sql = """
-            SELECT track_id, action_type, action_at, play_count
-            FROM user_action
-            WHERE user_id = ?
-              AND action_at > NOW() - INTERVAL 90 DAY
+            (
+                -- 좋아요는 강한 시그널, play_count=1로 통일
+                SELECT
+                    target_id  AS track_id,
+                    'LIKE'     AS action_type,
+                    created_at AS action_at,
+                    1          AS play_count
+                FROM likes
+                WHERE user_id = ?
+                  AND target_type = 'TRACK'
+                  AND created_at > NOW() - INTERVAL 90 DAY
+            )
+            UNION ALL
+            (
+                -- 재생은 같은 트랙이 여러 번이라 GROUP BY로 집계
+                SELECT
+                    p.track_id,
+                    CASE
+                        WHEN p.played_duration >= 90 THEN 'FULL_PLAY'
+                        WHEN p.played_duration >= 30 THEN 'PARTIAL_PLAY'
+                        ELSE 'SKIP'
+                    END                       AS action_type,
+                    MAX(p.last_played_at)     AS action_at,
+                    COUNT(*)                  AS play_count
+                FROM playbacks p
+                WHERE p.user_id = ?
+                  AND p.last_played_at > NOW() - INTERVAL 90 DAY
+                GROUP BY p.track_id,
+                    CASE
+                        WHEN p.played_duration >= 90 THEN 'FULL_PLAY'
+                        WHEN p.played_duration >= 30 THEN 'PARTIAL_PLAY'
+                        ELSE 'SKIP'
+                    END
+            )
             ORDER BY action_at DESC
             LIMIT ?
             """;
@@ -132,7 +162,7 @@ public class UserVectorBuilder {
                         rs.getTimestamp("action_at").toLocalDateTime(),
                         rs.getInt("play_count")
                 ),
-                userId, limit);
+                userId, userId, limit);
 
         if (rawActions.isEmpty()) return List.of();
 
