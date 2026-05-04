@@ -11,6 +11,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -19,6 +20,7 @@ import java.util.List;
 public class OutboxWorker {
 
     private static final int BATCH_SIZE = 100;
+    private static final int CLEANUP_RETAIN_DAYS = 7;
 
     private final NotificationOutboxRepository outboxRepository;
     private final NotificationService notificationService;
@@ -51,5 +53,14 @@ public class OutboxWorker {
             }
             outboxRepository.save(outbox);
         }
+    }
+
+    @Scheduled(cron = "0 0 0 * * *") // 매일 오전 00:00
+    @SchedulerLock(name = "outboxCleanup", lockAtMostFor = "PT10M", lockAtLeastFor = "PT1M")
+    @Transactional
+    public void cleanup() {
+        LocalDateTime before = LocalDateTime.now().minusDays(CLEANUP_RETAIN_DAYS);
+        int deleted = outboxRepository.deleteByStatusAndProcessedAtBefore(OutboxStatus.PROCESSED, before);
+        log.info("[OutboxWorker] PROCESSED 정리 완료: {}건 삭제", deleted);
     }
 }
