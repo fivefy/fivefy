@@ -17,6 +17,7 @@ java {
 
 ext {
     snippetsDir = file('build/generated-snippets')
+    set('springAiVersion', '2.0.0-M2')
 }
 
 configurations {
@@ -28,6 +29,7 @@ configurations {
 
 repositories {
     mavenCentral()
+    maven { url 'https://repo.spring.io/milestone' }
 }
 
 dependencies {
@@ -90,6 +92,24 @@ dependencies {
     asciidoctorExt 'org.asciidoctor:asciidoctorj:2.5.13'
     testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
 
+    // Spring AI - Ollama
+    implementation 'org.springframework.ai:spring-ai-starter-model-ollama'
+
+    // Spring AI - Anthropic Claude (LLM 생성용)
+    implementation 'org.springframework.ai:spring-ai-starter-model-anthropic'
+
+    // pgvector for PostgreSQL
+    implementation 'com.pgvector:pgvector:0.1.6'
+    implementation 'org.postgresql:postgresql:42.7.11'
+
+    // Spring Batch (배치 잡용)
+    implementation 'org.springframework.boot:spring-boot-starter-batch'
+
+    // Resilience4j (LLM API 호출 안정성)
+    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
+    implementation 'io.github.resilience4j:resilience4j-micrometer:2.2.0'
+    implementation 'org.springframework.boot:spring-boot-starter-aspectj'
+
     // test
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -111,6 +131,12 @@ dependencies {
 
     // 서버 상태 확인 (/actuator/health)
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.ai:spring-ai-bom:${springAiVersion}"
+    }
 }
 
 tasks.named('test') {
