@@ -1134,7 +1134,7 @@ class TrackServiceTest {
             savedTrack.publish();
             ReflectionTestUtils.setField(savedTrack, "id", 1000L);
 
-            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(trackApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.of(application));
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
             when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
             when(trackRepository.save(any(Track.class))).thenReturn(savedTrack);
@@ -1206,7 +1206,7 @@ class TrackServiceTest {
             );
             ReflectionTestUtils.setField(savedTrack, "id", 1000L);
 
-            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(trackApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.of(application));
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
             when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
             when(trackRepository.save(any(Track.class))).thenReturn(savedTrack);
@@ -1227,7 +1227,7 @@ class TrackServiceTest {
             Long adminId = 1L;
             Long applicationId = 10L;
 
-            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.empty());
+            when(trackApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> trackService.approveTrackApplication(adminId, applicationId))
                     .isInstanceOf(BusinessException.class)
@@ -1277,7 +1277,7 @@ class TrackServiceTest {
             );
             ReflectionTestUtils.setField(album, "id", albumId);
 
-            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(trackApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.of(application));
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
             when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
 
@@ -1318,7 +1318,7 @@ class TrackServiceTest {
             );
             ReflectionTestUtils.setField(savedTrack, "id", 1000L);
 
-            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(trackApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.of(application));
             when(trackRepository.save(any(Track.class))).thenReturn(savedTrack);
 
             TrackApplicationApproveResponse response =
@@ -1369,7 +1369,7 @@ class TrackServiceTest {
                     LocalDateTime.of(2026, 4, 20, 12, 0, 0)
             );
 
-            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(trackApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.of(application));
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
 
             assertThatThrownBy(() -> trackService.approveTrackApplication(adminId, applicationId))
@@ -1411,7 +1411,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(artist, "id", artistId);
             artist.deactivate();
 
-            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(trackApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.of(application));
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
 
             assertThatThrownBy(() -> trackService.approveTrackApplication(adminId, applicationId))
@@ -1466,7 +1466,7 @@ class TrackServiceTest {
                     LocalDateTime.of(2026, 4, 20, 12, 0, 0)
             );
 
-            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(trackApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.of(application));
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
             when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
 
@@ -1517,7 +1517,7 @@ class TrackServiceTest {
             );
             ReflectionTestUtils.setField(album, "id", albumId);
 
-            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(trackApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.of(application));
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
             when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
 
@@ -1554,7 +1554,7 @@ class TrackServiceTest {
             );
             ReflectionTestUtils.setField(application, "id", applicationId);
 
-            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(trackApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.of(application));
 
             TrackApplicationRejectResponse response =
                     trackService.rejectTrackApplication(adminId, applicationId, rejectionReason);
@@ -1572,7 +1572,8 @@ class TrackServiceTest {
             Long adminId = 1L;
             Long applicationId = 10L;
 
-            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.empty());
+            when(trackApplicationRepository.findByIdForUpdate(applicationId))
+                    .thenReturn(Optional.empty());
 
             assertThatThrownBy(() ->
                     trackService.rejectTrackApplication(adminId, applicationId, "사유")
@@ -1604,7 +1605,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(application, "id", applicationId);
             application.approve(adminId);
 
-            when(trackApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(trackApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.of(application));
 
             assertThatThrownBy(() ->
                     trackService.rejectTrackApplication(adminId, applicationId, "사유")
