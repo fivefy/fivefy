@@ -92,6 +92,8 @@ dependencies {
 
     // test
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
 
     // querydsl
     implementation 'io.github.openfeign.querydsl:querydsl-core:7.1'
@@ -114,6 +116,11 @@ dependencies {
 tasks.named('test') {
     outputs.dir snippetsDir
     useJUnitPlatform()
+
+    testLogging {
+        events "passed", "failed", "skipped"
+        showStandardStreams = true
+    }
 }
 
 tasks.named('asciidoctor') {
