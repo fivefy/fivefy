@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatCode;
 
 class PaymentTest {
 
@@ -77,5 +78,17 @@ class PaymentTest {
 
         assertThatThrownBy(() -> payment.refund(null))
                 .isInstanceOf(Exception.class);
+    }
+
+    @Test
+    @DisplayName("COMPLETED 상태에서 complete() 재호출 시 예외 없이 멱등 처리된다")
+    void complete_COMPLETED에서_재호출_멱등() {
+        Payment payment = Payment.create(1L, 1000L, "ORD-12345678", "pg-tx-001", "webhook-001");
+        payment.complete();
+
+        // assertThatCode는 예외가 없어야 통과하는 케이스
+        assertThatCode(() -> payment.complete())
+                .doesNotThrowAnyException();
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.COMPLETED);
     }
 }

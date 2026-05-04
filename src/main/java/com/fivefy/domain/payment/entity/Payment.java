@@ -121,9 +121,9 @@ public class Payment extends BaseEntity {
      */
     public void refund(String reason) {
         validateNonNull(reason, "환불 사유");
-        this.refundReason = reason;
         this.status.transit(this, PaymentStatus.REFUNDED);
         this.refundedAt = LocalDateTime.now();
+        this.refundReason = reason;
     }
 
     // 실패

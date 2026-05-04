@@ -10,11 +10,13 @@ public enum PaymentStatus {
     REQUESTED {
         @Override
         public boolean canTransitTo(PaymentStatus target) {
+
             return target == COMPLETED || target == FAILED;
         }
 
         @Override
         public void transit(Payment payment, PaymentStatus target) {
+
             validate(target);
             if (target == COMPLETED) {
                 payment.applyComplete();
@@ -31,11 +33,13 @@ public enum PaymentStatus {
     HOLD {
         @Override
         public boolean canTransitTo(PaymentStatus target) {
+
             return false;
         }
 
         @Override
         public void transit(Payment payment, PaymentStatus target) {
+
             validate(target);
         }
     },        // 보류
@@ -45,11 +49,13 @@ public enum PaymentStatus {
     APPROVED {
         @Override
         public boolean canTransitTo(PaymentStatus target) {
+
             return false;
         }
 
         @Override
         public void transit(Payment payment, PaymentStatus target) {
+
             validate(target);
         }
     },
@@ -59,13 +65,19 @@ public enum PaymentStatus {
     COMPLETED {
         @Override
         public boolean canTransitTo(PaymentStatus target) {
-            return target == REFUNDED;
+
+            // 포트원은 웹훅을 성공 응답을 받을 때까지 재전송
+            return target == REFUNDED || target == COMPLETED;   // 멱등 허용
         }
 
         @Override
         public void transit(Payment payment, PaymentStatus target) {
+
             validate(target);
-            payment.applyRefund();
+            // 환불 요청 시
+            if (target == REFUNDED) {
+                payment.applyRefund();
+            }
         }
     },
     /**
@@ -74,11 +86,13 @@ public enum PaymentStatus {
     FAILED {
         @Override
         public boolean canTransitTo(PaymentStatus target) {
+
             return false; // 실패 후 전이 없음
         }
 
         @Override
         public void transit(Payment payment, PaymentStatus target) {
+
             validate(target);
         }
     },     
@@ -89,11 +103,13 @@ public enum PaymentStatus {
     CANCELED {
         @Override
         public boolean canTransitTo(PaymentStatus target) {
+
             return false;
         }
 
         @Override
         public void transit(Payment payment, PaymentStatus target) {
+
             validate(target);
         }
     },    
@@ -104,20 +120,23 @@ public enum PaymentStatus {
     REFUNDED {
         @Override
         public boolean canTransitTo(PaymentStatus target) {
+
             return false; // 환불 후 전이 없음
         }
 
         @Override
         public void transit(Payment payment, PaymentStatus target) {
+
             validate(target);
         }
     };
 
 
-
+    // 조건 확인
     public abstract boolean canTransitTo(
             PaymentStatus target
     );
+    // 변경
     public abstract void transit(
             Payment payment, PaymentStatus target
     );
