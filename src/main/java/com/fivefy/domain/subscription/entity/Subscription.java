@@ -172,7 +172,8 @@ public class Subscription extends BaseEntity {
             case INACTIVE -> InactiveState.INSTANCE;
             case CANCELED -> CanceledState.INSTANCE;
             case EXPIRE -> ExpiredState.INSTANCE;
-            default -> throw new IllegalStateException("Unsupported status: " + this.status);
+            // FREE, REFUND 상태는 cancel/expire/renew 호출 자체가 잘못된 요청
+            default -> throw new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_UNSUPPORTED_STATUS);
         };
     }
 

@@ -85,7 +85,7 @@ public class SubscriptionScheduler {
          * 이때, CANCELED를 조회하지 않으면 상태값이 만료되지 않고 CANCELED에 남기에 수정함
          */
         List<Subscription> expiredTargets = subscriptionRepository
-                .findAllByStatusAndExpiryDateBefore(
+                .findAllByStatusInAndExpiryDateBefore(
                         // SubscriptionStatus.ACTIVE,
                         List.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.CANCELED),
                         now

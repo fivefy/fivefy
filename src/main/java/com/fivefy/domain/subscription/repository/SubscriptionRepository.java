@@ -29,7 +29,7 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
 
     // 구독 만료 스케줄러용 — 만료일이 지난 활성화 구독 조회
     // (dataTime -> now) ,활성화와 비활성화 둘 모두 체크했으나, 비활성화는 고려할 필요도 없다)
-    List<Subscription> findAllByStatusAndExpiryDateBefore(
+    List<Subscription> findAllByStatusInAndExpiryDateBefore(
             // SubscriptionStatus status,
             List<SubscriptionStatus> statuses,
             LocalDateTime now
