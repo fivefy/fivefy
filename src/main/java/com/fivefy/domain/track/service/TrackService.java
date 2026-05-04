@@ -197,7 +197,7 @@ public class TrackService {
      */
     @Transactional
     public TrackApplicationApproveResponse approveTrackApplication(Long adminId, Long applicationId) {
-        TrackApplication application = findTrackApplication(applicationId);
+        TrackApplication application = findTrackApplicationForUpdate(applicationId);
 
         // OFFICIAL_RELEASE는 승인 시점에도 연관 리소스 유효성 재확인
         if (application.getTrackType() == TrackType.OFFICIAL_RELEASE) {
@@ -236,7 +236,7 @@ public class TrackService {
             Long applicationId,
             String rejectionReason
     ) {
-        TrackApplication application = findTrackApplication(applicationId);
+        TrackApplication application = findTrackApplicationForUpdate(applicationId);
 
         // 상태 전이는 엔티티에 위임
         application.reject(adminId, rejectionReason);
@@ -389,6 +389,13 @@ public class TrackService {
     // 트랙 등록 신청 조회
     private TrackApplication findTrackApplication(Long applicationId) {
         return trackApplicationRepository.findById(applicationId)
+                .orElseThrow(() -> new BusinessException(
+                        TrackApplicationErrorCode.ERR_TRACK_APPLICATION_NOT_FOUND));
+    }
+
+    // 트랙 등록 신청 조회 (비관적 락)
+    private TrackApplication findTrackApplicationForUpdate(Long applicationId) {
+        return trackApplicationRepository.findByIdForUpdate(applicationId)
                 .orElseThrow(() -> new BusinessException(
                         TrackApplicationErrorCode.ERR_TRACK_APPLICATION_NOT_FOUND));
     }
