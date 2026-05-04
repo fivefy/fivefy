@@ -21,6 +21,7 @@ public class OutboxWorker {
 
     private static final int BATCH_SIZE = 100;
     private static final int CLEANUP_RETAIN_DAYS = 7;
+    private static final int MAX_RETRY_COUNT = 3;
 
     private final NotificationOutboxRepository outboxRepository;
     private final NotificationService notificationService;
@@ -55,7 +56,46 @@ public class OutboxWorker {
         }
     }
 
-    @Scheduled(cron = "0 0 0 * * *") // 매일 오전 00:00
+    /**
+     * FAILED 상태 중 재시도 횟수가 MAX_RETRY_COUNT 미만인 대상을 재처리
+     * 재시도 성공 시 PROCESSED, 실패 시 retryCount 증가
+     * retryCount가 MAX_RETRY_COUNT에 도달하면 FAILED 상태로 고정
+     */
+    @Scheduled(fixedDelay = 60000) // 1분마다
+    @SchedulerLock(name = "outboxRetry", lockAtMostFor = "PT2M", lockAtLeastFor = "PT30S")
+    @Transactional
+    public void retry() {
+        List<NotificationOutbox> retryTargets = outboxRepository
+                .findAllByStatusAndRetryCountLessThanOrderByCreatedAtAsc(
+                        OutboxStatus.FAILED, MAX_RETRY_COUNT, PageRequest.of(0, BATCH_SIZE));
+
+        if (retryTargets.isEmpty()) return;
+
+        log.info("[OutboxWorker] 재시도 시작: {}건", retryTargets.size());
+
+        for (NotificationOutbox outbox : retryTargets) {
+            outbox.incrementRetry();
+            try {
+                notificationService.send(
+                        outbox.getTargetUserId(),
+                        outbox.getEventType(),
+                        outbox.getContent(),
+                        outbox.getActorId(),
+                        outbox.getResourceId()
+                );
+                outbox.markAsProcessed();
+                log.info("[OutboxWorker] 재시도 성공: outboxId={}, retryCount={}",
+                        outbox.getId(), outbox.getRetryCount());
+            } catch (Exception e) {
+                log.error("[OutboxWorker] 재시도 실패: outboxId={}, retryCount={}, 사유={}",
+                        outbox.getId(), outbox.getRetryCount(), e.getMessage());
+                // retryCount가 MAX_RETRY_COUNT에 도달하면 FAILED 상태 유지
+            }
+            outboxRepository.save(outbox);
+        }
+    }
+
+    @Scheduled(cron = "0 0 0 * * *")
     @SchedulerLock(name = "outboxCleanup", lockAtMostFor = "PT10M", lockAtLeastFor = "PT1M")
     @Transactional
     public void cleanup() {

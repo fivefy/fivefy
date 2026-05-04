@@ -15,6 +15,9 @@ public interface NotificationOutboxRepository extends JpaRepository<Notification
 
     List<NotificationOutbox> findAllByStatusOrderByCreatedAtAsc(OutboxStatus status, Pageable pageable);
 
+    List<NotificationOutbox> findAllByStatusAndRetryCountLessThanOrderByCreatedAtAsc(
+            OutboxStatus status, int maxRetryCount, Pageable pageable);
+
     @Modifying
     @Query("DELETE FROM NotificationOutbox o WHERE o.status = :status AND o.processedAt < :before")
     int deleteByStatusAndProcessedAtBefore(

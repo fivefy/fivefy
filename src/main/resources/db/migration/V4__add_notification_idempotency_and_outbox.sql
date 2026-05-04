@@ -17,6 +17,7 @@ CREATE TABLE notification_outbox
     resource_id    BIGINT       NULL,
     content        VARCHAR(500) NOT NULL,
     status         VARCHAR(20)  NOT NULL DEFAULT 'PENDING',
+    retry_count    INT          NOT NULL DEFAULT 0,
     created_at     DATETIME     NOT NULL,
     processed_at   DATETIME     NULL,
     CONSTRAINT pk_notification_outbox PRIMARY KEY (id)

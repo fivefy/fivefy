@@ -76,13 +76,14 @@ class LikeServiceTest {
     private static final Long TRACK_ID = 2L;
     private static final Long ALBUM_ID = 3L;
     private static final Long LIKE_ID = 4L;
+    private Artist mockArtist;
 
     @BeforeEach
     void setUp() {
         mockUser = mock(User.class);
         mockTrack = mock(Track.class);
         mockAlbum = mock(Album.class);
-        Artist mockArtist = mock(Artist.class);
+        mockArtist = mock(Artist.class);
         mockLike = Like.create(USER_ID, TRACK_ID, TargetType.TRACK);
 
         lenient().when(mockUser.getId()).thenReturn(USER_ID);
@@ -101,6 +102,8 @@ class LikeServiceTest {
             // given
             given(userRepository.findById(USER_ID)).willReturn(Optional.of(mockUser));
             given(trackRepository.findById(TRACK_ID)).willReturn(Optional.of(mockTrack));
+            given(mockTrack.getArtistId()).willReturn(1L);
+            given(artistRepository.findById(1L)).willReturn(Optional.of(mockArtist));
             given(likeRepository.existsByUserIdAndTargetIdAndTargetType(
                     USER_ID, TRACK_ID, TargetType.TRACK)).willReturn(false);
             given(likeRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
@@ -121,6 +124,8 @@ class LikeServiceTest {
             // given
             given(userRepository.findById(USER_ID)).willReturn(Optional.of(mockUser));
             given(albumRepository.findById(ALBUM_ID)).willReturn(Optional.of(mockAlbum));
+            given(mockAlbum.getArtistId()).willReturn(1L);
+            given(artistRepository.findById(1L)).willReturn(Optional.of(mockArtist));
             given(likeRepository.existsByUserIdAndTargetIdAndTargetType(
                     USER_ID, ALBUM_ID, TargetType.ALBUM)).willReturn(false);
             given(likeRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));

@@ -40,6 +40,9 @@ public class NotificationOutbox {
     private OutboxStatus status;
 
     @Column(nullable = false)
+    private int retryCount;
+
+    @Column(nullable = false)
     private LocalDateTime createdAt;
 
     private LocalDateTime processedAt;
@@ -57,6 +60,7 @@ public class NotificationOutbox {
         outbox.resourceId = resourceId;
         outbox.content = content;
         outbox.status = OutboxStatus.PENDING;
+        outbox.retryCount = 0;
         outbox.createdAt = LocalDateTime.now();
         return outbox;
     }
@@ -64,6 +68,10 @@ public class NotificationOutbox {
     public void markAsProcessed() {
         this.status = OutboxStatus.PROCESSED;
         this.processedAt = LocalDateTime.now();
+    }
+
+    public void incrementRetry() {
+        this.retryCount++;
     }
 
     public void markAsFailed() {
