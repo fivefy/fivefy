@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -46,7 +47,7 @@ public class PrimaryDataSourceConfig {
 
         Map<String, Object> props = new HashMap<>();
         props.put("hibernate.dialect", "org.hibernate.dialect.MySQLDialect");
-        props.put("hibernate.hbm2ddl.auto", "update");
+        props.put("hibernate.hbm2ddl.auto", "validate");
 
         return builder
                 .dataSource(dataSource)
@@ -64,7 +65,7 @@ public class PrimaryDataSourceConfig {
     }
 
     /**
-     * 기존 도메인 + AI 도메인의 raw SQL 조작용 JdbcTemplate (MySQL).
+     * 기존 도메인 + AI 도메인의 raw SQL 조작용 JdbcTemplate (MySQL 단순 위치 파라미터용).
      *
      * @Primary 적용 이유:
      *   AI 도메인의 6개 서비스가 모두 MySQL JdbcTemplate을 쓰는데,
@@ -79,5 +80,17 @@ public class PrimaryDataSourceConfig {
     @Bean
     public JdbcTemplate primaryJdbcTemplate(@Qualifier("primaryDataSource") DataSource dataSource) {
         return new JdbcTemplate(dataSource);
+    }
+
+    /**
+     * MySQL NamedParameterJdbcTemplate.
+     * IN 절 동적 길이 / named param 바인딩을 안전하게 처리하기 위함.
+     * String concat 으로 IN 절 만들면 SQL Injection 안티패턴이 코드베이스에 퍼지므로
+     * 기본적으로 이 빈을 쓰는 것을 권장.
+     */
+    @Bean
+    public NamedParameterJdbcTemplate primaryNamedJdbcTemplate(
+            @Qualifier("primaryDataSource") DataSource dataSource) {
+        return new NamedParameterJdbcTemplate(dataSource);
     }
 }

@@ -1,8 +1,10 @@
 package com.fivefy.ai.controller;
 
 import com.fivefy.ai.job.TrackEmbeddingJob;
+import com.fivefy.common.dto.response.BaseResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -28,12 +30,16 @@ public class AiAdminController {
 
     @PostMapping("/embedding/tracks/run")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> runTrackEmbedding() {
+    public ResponseEntity<BaseResponse<Void>> runTrackEmbedding() {
         boolean accepted = trigger.tryStart();
         if (!accepted) {
-            return ResponseEntity.status(409).body("Embedding job already running");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                    BaseResponse.fail(HttpStatus.CONFLICT, "처리중이거나 처리된 작업입니다", null)
+            );
         }
-        return ResponseEntity.accepted().body("Track embedding job started");
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(
+                BaseResponse.success(HttpStatus.ACCEPTED, "트랙 임베딩 작업 시작", null)
+        );
     }
 
     /**
