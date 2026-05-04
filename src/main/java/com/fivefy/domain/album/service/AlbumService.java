@@ -132,7 +132,7 @@ public class AlbumService {
      */
     @Transactional
     public AlbumApplicationApproveResponse approveAlbumApplication(Long adminId, Long applicationId) {
-        AlbumApplication application = findAlbumApplication(applicationId);
+        AlbumApplication application = findAlbumApplicationForUpdate(applicationId);
 
         // 상태 전이는 엔티티에 위임
         application.approve(adminId);
@@ -152,7 +152,7 @@ public class AlbumService {
             Long applicationId,
             String rejectionReason
     ) {
-        AlbumApplication application = findAlbumApplication(applicationId);
+        AlbumApplication application = findAlbumApplicationForUpdate(applicationId);
 
         // 상태 전이는 엔티티에 위임
         application.reject(adminId, rejectionReason);
@@ -233,6 +233,14 @@ public class AlbumService {
     // 앨범 등록 신청 조회
     private AlbumApplication findAlbumApplication(Long applicationId) {
         return albumApplicationRepository.findById(applicationId)
+                .orElseThrow(() -> new BusinessException(
+                        AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_NOT_FOUND
+                ));
+    }
+
+    // 앨범 등록 신청 조회 (비관적 락)
+    private AlbumApplication findAlbumApplicationForUpdate(Long applicationId) {
+        return albumApplicationRepository.findByIdForUpdate(applicationId)
                 .orElseThrow(() -> new BusinessException(
                         AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_NOT_FOUND
                 ));
