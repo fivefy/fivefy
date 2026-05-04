@@ -74,5 +74,13 @@ public class SubscriptionService {
         Subscription subscription = subscriptionRepository.findById(subscriptionId)
                 .orElseThrow(() -> new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_NOT_FOUND));
         subscription.expire();
+
+        outboxRepository.save(NotificationOutbox.create(
+                NotificationType.SUBSCRIPTION_EXPIRE,
+                subscription.getUserId(),
+                null,
+                subscription.getId(),
+                "구독이 만료되었습니다."
+        ));
     }
 }

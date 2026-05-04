@@ -80,34 +80,31 @@ public class LikeService {
         likeRepository.delete(like);
     }
 
+    // Outbox 저장 실패 시 좋아요 트랜잭션도 함께 롤백
     private void publishLikeNotification(User user, Long targetId, TargetType targetType) {
-        try {
-            switch (targetType) {
-                case TRACK -> {
-                    Track track = trackRepository.findById(targetId).orElseThrow();
-                    Artist artist = artistRepository.findById(track.getArtistId()).orElseThrow();
-                    outboxRepository.save(NotificationOutbox.create(
-                            NotificationType.TRACK_LIKED,
-                            artist.getOwnerUserId(),
-                            user.getId(),
-                            track.getId(),
-                            user.getName() + "님이 \"" + track.getTitle() + "\" 트랙을 좋아합니다"
-                    ));
-                }
-                case ALBUM -> {
-                    Album album = albumRepository.findById(targetId).orElseThrow();
-                    Artist artist = artistRepository.findById(album.getArtistId()).orElseThrow();
-                    outboxRepository.save(NotificationOutbox.create(
-                            NotificationType.ALBUM_LIKED,
-                            artist.getOwnerUserId(),
-                            user.getId(),
-                            album.getId(),
-                            user.getName() + "님이 \"" + album.getTitle() + "\" 앨범을 좋아합니다"
-                    ));
-                }
+        switch (targetType) {
+            case TRACK -> {
+                Track track = trackRepository.findById(targetId).orElseThrow();
+                Artist artist = artistRepository.findById(track.getArtistId()).orElseThrow();
+                outboxRepository.save(NotificationOutbox.create(
+                        NotificationType.TRACK_LIKED,
+                        artist.getOwnerUserId(),
+                        user.getId(),
+                        track.getId(),
+                        user.getName() + "님이 \"" + track.getTitle() + "\" 트랙을 좋아합니다"
+                ));
             }
-        } catch (Exception e) {
-            // 알림 실패가 좋아요 트랜잭션에 영향을 주지 않도록 swallow
+            case ALBUM -> {
+                Album album = albumRepository.findById(targetId).orElseThrow();
+                Artist artist = artistRepository.findById(album.getArtistId()).orElseThrow();
+                outboxRepository.save(NotificationOutbox.create(
+                        NotificationType.ALBUM_LIKED,
+                        artist.getOwnerUserId(),
+                        user.getId(),
+                        album.getId(),
+                        user.getName() + "님이 \"" + album.getTitle() + "\" 앨범을 좋아합니다"
+                ));
+            }
         }
     }
 

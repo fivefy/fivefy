@@ -1,8 +1,5 @@
 package com.fivefy.domain.subscription.scheduler;
 
-import com.fivefy.domain.notification.entity.NotificationOutbox;
-import com.fivefy.domain.notification.enums.NotificationType;
-import com.fivefy.domain.notification.repository.NotificationOutboxRepository;
 import com.fivefy.domain.pointorder.service.PointOrderService;
 import com.fivefy.domain.subscription.entity.Subscription;
 import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
@@ -26,7 +23,6 @@ public class SubscriptionScheduler {
     private final SubscriptionRepository subscriptionRepository;
     private final PointOrderService pointOrderService;
     private final SubscriptionService subscriptionService;
-    private final NotificationOutboxRepository outboxRepository;
 
     /**
      * 정기 구독 결제
@@ -97,14 +93,6 @@ public class SubscriptionScheduler {
             try {
                 subscriptionService.expireOne(subscription.getId()); // 건별 트랜잭션
                 // subscriptionRepository.save(subscription);
-
-                outboxRepository.save(NotificationOutbox.create(
-                        NotificationType.SUBSCRIPTION_EXPIRE,
-                        subscription.getUserId(),
-                        null,
-                        subscription.getId(),
-                        "구독이 만료되었습니다."
-                ));
 
                 log.info("[만료 스케줄러] 만료 처리 — subscriptionId={}, userId={}",
                         subscription.getId(), subscription.getUserId());
