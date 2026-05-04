@@ -12,6 +12,7 @@ import com.fivefy.domain.like.entity.Like;
 import com.fivefy.domain.like.enums.LikeErrorCode;
 import com.fivefy.domain.like.enums.TargetType;
 import com.fivefy.domain.like.repository.LikeRepository;
+import com.fivefy.domain.notification.repository.NotificationOutboxRepository;
 import com.fivefy.domain.track.entity.Track;
 import com.fivefy.domain.track.enums.TrackErrorCode;
 import com.fivefy.domain.track.repository.TrackRepository;
@@ -26,7 +27,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -48,16 +48,21 @@ class LikeServiceTest {
 
     @Mock
     private LikeRepository likeRepository;
+
     @Mock
     private UserRepository userRepository;
+
     @Mock
     private TrackRepository trackRepository;
+
     @Mock
     private AlbumRepository albumRepository;
+
     @Mock
     private ArtistRepository artistRepository;
+
     @Mock
-    private ApplicationEventPublisher eventPublisher;
+    private NotificationOutboxRepository outboxRepository;
 
     @InjectMocks
     private LikeService likeService;
@@ -107,6 +112,7 @@ class LikeServiceTest {
             assertThat(response.targetId()).isEqualTo(TRACK_ID);
             assertThat(response.targetType()).isEqualTo(TargetType.TRACK);
             verify(likeRepository).save(any(Like.class));
+            verify(outboxRepository).save(any());
         }
 
         @Test
@@ -126,6 +132,7 @@ class LikeServiceTest {
             assertThat(response.targetId()).isEqualTo(ALBUM_ID);
             assertThat(response.targetType()).isEqualTo(TargetType.ALBUM);
             verify(likeRepository).save(any(Like.class));
+            verify(outboxRepository).save(any());
         }
 
         // createLike 실패
