@@ -663,7 +663,7 @@ class AlbumServiceTest {
             );
             ReflectionTestUtils.setField(savedAlbum, "id", 1000L);
 
-            when(albumApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(albumApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.of(application));
             when(albumRepository.save(any(Album.class))).thenReturn(savedAlbum);
 
             AlbumApplicationApproveResponse response =
@@ -701,7 +701,7 @@ class AlbumServiceTest {
             );
             ReflectionTestUtils.setField(savedAlbum, "id", 1000L);
 
-            when(albumApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(albumApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.of(application));
             when(albumRepository.save(any(Album.class))).thenReturn(savedAlbum);
 
             AlbumApplicationApproveResponse response =
@@ -720,7 +720,7 @@ class AlbumServiceTest {
             Long adminId = 1L;
             Long applicationId = 10L;
 
-            when(albumApplicationRepository.findById(applicationId)).thenReturn(Optional.empty());
+            when(albumApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> albumService.approveAlbumApplication(adminId, applicationId))
                     .isInstanceOf(BusinessException.class)
@@ -744,7 +744,7 @@ class AlbumServiceTest {
             ReflectionTestUtils.setField(application, "id", applicationId);
             application.approve(adminId);
 
-            when(albumApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(albumApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.of(application));
 
             assertThatThrownBy(() -> albumService.approveAlbumApplication(adminId, applicationId))
                     .isInstanceOf(BusinessException.class)
@@ -773,7 +773,7 @@ class AlbumServiceTest {
             );
             ReflectionTestUtils.setField(application, "id", applicationId);
 
-            when(albumApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(albumApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.of(application));
 
             AlbumApplicationRejectResponse response =
                     albumService.rejectAlbumApplication(adminId, applicationId, rejectionReason);
@@ -791,7 +791,7 @@ class AlbumServiceTest {
             Long adminId = 1L;
             Long applicationId = 10L;
 
-            when(albumApplicationRepository.findById(applicationId)).thenReturn(Optional.empty());
+            when(albumApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> albumService.rejectAlbumApplication(adminId, applicationId, "사유"))
                     .isInstanceOf(BusinessException.class)
@@ -815,7 +815,7 @@ class AlbumServiceTest {
             ReflectionTestUtils.setField(application, "id", applicationId);
             application.approve(adminId);
 
-            when(albumApplicationRepository.findById(applicationId)).thenReturn(Optional.of(application));
+            when(albumApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.of(application));
 
             assertThatThrownBy(() -> albumService.rejectAlbumApplication(adminId, applicationId, "사유"))
                     .isInstanceOf(BusinessException.class)
