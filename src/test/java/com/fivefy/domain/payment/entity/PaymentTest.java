@@ -1,11 +1,13 @@
 package com.fivefy.domain.payment.entity;
 
+import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.payment.enums.PaymentStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatCode;
 
 class PaymentTest {
 
@@ -24,7 +26,8 @@ class PaymentTest {
     }
 
     // ─────────────────────────────────────────
-    // complete() — REQUESTED → COMPLETED
+    // complete() — 결제 완료(REQUESTED)    → COMPLETED
+    //              승인(COMPLETED)        → COMPLETED    : 재호출
     // ─────────────────────────────────────────
 
     @Test
@@ -39,7 +42,8 @@ class PaymentTest {
     }
 
     // ─────────────────────────────────────────
-    // refund() — COMPLETED → REFUNDED
+    // refund() — 결제 완료(REQUESTED)  → 환불(REFUNDED)
+    //            승인(COMPLETED)      → 환불(REFUNDED)
     // ─────────────────────────────────────────
 
     @Test
@@ -56,6 +60,17 @@ class PaymentTest {
     }
 
     @Test
+    @DisplayName("REFUNDED 상태에서 refund() 재호출 시 예외가 발생한다")
+    void refund_REFUNDED에서_재호출_예외() {
+        Payment payment = Payment.create(1L, 1000L, "ORD-12345678", "pg-tx-001", "webhook-001");
+        payment.complete();
+        payment.refund("첫 번째 환불");
+
+        assertThatThrownBy(() -> payment.refund("두 번째 환불"))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
     @DisplayName("refund() 호출 시 reason이 null이면 예외가 발생한다")
     void refund_reason이_null이면_예외() {
         Payment payment = Payment.create(1L, 1000L, "ORD-12345678", "pg-tx-001", "webhook-001");
@@ -63,5 +78,17 @@ class PaymentTest {
 
         assertThatThrownBy(() -> payment.refund(null))
                 .isInstanceOf(Exception.class);
+    }
+
+    @Test
+    @DisplayName("COMPLETED 상태에서 complete() 재호출 시 예외 없이 멱등 처리된다")
+    void complete_COMPLETED에서_재호출_멱등() {
+        Payment payment = Payment.create(1L, 1000L, "ORD-12345678", "pg-tx-001", "webhook-001");
+        payment.complete();
+
+        // assertThatCode는 예외가 없어야 통과하는 케이스
+        assertThatCode(() -> payment.complete())
+                .doesNotThrowAnyException();
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.COMPLETED);
     }
 }
