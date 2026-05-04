@@ -12,8 +12,9 @@ import com.fivefy.domain.like.entity.Like;
 import com.fivefy.domain.like.enums.LikeErrorCode;
 import com.fivefy.domain.like.enums.TargetType;
 import com.fivefy.domain.like.repository.LikeRepository;
+import com.fivefy.domain.notification.entity.NotificationOutbox;
 import com.fivefy.domain.notification.enums.NotificationType;
-import com.fivefy.domain.notification.event.NotificationEvent;
+import com.fivefy.domain.notification.repository.NotificationOutboxRepository;
 import com.fivefy.domain.track.entity.Track;
 import com.fivefy.domain.track.enums.TrackErrorCode;
 import com.fivefy.domain.track.repository.TrackRepository;
@@ -21,7 +22,6 @@ import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -38,8 +38,8 @@ public class LikeService {
     private final UserRepository userRepository;
     private final TrackRepository trackRepository;
     private final AlbumRepository albumRepository;
-    private final ApplicationEventPublisher eventPublisher;
     private final ArtistRepository artistRepository;
+    private final NotificationOutboxRepository outboxRepository;
 
     @Transactional
     public LikeCreateResponse createLike(Long targetId, TargetType targetType, Long userId) {
@@ -86,23 +86,23 @@ public class LikeService {
                 case TRACK -> {
                     Track track = trackRepository.findById(targetId).orElseThrow();
                     Artist artist = artistRepository.findById(track.getArtistId()).orElseThrow();
-                    eventPublisher.publishEvent(NotificationEvent.of(
-                            artist.getOwnerUserId(),
+                    outboxRepository.save(NotificationOutbox.create(
                             NotificationType.TRACK_LIKED,
-                            user.getName() + "님이 \"" + track.getTitle() + "\" 트랙을 좋아합니다",
+                            artist.getOwnerUserId(),
                             user.getId(),
-                            track.getId()
+                            track.getId(),
+                            user.getName() + "님이 \"" + track.getTitle() + "\" 트랙을 좋아합니다"
                     ));
                 }
                 case ALBUM -> {
                     Album album = albumRepository.findById(targetId).orElseThrow();
                     Artist artist = artistRepository.findById(album.getArtistId()).orElseThrow();
-                    eventPublisher.publishEvent(NotificationEvent.of(
-                            artist.getOwnerUserId(),
+                    outboxRepository.save(NotificationOutbox.create(
                             NotificationType.ALBUM_LIKED,
-                            user.getName() + "님이 \"" + album.getTitle() + "\" 앨범을 좋아합니다",
+                            artist.getOwnerUserId(),
                             user.getId(),
-                            album.getId()
+                            album.getId(),
+                            user.getName() + "님이 \"" + album.getTitle() + "\" 앨범을 좋아합니다"
                     ));
                 }
             }

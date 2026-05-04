@@ -11,7 +11,6 @@ import com.fivefy.domain.notification.enums.NotificationChannel;
 import com.fivefy.domain.notification.enums.NotificationErrorCode;
 import com.fivefy.domain.notification.enums.NotificationStatus;
 import com.fivefy.domain.notification.enums.NotificationType;
-import com.fivefy.domain.notification.event.NotificationEvent;
 import com.fivefy.domain.notification.repository.NotificationRepository;
 import com.fivefy.domain.notification.repository.SseEmitterRepository;
 import com.fivefy.domain.track.event.PublishTrackChunkEvent;
@@ -116,14 +115,6 @@ public class NotificationService {
                 break;
             }
         }
-    }
-
-    // 알림 발송 (수신 -> 저장 -> sse push)
-    @Async
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleNotificationEvent(NotificationEvent event) {
-        send(event.targetUserId(), event.type(), event.content(),
-                event.actorId(), event.resourceId());
     }
 
     @Async

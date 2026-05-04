@@ -1,7 +1,8 @@
 package com.fivefy.domain.subscription.scheduler;
 
+import com.fivefy.domain.notification.entity.NotificationOutbox;
 import com.fivefy.domain.notification.enums.NotificationType;
-import com.fivefy.domain.notification.event.NotificationEvent;
+import com.fivefy.domain.notification.repository.NotificationOutboxRepository;
 import com.fivefy.domain.pointorder.service.PointOrderService;
 import com.fivefy.domain.subscription.entity.Subscription;
 import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
@@ -10,7 +11,6 @@ import com.fivefy.domain.subscription.repository.SubscriptionRepository;
 import com.fivefy.domain.subscription.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,8 +25,8 @@ public class SubscriptionScheduler {
 
     private final SubscriptionRepository subscriptionRepository;
     private final PointOrderService pointOrderService;
-    private final ApplicationEventPublisher eventPublisher;
     private final SubscriptionService subscriptionService;
+    private final NotificationOutboxRepository outboxRepository;
 
     /**
      * 정기 구독 결제
@@ -98,13 +98,12 @@ public class SubscriptionScheduler {
                 subscriptionService.expireOne(subscription.getId()); // 건별 트랜잭션
                 // subscriptionRepository.save(subscription);
 
-                eventPublisher.publishEvent(NotificationEvent.of(
-                        subscription.getUserId(),
+                outboxRepository.save(NotificationOutbox.create(
                         NotificationType.SUBSCRIPTION_EXPIRE,
-                        "구독이 만료되었습니다.",
+                        subscription.getUserId(),
                         null,
-                        subscription.getId()
-
+                        subscription.getId(),
+                        "구독이 만료되었습니다."
                 ));
 
                 log.info("[만료 스케줄러] 만료 처리 — subscriptionId={}, userId={}",
