@@ -305,6 +305,7 @@ public class CashOrderService {
             // 실패 기록 (별도 트랜잭션 — 부모 롤백과 무관하게 커밋)
             billingAttemptPersistenceService.saveFailure(
                     subscription.getId(), billingKey.getId(), BillingFailureReason.PG_TIMEOUT);
+
             return;
         }
 
@@ -315,11 +316,18 @@ public class CashOrderService {
             log.warn("[정기충전] 포트원 청구 거절 — userId={}", userId);
             billingKeyPersistenceService.deactivateBillingKey(billingKey.getId());
 
+            // CARD_DECLINED 실패 기록
+            billingAttemptPersistenceService.saveFailure(
+                    subscription.getId(), billingKey.getId(), BillingFailureReason.CARD_DECLINED
+            );
+            
             return;
         }
 
         // 포트원 청구 성공 확정 후 DB 작업만 별도 트랜잭션으로
-        cashOrderPersistenceService.saveRecurringChargeResult(billingKey, subscription, orderNumber, productType, pgResponse);
+        cashOrderPersistenceService.saveRecurringChargeResult(
+                billingKey, subscription, orderNumber, productType, pgResponse
+        );
 
         log.info("[정기충전] 완료 — userId={}, orderNumber={}, 충전P={}",
                 userId, orderNumber, productType.getPointAmount());

@@ -91,7 +91,6 @@ public class Subscription extends BaseEntity {
     }
 
     // 2026-04-30 : 상태 패턴 적용. if문 → state() 교체
-
     /**
      * 구독 취소 - 다음 결제 중단, 만료일까지 이용 가능
      *
@@ -99,17 +98,6 @@ public class Subscription extends BaseEntity {
      * 차단: CANCELED (이미 취소), EXPIRE (이미 만료)
      * 제약: FREE(무료) 플랜 취소 불가, RECURRING(정기 구독) 플랜만 가능
      */
-//    public void cancel() {
-//        if (this.planType == SubscriptionPlanType.FREE) {
-//            throw new BusinessException(SubscriptionErrorCode.ERR_FREE_SUBSCRIPTION_CANNOT_CANCEL);
-//        }
-//        if (this.status != SubscriptionStatus.ACTIVE && this.status != SubscriptionStatus.INACTIVE) {
-//            throw new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_INVALID_STATUS_CANCEL);
-//        }
-//
-//        this.status = SubscriptionStatus.CANCELED;
-//        this.nextBillingDate = null;
-//    }
     public void cancel() {
         state().cancel(this);
     }
@@ -122,14 +110,6 @@ public class Subscription extends BaseEntity {
      *
      * 만료 이후 재구독은 별개의 Subscription 객체를 생성한다.
      */
-//    public void expire() {
-//        if (this.status == SubscriptionStatus.EXPIRE) {
-//            throw new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_ALREADY_EXPIRED);
-//        }
-//
-//        this.status = SubscriptionStatus.EXPIRE;
-//        this.nextBillingDate = null;
-//    }
     public void expire() {
         state().expire(this);
     }
@@ -142,20 +122,6 @@ public class Subscription extends BaseEntity {
      * 허용: ACTIVE + nextBillingDate 존재
      * 차단: FREE 플랜, 취소된 구독 (nextBillingDate = null)
      */
-//    public void renew() {
-//        if (this.planType != SubscriptionPlanType.RECURRING) {
-//            throw new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_NOT_RECURRING);
-//        }
-//
-//        if (this.nextBillingDate == null) {
-//            throw new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_ALREADY_CANCELED);
-//        }
-//
-//        this.nextBillingDate = this.nextBillingDate.plusMonths(1);
-//        this.expiryDate      = this.expiryDate.plusMonths(1);
-//        this.status          = SubscriptionStatus.ACTIVE;
-//    }
-
     public void renew() {
         state().renew(this);
     }
