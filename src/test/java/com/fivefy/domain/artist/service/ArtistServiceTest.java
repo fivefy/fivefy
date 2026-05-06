@@ -540,7 +540,7 @@ class ArtistServiceTest {
             );
             ReflectionTestUtils.setField(savedArtist, "id", 100L);
 
-            when(artistApplicationRepository.findById(applicationId))
+            when(artistApplicationRepository.findByIdForUpdate(applicationId))
                     .thenReturn(Optional.of(application));
             when(artistRepository.save(any(Artist.class)))
                     .thenReturn(savedArtist);
@@ -562,7 +562,7 @@ class ArtistServiceTest {
             Long adminId = 1L;
             Long applicationId = 10L;
 
-            when(artistApplicationRepository.findById(applicationId))
+            when(artistApplicationRepository.findByIdForUpdate(applicationId))
                     .thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> artistService.approveArtistApplication(adminId, applicationId))
@@ -586,7 +586,7 @@ class ArtistServiceTest {
             ReflectionTestUtils.setField(application, "id", applicationId);
             application.approve(adminId);
 
-            when(artistApplicationRepository.findById(applicationId))
+            when(artistApplicationRepository.findByIdForUpdate(applicationId))
                     .thenReturn(Optional.of(application));
 
             assertThatThrownBy(() -> artistService.approveArtistApplication(adminId, applicationId))
@@ -617,7 +617,7 @@ class ArtistServiceTest {
             );
             ReflectionTestUtils.setField(application, "id", applicationId);
 
-            when(artistApplicationRepository.findById(applicationId))
+            when(artistApplicationRepository.findByIdForUpdate(applicationId))
                     .thenReturn(Optional.of(application));
 
             ArtistApplicationRejectResponse response =
@@ -640,7 +640,7 @@ class ArtistServiceTest {
             ArtistApplicationRejectRequest request =
                     new ArtistApplicationRejectRequest("정보 부족");
 
-            when(artistApplicationRepository.findById(applicationId))
+            when(artistApplicationRepository.findByIdForUpdate(applicationId))
                     .thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> artistService.rejectArtistApplication(adminId, applicationId, request))
@@ -667,7 +667,7 @@ class ArtistServiceTest {
             ReflectionTestUtils.setField(application, "id", applicationId);
             application.reject(adminId, "기존 거절 사유");
 
-            when(artistApplicationRepository.findById(applicationId))
+            when(artistApplicationRepository.findByIdForUpdate(applicationId))
                     .thenReturn(Optional.of(application));
 
             assertThatThrownBy(() -> artistService.rejectArtistApplication(adminId, applicationId, request))
