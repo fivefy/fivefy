@@ -20,29 +20,33 @@ public class BillingKeyService {
 
     private final BillingKeyRepository billingKeyRepository;
     private final PortoneClient portoneClient;
+    private final BillingKeyPersistenceService persistenceService;  // DB 저장 분리
 
     /**
      * 빌링키 등록 방법
      *
      * 1. 프론트가 포트원 SDK로 카드 등록 → 포트원이 billingKeyId 발급 → 프론트가 서버에 전달
-     *      - 이걸 어떻게 하냐고...
      * 2. 서버가 포트원에 billingKeyId로 단건 조회 → 빌링키 토큰 + 카드 정보 확인
      * 3. DB에 BillingKey 저장
+     *
+     * DB 저장 실패 시 롤백이 되어도 포트원 조회는 이미 완료된 상태.
+     * 조회라서 큰 문제는 없지만 DB 커넥션을 외부 API 응답 대기 시간만큼 점유하는 문제가 있음.
+     * → 외부 API를 트랜잭션 밖에서 먼저 실행하고,
+     *   DB 저장만 persistenceService에 위임(별도 @Transactional)
      *
      * @param userId
      * @param request billingKeyId (포트원이 발급한 ID, 프론트에서 전달)
      */
-    @Transactional
     public BillingKeyResponse register(Long userId, BillingKeyRegisterRequest request) {
 
         log.info("[BillingKey] 등록 요청 userId={}, billingKeyId={}", userId, request.billingKeyId());
 
-        // 1. 포트원에서 빌링키 정보 조회
+        //  포트원에서 빌링키 정보 조회(외부 API)
         PortoneBillingKeyResponse portoneResponse = portoneClient.getBillingKey(request.billingKeyId());
 
         String billingKeyToken = portoneResponse.billingKey();
 
-        // 중복 등록 방지
+        // 중복 등록 방지 — 외부 API 응답 받은 후 token 기준으로 확인
         if (billingKeyRepository.existsByBillingKey(billingKeyToken)) {
             throw new BusinessException(BillingKeyErrorCode.ERR_BILLING_KEY_ALREADY_EXISTS);
         }
@@ -69,9 +73,8 @@ public class BillingKeyService {
             payMethod = "KAKAOPAY"; // 기본값 : 카카오페이
         }
 
-        // 2. DB 저장
-        BillingKey billingKey = BillingKey.create(userId, billingKeyToken, cardLast4, payMethod, cardName);
-        billingKeyRepository.save(billingKey);
+        // DB 저장
+        BillingKey billingKey = persistenceService.saveBillingKey(userId, billingKeyToken, cardLast4, payMethod, cardName);
 
         log.info("빌링키 등록 완료 — userId={}, cardName={}, cardLast4={}", userId, cardName, cardLast4);
 
@@ -81,15 +84,19 @@ public class BillingKeyService {
     /**
      * 빌링키 해지 (카드 삭제)
      *
-     * 흐름:
      * 1. DB에서 빌링키 조회 + 본인 검증
      * 2. 포트원에 빌링키 삭제 요청
      * 3. DB에서 비활성화 (active = false)
      *
+     * portoneClient.deleteBillingKey()가 트랜잭션 안에 있으면
+     * 포트원 삭제 성공 후 DB 비활성화 실패 시 롤백이 되어도
+     * 포트원에서는 이미 삭제된 상태라 불일치가 생김.
+     * → 외부 API를 트랜잭션 밖에서 먼저 실행하고,
+     *   DB 비활성화만 persistenceService에 위임(별도 @Transactional)
+     *
      * @param userId
      * @param billingKeyId DB PK
      */
-    @Transactional
     public void deactivate(Long userId, Long billingKeyId) {
 
         log.info("[BillingKey] 해지 요청 userId={}, billingKeyId={}", userId, billingKeyId);
@@ -101,11 +108,11 @@ public class BillingKeyService {
             throw new BusinessException(BillingKeyErrorCode.ERR_BILLING_KEY_FORBIDDEN);
         }
 
-        // 포트원 측 빌링키 삭제
+        // 포트원 측 빌링키 삭제(외부 API)
         portoneClient.deleteBillingKey(billingKey.getBillingKey());
 
         // DB 비활성화
-        billingKey.deactivate();
+        persistenceService.deactivateBillingKey(billingKeyId);
 
         log.info("빌링키 해지 완료 — userId={}, billingKeyId={}", userId, billingKeyId);
     }
