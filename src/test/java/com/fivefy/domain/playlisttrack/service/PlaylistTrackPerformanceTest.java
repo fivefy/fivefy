@@ -7,6 +7,7 @@ import com.fivefy.domain.playlisttrack.entity.PlaylistTrack;
 import com.fivefy.domain.playlisttrack.repository.PlaylistTrackRepository;
 import com.fivefy.domain.track.entity.Track;
 import com.fivefy.domain.track.repository.TrackRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +40,13 @@ class PlaylistTrackPerformanceTest {
 
     private static final Long USER_ID = 1L;
     private static final int MEASURE_COUNT = 30;
+
+    @AfterEach
+    void cleanUp() {
+        playlistTrackRepository.deleteAllInBatch();
+        playlistRepository.deleteAllInBatch();
+        trackRepository.deleteAllInBatch();
+    }
 
     @Test
     @DisplayName("트랙 수별 순서 변경 평균 응답 시간과 p95 응답 시간을 측정한다")
