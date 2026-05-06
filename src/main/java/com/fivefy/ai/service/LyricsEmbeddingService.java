@@ -2,11 +2,9 @@ package com.fivefy.ai.service;
 
 import com.fivefy.ai.domain.TrackLyricsEmbedding;
 import com.fivefy.ai.dto.TrackLyricsForEmbedding;
-import com.fivefy.ai.repository.TrackLyricsEmbeddingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -34,7 +32,7 @@ import java.util.List;
 public class LyricsEmbeddingService {
 
     private final EmbeddingClient embeddingClient;
-    private final TrackLyricsEmbeddingRepository lyricsEmbeddingRepository;
+    private final LyricsEmbeddingPersistService lyricsEmbeddingPersistService;
 
     private static final int VECTOR_DIM = 1024;
     private static final double FIRST_CHUNK_BOOST = 1.3;  // 첫 청크 가중치
@@ -43,7 +41,6 @@ public class LyricsEmbeddingService {
     /**
      * 단일 트랙 가사 임베딩.
      */
-    @Transactional(transactionManager = "vectorTransactionManager")
     public boolean embedLyrics(TrackLyricsForEmbedding input) {
         if (input.lyrics() == null || input.lyrics().length() < MIN_LYRICS_LENGTH) {
             log.debug("Skip trackId={}, lyrics too short", input.trackId());
@@ -53,7 +50,7 @@ public class LyricsEmbeddingService {
         String hash = sha256(input.lyrics());
 
         // 변경 감지
-        String existingHash = lyricsEmbeddingRepository.findHashByTrackId(input.trackId());
+        String existingHash = lyricsEmbeddingPersistService.getExistingHash(input.trackId());
         if (hash.equals(existingHash)) {
             log.debug("Skip trackId={}, lyrics unchanged", input.trackId());
             return false;
@@ -63,7 +60,7 @@ public class LyricsEmbeddingService {
         List<String> chunks = input.toChunks();
         if (chunks.isEmpty()) return false;
 
-        // 2) 청크별 임베딩 (배치 호출 — 가사 한 곡당 OpenAI 1번 요청)
+        // 2) 청크별 임베딩 (배치 호출 — 가사 한 곡당 1번 요청)
         List<float[]> chunkVectors = embeddingClient.embedBatch(chunks);
 
         // 3) 가중 평균
@@ -73,7 +70,7 @@ public class LyricsEmbeddingService {
         normalize(aggregated);
 
         // 5) 저장 (가사 원문은 저장 X, 발췌만)
-        lyricsEmbeddingRepository.upsert(TrackLyricsEmbedding.builder()
+        lyricsEmbeddingPersistService.save(TrackLyricsEmbedding.builder()
                 .trackId(input.trackId())
                 .embedding(aggregated)
                 .snippet(input.toSnippet())

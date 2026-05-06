@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -27,7 +29,7 @@ public class MoodSearchService {
     private final PromptToSearchTextService promptConverter;
     private final EmbeddingClient embeddingClient;
     private final HybridSemanticSearchService hybridSearch;
-    private final JdbcTemplate primaryJdbcTemplate;
+    private final NamedParameterJdbcTemplate primaryNamedJdbcTemplate;
 
     public MoodSearchResponse search(MoodSearchRequest request) {
         // 1) 자연어 → 검색 텍스트
@@ -65,22 +67,21 @@ public class MoodSearchService {
     private Map<Long, RawTrack> loadTrackMeta(List<Long> ids) {
         if (ids.isEmpty()) return Map.of();
 
-        String inClause = ids.stream().map(String::valueOf)
-                .reduce((a, b) -> a + "," + b).orElse("");
         String sql = """
-                SELECT
-                    t.id,
-                    t.title,
-                    ar.name AS artist,
-                    al.cover_image_url AS cover
-                FROM tracks t
-                LEFT JOIN artists ar ON ar.id = t.artist_id
-                LEFT JOIN albums  al ON al.id = t.album_id
-                WHERE t.id IN (%s)
-                """.formatted(inClause);
+            SELECT
+                t.id,
+                t.title,
+                ar.name AS artist,
+                al.cover_image_url AS cover
+            FROM tracks t
+            LEFT JOIN artists ar ON ar.id = t.artist_id
+            LEFT JOIN albums  al ON al.id = t.album_id
+            WHERE t.id IN (:ids)
+            """;
 
+        MapSqlParameterSource params = new MapSqlParameterSource("ids", ids);
         Map<Long, RawTrack> result = new java.util.HashMap<>();
-        primaryJdbcTemplate.query(sql, (RowCallbackHandler) rs ->
+        primaryNamedJdbcTemplate.query(sql, params, (RowCallbackHandler) rs ->
                 result.put(rs.getLong("id"),
                         new RawTrack(
                                 rs.getLong("id"),

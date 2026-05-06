@@ -26,6 +26,8 @@ import java.util.List;
 @ConditionalOnProperty(name = "fivefy.ai.lyrics-embedding.enabled", havingValue = "true")
 public class LyricsEmbeddingJob {
 
+    private static final int MAX_ITERATIONS = 10_000;
+
     private final LyricsEmbeddingService lyricsEmbeddingService;
     private final JdbcTemplate primaryJdbcTemplate;
 
@@ -42,8 +44,9 @@ public class LyricsEmbeddingJob {
 
         int processed = 0, skipped = 0, failed = 0;
         long lastTrackId = 0;
+        int iteration = 0;
 
-        while (true) {
+        while (iteration++ < MAX_ITERATIONS) {
             List<TrackLyricsForEmbedding> chunk = fetchLyricsChunk(lastTrackId, batchSize);
             if (chunk.isEmpty()) break;
 
@@ -63,9 +66,14 @@ public class LyricsEmbeddingJob {
             lastTrackId = chunk.get(chunk.size() - 1).trackId();
         }
 
+        if (iteration >= MAX_ITERATIONS) {
+            log.error("Hit MAX_ITERATIONS ({}). Job aborted; some tracks may be unprocessed.",
+                    MAX_ITERATIONS);
+        }
+
         long elapsedSec = (System.currentTimeMillis() - startMs) / 1000;
-        log.info("=== Lyrics embedding done in {}s: processed={}, skipped={}, failed={} ===",
-                elapsedSec, processed, skipped, failed);
+        log.info("=== Lyrics embedding done in {}s: processed={}, skipped={}, failed={}, iterations={} ===",
+                elapsedSec, processed, skipped, failed, iteration);
     }
 
     /**

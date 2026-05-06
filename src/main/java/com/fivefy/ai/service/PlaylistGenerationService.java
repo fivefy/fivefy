@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -38,7 +40,7 @@ public class PlaylistGenerationService {
     private final PlaylistQueryBuilder queryBuilder;
     private final TrackEmbeddingRepository trackEmbeddingRepository;
     private final MmrReranker mmrReranker;
-    private final JdbcTemplate primaryJdbcTemplate;
+    private final NamedParameterJdbcTemplate primaryNamedJdbcTemplate;
 
     private static final int CANDIDATE_MULTIPLIER = 3;
     // 추천(0.7)보다 다양성 더 강하게 — 플레이리스트는 한 분위기 안에서도 변화가 필요
@@ -100,23 +102,21 @@ public class PlaylistGenerationService {
 
         if (finalIds.isEmpty()) return List.of();
 
-        String inClause = finalIds.stream().map(String::valueOf)
-                .reduce((a, b) -> a + "," + b).orElse("");
-
         String sql = """
-                SELECT
-                    t.id,
-                    t.title,
-                    ar.name AS artist,
-                    al.cover_image_url AS cover
-                FROM tracks t
-                LEFT JOIN artists ar ON ar.id = t.artist_id
-                LEFT JOIN albums  al ON al.id = t.album_id
-                WHERE t.id IN (%s)
-                """.formatted(inClause);
+            SELECT
+                t.id,
+                t.title,
+                ar.name AS artist,
+                al.cover_image_url AS cover
+            FROM tracks t
+            LEFT JOIN artists ar ON ar.id = t.artist_id
+            LEFT JOIN albums  al ON al.id = t.album_id
+            WHERE t.id IN (:ids)
+            """;
 
+        MapSqlParameterSource params = new MapSqlParameterSource("ids", finalIds);
         Map<Long, RawTrack> meta = new java.util.HashMap<>();
-        primaryJdbcTemplate.query(sql, (RowCallbackHandler) rs ->
+        primaryNamedJdbcTemplate.query(sql, params, (RowCallbackHandler) rs ->
                 meta.put(rs.getLong("id"),
                         new RawTrack(
                                 rs.getLong("id"),

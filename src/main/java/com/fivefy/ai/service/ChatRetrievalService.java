@@ -5,6 +5,8 @@ import com.fivefy.ai.repository.TrackEmbeddingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -32,6 +34,7 @@ public class ChatRetrievalService {
     private final TrackEmbeddingRepository trackEmbeddingRepository;
     private final MmrReranker mmrReranker;
     private final JdbcTemplate primaryJdbcTemplate;
+    private final NamedParameterJdbcTemplate primaryNamedJdbcTemplate;
 
     private static final int CANDIDATE_K = 30;       // ANN으로 가져올 후보
     private static final int FINAL_K = 8;            // LLM에 넘길 트랙 수
@@ -65,25 +68,24 @@ public class ChatRetrievalService {
     private List<RetrievedTrack> loadMetadata(List<Long> ids) {
         if (ids.isEmpty()) return List.of();
 
-        String inClause = ids.stream().map(String::valueOf)
-                .reduce((a, b) -> a + "," + b).orElse("");
         String sql = """
-                SELECT
-                    t.id,
-                    t.title,
-                    ar.name AS artist,
-                    al.title AS album,
-                    t.genre,
-                    YEAR(t.published_at) AS release_year,
-                    al.cover_image_url AS cover
-                FROM tracks t
-                LEFT JOIN artists ar ON ar.id = t.artist_id
-                LEFT JOIN albums  al ON al.id = t.album_id
-                WHERE t.id IN (%s)
-                """.formatted(inClause);
+            SELECT
+                t.id,
+                t.title,
+                ar.name AS artist,
+                al.title AS album,
+                t.genre,
+                YEAR(t.published_at) AS release_year,
+                al.cover_image_url AS cover
+            FROM tracks t
+            LEFT JOIN artists ar ON ar.id = t.artist_id
+            LEFT JOIN albums  al ON al.id = t.album_id
+            WHERE t.id IN (:ids)
+            """;
 
+        MapSqlParameterSource params = new MapSqlParameterSource("ids", ids);
         Map<Long, RetrievedTrack> map = new java.util.HashMap<>();
-        primaryJdbcTemplate.query(sql, rs -> {
+        primaryNamedJdbcTemplate.query(sql, params, rs -> {
             map.put(rs.getLong("id"), new RetrievedTrack(
                     rs.getLong("id"),
                     rs.getString("title"),

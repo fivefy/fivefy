@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -20,6 +22,8 @@ public class TrackLyricsEmbeddingRepository {
 
     @Qualifier("vectorJdbcTemplate")
     private final JdbcTemplate vectorJdbcTemplate;
+    @Qualifier("vectorNamedJdbcTemplate")
+    private final NamedParameterJdbcTemplate vectorNamedJdbcTemplate;
 
     public void upsert(TrackLyricsEmbedding e) {
         String sql = """
@@ -75,21 +79,21 @@ public class TrackLyricsEmbeddingRepository {
     public Map<Long, Float> getSimilarityScoresFor(float[] queryVector, List<Long> trackIds) {
         if (trackIds.isEmpty()) return Map.of();
 
-        String inClause = trackIds.stream().map(String::valueOf)
-                .reduce((a, b) -> a + "," + b).orElse("");
-
         String sql = """
-            SELECT track_id,
-                   1 - (embedding <=> ?::vector) AS similarity
-            FROM track_lyrics_embedding
-            WHERE track_id IN (%s)
-            """.formatted(inClause);
+        SELECT track_id,
+               1 - (embedding <=> :queryVector::vector) AS similarity
+        FROM track_lyrics_embedding
+        WHERE track_id IN (:ids)
+        ORDER BY similarity DESC
+        """;
 
-        Map<Long, Float> result = new java.util.HashMap<>();
-        vectorJdbcTemplate.query(sql, ps -> ps.setObject(1, new PGvector(queryVector)),
-                rs -> {
-                    result.put(rs.getLong("track_id"), rs.getFloat("similarity"));
-                });
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("queryVector", new PGvector(queryVector))
+                .addValue("ids", trackIds);
+        Map<Long, Float> result = new java.util.LinkedHashMap<>();
+        vectorNamedJdbcTemplate.query(sql, params, rs -> {
+            result.put(rs.getLong("track_id"), rs.getFloat("similarity"));
+        });
         return result;
     }
 
