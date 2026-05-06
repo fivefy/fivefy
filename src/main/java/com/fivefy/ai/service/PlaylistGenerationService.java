@@ -2,6 +2,7 @@ package com.fivefy.ai.service;
 
 import com.fivefy.ai.dto.PlaylistGenerateRequest;
 import com.fivefy.ai.dto.PlaylistGenerateResponse;
+import com.fivefy.ai.dto.RawTrack;
 import com.fivefy.ai.dto.RecommendationResponse;
 import com.fivefy.ai.repository.TrackEmbeddingRepository;
 import lombok.RequiredArgsConstructor;
@@ -128,7 +129,7 @@ public class PlaylistGenerationService {
             RawTrack m = meta.get(id);
             if (m == null) continue;
             float score = cosineSim(queryVector, vectors.get(id));
-            result.add(new RecommendationResponse.RecommendedTrack(m.id, m.title, m.artist, m.cover, score));
+            result.add(new RecommendationResponse.RecommendedTrack(m.id(), m.title(), m.artist(), m.cover(), score));
         }
         return result;
     }
@@ -143,6 +144,4 @@ public class PlaylistGenerationService {
         if (na == 0 || nb == 0) return 0f;
         return (float) (dot / (Math.sqrt(na) * Math.sqrt(nb)));
     }
-
-    private record RawTrack(Long id, String title, String artist, String cover) {}
 }

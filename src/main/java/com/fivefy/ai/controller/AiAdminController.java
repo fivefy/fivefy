@@ -1,5 +1,6 @@
 package com.fivefy.ai.controller;
 
+import com.fivefy.ai.job.LyricsEmbeddingJob;
 import com.fivefy.ai.job.TrackEmbeddingJob;
 import com.fivefy.common.dto.response.BaseResponse;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +32,7 @@ public class AiAdminController {
     @PostMapping("/embedding/tracks/run")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BaseResponse<Void>> runTrackEmbedding() {
-        boolean accepted = trigger.tryStart();
+        boolean accepted = trigger.tryStartTracks();
         if (!accepted) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(
                     BaseResponse.fail(HttpStatus.CONFLICT, "처리중이거나 처리된 작업입니다", null)
@@ -39,6 +40,20 @@ public class AiAdminController {
         }
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(
                 BaseResponse.success(HttpStatus.ACCEPTED, "트랙 임베딩 작업 시작", null)
+        );
+    }
+
+    @PostMapping("/embedding/lyrics/run")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<BaseResponse<Void>> runLyricsEmbedding() {
+        boolean accepted = trigger.tryStartLyrics();
+        if (!accepted) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                    BaseResponse.fail(HttpStatus.CONFLICT, "가사 임베딩 작업이 이미 진행 중입니다", null)
+            );
+        }
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(
+                BaseResponse.success(HttpStatus.ACCEPTED, "가사 임베딩 작업 시작", null)
         );
     }
 
@@ -62,29 +77,55 @@ public class AiAdminController {
     @RequiredArgsConstructor
     static class EmbeddingTriggerService {
 
-        private final TrackEmbeddingJob job;
-        private final AtomicBoolean running = new AtomicBoolean(false);
+        private final TrackEmbeddingJob trackJob;
+        private final LyricsEmbeddingJob lyricsJob;
+
+        // 트랙/가사 각각 독립적인 실행 가드
+        private final AtomicBoolean tracksRunning = new AtomicBoolean(false);
+        private final AtomicBoolean lyricsRunning = new AtomicBoolean(false);
 
         /**
-         * 잡 실행을 시도하고, 이미 실행 중이면 false 반환.
+         * 트랙 임베딩 잡 실행을 시도. 이미 실행 중이면 false.
          */
-        boolean tryStart() {
-            if (!running.compareAndSet(false, true)) {
+        boolean tryStartTracks() {
+            if (!tracksRunning.compareAndSet(false, true)) {
                 return false;
             }
-            executeAsync();
+            executeTracksAsync();
+            return true;
+        }
+
+        /**
+         * 가사 임베딩 잡 실행을 시도. 이미 실행 중이면 false.
+         */
+        boolean tryStartLyrics() {
+            if (!lyricsRunning.compareAndSet(false, true)) {
+                return false;
+            }
+            executeLyricsAsync();
             return true;
         }
 
         @Async("embeddingTaskExecutor")
-        public void executeAsync() {
+        public void executeTracksAsync() {
             try {
-                job.runDailyEmbedding();
+                trackJob.runDailyEmbedding();
             } catch (Exception e) {
-                // 비동기 스레드에서 던진 예외는 호출자에게 전달되지 않으므로 명시적 로깅
-                log.error("Manual embedding job failed", e);
+                // 비동기 스레드 예외는 호출자에 전파되지 않으므로 명시적 로깅
+                log.error("Manual track embedding job failed", e);
             } finally {
-                running.set(false);
+                tracksRunning.set(false);
+            }
+        }
+
+        @Async("embeddingTaskExecutor")
+        public void executeLyricsAsync() {
+            try {
+                lyricsJob.runDailyEmbedding();
+            } catch (Exception e) {
+                log.error("Manual lyrics embedding job failed", e);
+            } finally {
+                lyricsRunning.set(false);
             }
         }
     }

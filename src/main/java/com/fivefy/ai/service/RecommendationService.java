@@ -1,6 +1,7 @@
 package com.fivefy.ai.service;
 
 import com.fivefy.ai.domain.UserEmbedding;
+import com.fivefy.ai.dto.RawTrack;
 import com.fivefy.ai.dto.RecommendationResponse;
 import com.fivefy.ai.observability.AiBusinessMetrics;
 import com.fivefy.ai.repository.TrackEmbeddingRepository;
@@ -8,7 +9,6 @@ import com.fivefy.ai.repository.UserEmbeddingRepository;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -258,7 +258,7 @@ public class RecommendationService {
             float[] v = vectors.get(id);
             float score = (v == null) ? 0f : cosineSim(userVector, v);
             result.add(new RecommendationResponse.RecommendedTrack(
-                    m.id, m.title, m.artist, m.cover, score));
+                    m.id(), m.title(), m.artist(), m.cover(), score));
         }
         return result;
     }
@@ -273,6 +273,4 @@ public class RecommendationService {
         if (na == 0 || nb == 0) return 0f;
         return (float) (dot / (Math.sqrt(na) * Math.sqrt(nb)));
     }
-
-    private record RawTrack(Long id, String title, String artist, String cover) {}
 }
