@@ -2,6 +2,7 @@ package com.fivefy.domain.billingkey.controller;
 
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.billingkey.enums.BillingKeyErrorCode;
+import com.fivefy.domain.subscription.enums.SubscriptionErrorCode;
 import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
 import com.fivefy.domain.subscription.enums.SubscriptionStatus;
 import com.fivefy.domain.subscription.entity.Subscription;
@@ -71,16 +72,17 @@ public class BillingKeyController {
     public ResponseEntity<String> testCharge(
             @AuthenticationPrincipal Long userId
     ) {
+        // 빌링키  체크
         BillingKey billingKey = billingKeyRepository.findByUserIdAndActiveTrue(userId)
-                .orElseThrow(() -> new BusinessException(BillingKeyErrorCode.ERR_BILLING_KEY_ALREADY_DEACTIVATED));
+                .orElseThrow(() -> new BusinessException(BillingKeyErrorCode.ERR_BILLING_KEY_ACTIVE_NOT_FOUND));
 
-        // subscription 변수 선언 추가
+        // subscription 변수 선언 추가(구독 체크)
         Subscription subscription = subscriptionRepository
                 .findByUserIdAndPlanTypeAndStatus(
                         userId,
                         SubscriptionPlanType.RECURRING,
                         SubscriptionStatus.ACTIVE)
-                .orElseThrow(() -> new BusinessException(BillingKeyErrorCode.ERR_BILLING_KEY_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_NOT_FOUND));
 
         cashOrderService.processRecurringCharge(billingKey, subscription);
 
