@@ -113,7 +113,7 @@ public class ArtistService {
      */
     @Transactional
     public ArtistApplicationApproveResponse approveArtistApplication(Long adminId, Long applicationId) {
-        ArtistApplication application = findArtistApplication(applicationId);
+        ArtistApplication application = findArtistApplicationForUpdate(applicationId);
 
         // 상태 전이는 엔티티에 위임
         application.approve(adminId);
@@ -133,7 +133,7 @@ public class ArtistService {
             Long applicationId,
             ArtistApplicationRejectRequest request
     ) {
-        ArtistApplication application = findArtistApplication(applicationId);
+        ArtistApplication application = findArtistApplicationForUpdate(applicationId);
 
         // 상태 전이는 엔티티에 위임
         application.reject(adminId, request.rejectionReason());
@@ -260,6 +260,14 @@ public class ArtistService {
     // 아티스트 등록 신청 조회
     private ArtistApplication findArtistApplication(Long applicationId) {
         return artistApplicationRepository.findById(applicationId)
+                .orElseThrow(() -> new BusinessException(
+                        ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_NOT_FOUND
+                ));
+    }
+
+    // 아티스트 등록 신청 조회 (비관적 락)
+    private ArtistApplication findArtistApplicationForUpdate(Long applicationId) {
+        return artistApplicationRepository.findByIdForUpdate(applicationId)
                 .orElseThrow(() -> new BusinessException(
                         ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_NOT_FOUND
                 ));
