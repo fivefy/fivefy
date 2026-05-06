@@ -67,7 +67,7 @@ public class SubscriptionController {
         Subscription subscription = subscriptionRepository
                 .findByUserIdAndPlanTypeAndStatus(
                         userId,
-                        SubscriptionPlanType.RECURRING,
+                        SubscriptionPlanType.RECURRING_AUTO,
                         SubscriptionStatus.ACTIVE
                 )
                 .orElseThrow(() -> new BusinessException(

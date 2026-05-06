@@ -79,13 +79,9 @@ public class Subscription extends BaseEntity {
             // 만료일(구독일 + 1개월)
             subscription.expiryDate = planType.calculateExpiryDate(startDate);
             // 정기 구독 상태이면 다음 갱신일 1개월, 아니라면 null(구독 취소 된 상태. 남은 기간 이용 가능)
-            subscription.nextBillingDate = (planType == SubscriptionPlanType.RECURRING)
+            subscription.nextBillingDate = planType.isAutoRenew()
                     ? startDate.plusMonths(1)
                     : null;
-              // 테스트 용도
-//            subscription.nextBillingDate = (planType == SubscriptionPlanType.RECURRING)
-//                    ? subscription.expiryDate  // 만료일과 동일
-//                    : null;
 
         return subscription;
     }

@@ -8,8 +8,9 @@ import java.time.LocalDateTime;
 @Getter
 @RequiredArgsConstructor
 public enum SubscriptionPlanType {
-    FREE(0L,      "3일 체험"),
-    RECURRING(50L, "정기 구독");
+    FREE(0L,  "3일 체험"),                       // 무료(1회)     : 다음 갱신일 없음
+    RECURRING(50L, "정기 구독"),                 // 포인트 단건    : 다음 갱신일 없음
+    RECURRING_AUTO(50L, "정기 구독 (카드 자동)"); // 카드 자동      : 다음 갱신일 있음
 
     private final Long price;
     private final String description;
@@ -22,9 +23,13 @@ public enum SubscriptionPlanType {
      */
     public LocalDateTime calculateExpiryDate(LocalDateTime startDate) {
         return switch (this) {
-            case FREE     -> startDate.plusDays(3);     // 무료 플랜 3일
-            case RECURRING -> startDate.plusMonths(1);  // 정기 결제
-            //case RECURRING -> startDate.plusMinutes(1);  // 테스트: 1분
+            case FREE -> startDate.plusDays(3);
+            case RECURRING, RECURRING_AUTO -> startDate.plusMonths(1);
         };
+    }
+
+    // 카드 자동 청구 방식인지 여부 : 다음 갱신일
+    public boolean isAutoRenew() {
+        return this == RECURRING_AUTO;
     }
 }
