@@ -110,7 +110,9 @@ class AlbumServiceTest {
             ReflectionTestUtils.setField(artist, "id", artistId);
 
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
-            when(albumApplicationRepository.existsActiveApplication(userId, artistId, request.title()))
+            when(albumApplicationRepository.existsPendingApplication(userId, artistId, request.title()))
+                    .thenReturn(false);
+            when(albumApplicationRepository.existsApprovedApplication(userId, artistId, request.title()))
                     .thenReturn(false);
 
             AlbumApplication savedApplication = AlbumApplication.create(
@@ -316,7 +318,7 @@ class AlbumServiceTest {
 
         @Test
         @DisplayName("동일한 진행 중 신청이 이미 있으면 앨범 등록 신청 생성 실패")
-        void createAlbumApplication_fail_whenAlreadyExists() {
+        void createAlbumApplication_fail_whenPendingApplicationAlreadyExists() {
             Long userId = 1L;
             Long artistId = 10L;
 
@@ -341,7 +343,7 @@ class AlbumServiceTest {
             ReflectionTestUtils.setField(artist, "id", artistId);
 
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
-            when(albumApplicationRepository.existsActiveApplication(userId, artistId, request.title()))
+            when(albumApplicationRepository.existsPendingApplication(userId, artistId, request.title()))
                     .thenReturn(true);
 
             assertThatThrownBy(() -> albumService.createAlbumApplication(userId, request))
