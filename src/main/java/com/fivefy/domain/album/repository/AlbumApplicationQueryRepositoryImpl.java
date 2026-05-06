@@ -24,11 +24,11 @@ public class AlbumApplicationQueryRepositoryImpl implements AlbumApplicationQuer
     private final JPAQueryFactory queryFactory;
 
     /**
-     * 진행 중이거나 승인된 동일 앨범 신청 존재 여부 조회
+     * 진행 중인 동일 앨범 신청 존재 여부 조회
      */
     @Override
-    public boolean existsActiveApplication(Long requesterUserId, Long artistId, String title) {
-        // PENDING 또는 APPROVED 상태의 동일 앨범 신청 존재 여부 확인
+    public boolean existsPendingApplication(Long requesterUserId, Long artistId, String title) {
+        // PENDING 상태의 상태의 동일 앨범 신청 존재 여부 확인
         Integer result = queryFactory
                 .selectOne()
                 .from(albumApplication)
@@ -36,13 +36,30 @@ public class AlbumApplicationQueryRepositoryImpl implements AlbumApplicationQuer
                         albumApplication.requesterUserId.eq(requesterUserId),
                         albumApplication.artistId.eq(artistId),
                         albumApplication.title.eq(title),
-                        albumApplication.status.in(
-                                ApplicationStatus.PENDING,
-                                ApplicationStatus.APPROVED
-                        )
+                        albumApplication.status.eq(ApplicationStatus.PENDING)
                 )
                 .fetchFirst();
-        // 존재 여부 반환
+
+        return result != null;
+    }
+
+    /**
+     * 승인된 동일 앨범 신청 존재 여부 조회
+     */
+    @Override
+    public boolean existsApprovedApplication(Long requesterUserId, Long artistId, String title) {
+        // APPROVED 상태의 동일 앨범 신청 존재 여부 확인
+        Integer result = queryFactory
+                .selectOne()
+                .from(albumApplication)
+                .where(
+                        albumApplication.requesterUserId.eq(requesterUserId),
+                        albumApplication.artistId.eq(artistId),
+                        albumApplication.title.eq(title),
+                        albumApplication.status.eq(ApplicationStatus.APPROVED)
+                )
+                .fetchFirst();
+
         return result != null;
     }
 
