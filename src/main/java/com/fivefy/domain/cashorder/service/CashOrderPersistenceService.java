@@ -42,7 +42,7 @@ public class CashOrderPersistenceService {
     private final BillingKeyRepository billingKeyRepository;
 
     /**
-     * [refund] DB 상태 변경만 담당
+     * 환불은 DB 상태 변경만 담당
      *
      * CashOrderService.refund()에서 portoneClient.cancelPayment() 성공 확인 후 호출
      * 포트원 취소가 확정된 상태에서만 진입하므로 DB 작업만 트랜잭션으로 처리
