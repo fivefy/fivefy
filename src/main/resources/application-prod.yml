@@ -4,10 +4,16 @@ spring:
       on-profile: prod
 
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    primary:
+      url: ${DB_URL}
+      username: ${DB_USERNAME}
+      password: ${DB_PASSWORD}
+      driver-class-name: com.mysql.cj.jdbc.Driver
+    vector:
+      url: ${VECTOR_DB_URL}
+      username: ${VECTOR_DB_USERNAME}
+      password: ${VECTOR_DB_PASSWORD}
+      driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: validate
@@ -25,6 +31,21 @@ spring:
       port: 6379
       password: ${REDIS_PASSWORD}
       timeout: 2000ms
+  ai:
+    ollama:
+      base-url: ${OLLAMA_BASE_URL}
+      embedding:
+        options:
+          model: bge-m3
+      init:
+        pull-model-strategy: never
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY}
+      chat:
+        options:
+          model: claude-haiku-4-5-20251001
+          max-tokens: 200
+          temperature: 0.3
 
 kafka:
   bootstrap-servers: ${KAFKA_SERVERS}
@@ -60,3 +81,30 @@ scheduler:
   charge-cron: ${CHARGE_CRON}
   # 구독 패키지 구매(PointOrder-Subscription)  : 매월 9시 실행
   subscription-cron: ${SUBSCRIPTION_CRON}
+
+resilience4j:
+  retry:
+    instances:
+      ollamaEmbedding:
+        max-attempts: 3
+        wait-duration: 1s
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - org.springframework.web.client.ResourceAccessException
+          - java.io.IOException
+      anthropicChat:
+        max-attempts: 2
+        wait-duration: 500ms
+        retry-exceptions:
+          - org.springframework.web.client.ResourceAccessException
+          - java.io.IOException
+  circuitbreaker:
+    instances:
+      ollamaEmbedding:
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        sliding-window-size: 10
+      anthropicChat:
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        sliding-window-size: 10
