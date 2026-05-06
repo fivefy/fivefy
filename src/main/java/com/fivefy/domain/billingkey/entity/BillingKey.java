@@ -54,8 +54,16 @@ public class BillingKey extends BaseEntity {
     @Column(nullable = false)
     private boolean active = true;
 
-    // ── 생성 ──────────────────────────────────────────────────────────────────
-
+    /**
+     * 빌링키 생성
+     *
+     * @param userId
+     * @param billingKey
+     * @param cardLast4
+     * @param payMethod
+     * @param cardName
+     * @return
+     */
     public static BillingKey create(Long userId, String billingKey,
                                     String cardLast4, String payMethod, String cardName) {
         validateNonNull(userId, "userId");
@@ -72,9 +80,9 @@ public class BillingKey extends BaseEntity {
         return billingkey;
     }
 
-    // ── 상태 변경 ─────────────────────────────────────────────────────────────
-
-    /** 빌링키 해지 (카드 삭제) */
+    /**
+     * 빌링키 해지(카드 삭제)
+     */
     public void deactivate() {
         if (!this.active) {
             throw new BusinessException(BillingKeyErrorCode.ERR_BILLING_KEY_ALREADY_DEACTIVATED);

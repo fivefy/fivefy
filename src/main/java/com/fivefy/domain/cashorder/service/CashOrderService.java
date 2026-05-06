@@ -47,8 +47,8 @@ public class CashOrderService {
     private final PointHistoryRepository pointHistoryRepository;
     private final PortoneClient portoneClient;
     private final PortoneWebhookVerifier portoneWebhookVerifier;
-    private final ObjectMapper objectMapper;    // Spring Boot가 기본으로 Bean 등록
-
+    private final ObjectMapper objectMapper;
+    private final CashOrderPersistenceService persistenceService;   // DB 저장 분리
 
     /**
      * 포인트 충전 주문
@@ -95,13 +95,17 @@ public class CashOrderService {
      * 포트원 취소 API 호출 → SUCCEEDED 확인
      * CashOrder.refund() + Payment.refund() 상태 변경
      * wallet.useBalance() → 포인트 차감 + PointHistory(REFUND) 기록
+     *
+     * 수정 : 외부 API 호출은 트랜잭션 밖, DB 저장은 persistenceService.saveRefundResult()로 위임
+     * → 조회는 트랜잭션 없이 단순 읽기로 충분
+     * → portoneClient.cancelPayment() 성공 확인 후 DB 진입
+     *
      * @param userId
      * @param request
      * @return
      */
     // CashOrder와 PointOrder 모두 wallet와  같은 Wallet ID 수정
     @RedissonLock(key = "'wallet:' + #userId")
-    @Transactional
     public CashOrderResponse refund(Long userId, CashOrderRefundRequest request) {
 
         log.info("[CashOrder] 환불 요청 userId={}, orderNumber={}", userId, request.orderNumber());
@@ -119,6 +123,7 @@ public class CashOrderService {
              .orElseThrow(() -> new BusinessException(PaymentErrorCode.ERR_PAYMENT_NOT_FOUND));
 
         // 포트원에 취소 요청(외부 API 호출) (참고 코드의 cancelPaymentByImpUid에 해당)
+        // 트랜잭션 미적용(밖에서 실행)
         PortoneCancelResponse cancelResponse = portoneClient.cancelPayment(
             payment.getPgTransactionId(),
             cashOrder.getCashAmount(),
@@ -133,48 +138,13 @@ public class CashOrderService {
 
         log.info("[CashOrder] 환불 완료 userId={}, orderNumber={}", userId, request.orderNumber());
 
-        // 3. DB 상태 변경만 트랜잭션으로 처리
-        return saveRefundResult(cashOrder, payment, request.reason());
-    }
-
-    /**
-     * 토끼 : 외부 취소 호출과 DB 상태 변경 구간은 분리하는 편이 안전
-     * DB 작업만 별도 메서드로 분리 — AopForTransaction이 이 메서드에 트랜잭션 적용
-     * @param cashOrder
-     * @param payment
-     * @param reason
-     * @return
-     */
-    @Transactional
-    public CashOrderResponse saveRefundResult(CashOrder cashOrder, Payment payment, String reason) {
-        // DB 상태 변경
-        cashOrder.refund();         // CashOrder.status: SUCCESS → REFUNDED
-        payment.refund(reason);     // Payment.status: COMPLETED → REFUNDED, 환불이유/환불시간(refundReason/refundedAt) 기록
-
-        // 지갑의 포인트 차감
-        // 포인트를 이미 사용한 경우 useBalance()에서 잔액 부족 예외 발생 가능
-        //   → 스케줄러 도입 시 음수 잔액 허용 또는 별도 정책 필요
-        Wallet wallet = walletRepository.findByUserId(cashOrder.getUserId())
-                .orElseThrow(() -> new BusinessException(WalletErrorCode.ERR_WALLET_NOT_FOUND));
-        wallet.refundBalance(cashOrder.getPointAmount());
-
-        pointHistoryRepository.save(PointHistory.create(
-                wallet.getId(),
-                PointType.PAID,
-                PointHistoryType.REFUND,
-                cashOrder.getPointAmount(),
-                wallet.getBalance(),
-                "포인트 환불 (" + reason + ")",
-                cashOrder.getId(),  
-                null                // pointOrderId
-        ));
-
-        return CashOrderResponse.from(cashOrder);
+        // 3. DB 상태 변경만 트랜잭션으로 처리(기존에 같은 파일에서 실행하던 걸 persistenceService으로 옮김)
+        return persistenceService.saveRefundResult(cashOrder, payment, request.reason());
     }
 
     /**
      * 포트원 웹훅 처리 (결제 완료 시 포트원 서버가 호출)
-     * -PortoneWebhookController에서 헤더 검증 후 이 메서드로 위임
+     * PortoneWebhookController에서 헤더 검증 후 이 메서드로 위임
      *
      * rawBody 파싱 → 웹훅 타입 확인 (Transaction.Paid만 처리)
      * 시그니처 + 타임스탬프 검증 (위변조 / 리플레이 방지)
@@ -198,7 +168,6 @@ public class CashOrderService {
         // 웹훅 수신 즉시 로그(디버깅용)
         log.debug("[Webhook] 수신 webhookId={}", webhookId);
         log.debug("[Webhook] rawBody={}", rawBody);
-
 
         // 웹훅 body 파싱 : rawBody → PortoneWebhookRequest
         PortoneWebhookRequest request;
@@ -230,7 +199,7 @@ public class CashOrderService {
         String pgPaymentId = request.data().paymentId();  // ORD-xxxxxx : 포트원이 부여한 결제 ID (= orderNumber)
         log.info("[Webhook] 결제 검증 시작합니다 webhookId={}, pgPaymentId={}", webhookId, pgPaymentId);    // 웹훅 ID와 결제 ID
 
-        //                                  실제 결제 데이터 확인
+        // 읽기 전용 조회                    실제 결제 데이터 확인
         PortonePaymentResponse pgPayment = portoneClient.getPayment(pgPaymentId);
 
         // CashOrder 조회 (orderNumber 기준)
@@ -308,7 +277,7 @@ public class CashOrderService {
 
         log.info("[정기충전] 시작 userId={}, orderNumber={}", userId, orderNumber);
 
-        // 1. 포트원 빌링키 청구
+        // 1. 포트원 빌링키 청구(외부 API 호출)
         PortoneBillingPaymentResponse pgResponse;
         try {
             pgResponse = portoneClient.chargeWithBillingKey(
@@ -318,8 +287,10 @@ public class CashOrderService {
                     productType.getDescription()
             );
         } catch (Exception e) {
+            // 청구 자체가 실패 (네트워크 오류, 카드 만료 등)
+            // → 빌링키 비활성화도 DB 작업이므로 persistenceService 위임(billingKey.deactivate();)
             log.error("[정기충전] 포트원 청구 실패 — userId={}, 사유={}", userId, e.getMessage());
-            billingKey.deactivate();    // 카드 만료/한도 초과 등 → 비활성화
+            persistenceService.deactivateBillingKey(billingKey);        // 카드 만료/한도 초과 등 → 비활성화
             return;
         }
 
@@ -332,37 +303,8 @@ public class CashOrderService {
             return;
         }
 
-        // 2. CashOrder 생성 (SUCCESS)
-        CashOrder cashOrder = CashOrder.create(userId, productType, orderNumber);
-        cashOrder.success(orderNumber); // 빌링키 청구는 webhookId 대신 orderNumber로 멱등키 대체
-        cashOrderRepository.save(cashOrder);
-
-        // 3. Payment 기록 : 2026-04-22 : 실제 PG 거래 ID pgIxId 수정
-        Payment payment = Payment.create(
-                userId,
-                productType.getCashAmount(),
-                orderNumber,
-                pgResponse.payment().pgTxId(),  // 포트원 결제 ID paymentId() -> 실제 PG 거래 ID는 pgTxId. PortoneBillingPaymentResponse 참고하기
-                orderNumber              // 멱등키 (orderNumber 재사용)
-        );
-        payment.complete();
-        paymentRepository.save(payment);
-
-        // 4. 지갑 포인트 충전
-        Wallet wallet = walletRepository.findByUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("지갑 없음"));
-        wallet.chargeBalance(productType.getPointAmount());
-
-        pointHistoryRepository.save(PointHistory.create(
-                wallet.getId(),
-                PointType.PAID,
-                PointHistoryType.CHARGE,
-                productType.getPointAmount(),
-                wallet.getBalance(),
-                "정기 포인트 자동 충전",
-                cashOrder.getId(),
-                null            // pointOrderId
-        ));
+        // 포트원 청구 성공 확정 후 DB 작업만 별도 트랜잭션으로
+        persistenceService.saveRecurringChargeResult(billingKey, orderNumber, productType, pgResponse);
 
         log.info("[정기충전] 완료 — userId={}, orderNumber={}, 충전P={}",
                 userId, orderNumber, productType.getPointAmount());
