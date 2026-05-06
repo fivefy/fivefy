@@ -1,18 +1,14 @@
 package com.fivefy.ai.domain;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * 트랙 임베딩 (POJO, JPA 엔티티 X).
- * pgvector의 VECTOR 타입 때문에 JdbcTemplate으로 직접 다룬다.
- */
 @Getter
 @Builder
-@RequiredArgsConstructor
+@AllArgsConstructor
 public class TrackEmbedding {
 
     private final Long trackId;

@@ -1,20 +1,10 @@
 package com.fivefy.ai.service;
 
-import com.fivefy.ai.dto.RetrievedTrack;
+import com.fivefy.ai.dto.etc.RetrievedTrack;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-/**
- * RAG 시스템 프롬프트 빌더.
- *
- * 핵심 결정사항:
- *  1) 검색 결과를 번호 [1] [2] ... 로 매겨서 주입
- *     → LLM이 "[3]번 곡을 추천드려요" 같이 인용하면 환각 차단
- *  2) "검색 결과에 없는 곡은 절대 언급하지 말라"고 명시
- *  3) 답변은 한국어로 (유저 언어) — 검색 결과는 영문이라도 OK
- *  4) 트랙 카드는 별도 채널로 보낼 거라 메시지에 트랙 정보 다 적지 말라고 지시
- */
 @Component
 public class RagPromptBuilder {
 
@@ -36,11 +26,6 @@ public class RagPromptBuilder {
             7. Pick 2-4 tracks that BEST fit the mood and explain WHY. Don't try to mention all of them.
             """;
 
-    /**
-     * 검색 결과를 시스템 프롬프트로 변환.
-     *
-     * 결과가 비었으면 "추천할 트랙이 없다"는 지시도 추가.
-     */
     public String build(List<RetrievedTrack> tracks) {
         StringBuilder sb = new StringBuilder(BASE_INSTRUCTIONS);
 

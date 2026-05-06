@@ -1,18 +1,10 @@
-package com.fivefy.ai.dto;
+package com.fivefy.domain.chat.dto.event;
 
+import com.fivefy.ai.dto.etc.RetrievedTrack;
 import com.fivefy.domain.chat.enums.ChatStreamEventType;
 
 import java.util.List;
 
-/**
- * SSE로 클라이언트에 보내는 이벤트 타입.
- *
- * - SESSION:  새 세션 ID (신규 대화일 때만, 첫 이벤트)
- * - TEXT:     LLM이 생성한 텍스트 청크
- * - TRACKS:   추천 트랙 카드 (한 번에)
- * - DONE:     스트리밍 종료 (assistant message ID 포함)
- * - ERROR:    오류
- */
 public record ChatStreamEvent(
         ChatStreamEventType type,
         Object data

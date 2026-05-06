@@ -3,7 +3,6 @@ package com.fivefy.ai.service;
 import com.fivefy.domain.chat.entity.ChatMessage;
 import com.fivefy.domain.chat.entity.ChatSession;
 import com.fivefy.domain.chat.repository.ChatMessageRepository;
-import com.fivefy.domain.chat.repository.ChatSessionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -17,39 +16,22 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * 대화 컨텍스트 조립.
- *
- * 토큰 비용을 관리하는 게 핵심:
- *  - 최근 6턴 (= 12 메시지)은 그대로
- *  - 그 이전은 별도 LLM이 생성한 요약본으로 대체
- *  - 요약은 비동기로 갱신 (이 클래스에서는 읽기만)
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ConversationContextBuilder {
 
     private final ChatMessageRepository messageRepository;
-    private final ChatSessionRepository sessionRepository;
 
     private static final int RECENT_TURN_PAIRS = 6;  // 최근 6턴 = 메시지 12개
 
-    /**
-     * Spring AI Message 리스트로 빌드 (Claude에 그대로 전달 가능).
-     *
-     * 구조:
-     *   [SystemMessage]      ← 외부에서 별도로 prepend
-     *   [SystemMessage 요약]  ← 누적 요약이 있으면
-     *   [User/Assistant ...]  ← 최근 N턴
-     */
     public List<Message> build(ChatSession session) {
         List<Message> messages = new ArrayList<>();
 
         // 1) 누적 요약 (있을 때만)
         if (session.getSummary() != null && !session.getSummary().isBlank()) {
             messages.add(new SystemMessage(
-                    "Previous conversation summary:\n" + session.getSummary()));
+                    "이전 대화 요약:\n" + session.getSummary()));
         }
 
         // 2) 최근 N턴 — summaryUntilMessageId 이후만
@@ -70,16 +52,12 @@ public class ConversationContextBuilder {
             });
         }
 
-        log.debug("Built context for sessionId={}: {} messages (incl. summary={})",
+        log.debug("컨텍스트 빌드 완료 (sessionId={}): 총 {}개 메시지 (요약본 = {} 포함)",
                 session.getId(), messages.size(), session.getSummary() != null);
 
         return messages;
     }
 
-    /**
-     * 누적 메시지가 임계값을 넘으면 요약 트리거 필요한지 체크.
-     * 호출자가 비동기로 SummarizationService 호출 결정.
-     */
     public boolean shouldSummarize(ChatSession session) {
         Long afterId = session.getSummaryUntilMessageId();
         long unsummarizedCount = afterId == null

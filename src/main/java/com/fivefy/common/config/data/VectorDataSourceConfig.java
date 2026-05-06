@@ -12,14 +12,6 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
 
-/**
- * AI/벡터 전용 PostgreSQL DataSource.
- *
- * JPA를 안 쓰고 JdbcTemplate만 쓰는 이유:
- * - pgvector의 VECTOR 타입은 Hibernate가 기본 지원 안 함 (커스텀 타입 컨버터 필요)
- * - 임베딩 CRUD는 단순한 INSERT/SELECT가 전부라 JPA 오버헤드가 불필요
- * - JdbcTemplate + PGobject로 직관적으로 처리
- */
 @Configuration
 public class VectorDataSourceConfig {
 

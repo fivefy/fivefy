@@ -1,10 +1,12 @@
-package com.fivefy.ai.service;
+package com.fivefy.domain.chat.service;
 
+import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.chat.entity.ChatMessage;
 import com.fivefy.domain.chat.entity.ChatMessageTrack;
 import com.fivefy.domain.chat.entity.ChatSession;
-import com.fivefy.ai.domain.ChatSetupResult;
-import com.fivefy.ai.dto.RetrievedTrack;
+import com.fivefy.domain.chat.dto.etc.ChatSetupResult;
+import com.fivefy.ai.dto.etc.RetrievedTrack;
+import com.fivefy.domain.chat.enums.ChatSessionErrorCode;
 import com.fivefy.domain.chat.repository.ChatMessageRepository;
 import com.fivefy.domain.chat.repository.ChatMessageTrackRepository;
 import com.fivefy.domain.chat.repository.ChatSessionRepository;
@@ -23,10 +25,6 @@ public class ChatCommandService {
     private final ChatMessageRepository messageRepository;
     private final ChatMessageTrackRepository messageTrackRepository;
 
-    /**
-     * 세션 확보 + 유저 메시지 저장.
-     * 트랜잭션이 필요한 부분만 분리.
-     */
     @Transactional
     public ChatSetupResult setupSession(Long userId, Long sessionId, String userMessage) {
         ChatSession session;
@@ -36,9 +34,9 @@ public class ChatCommandService {
             session = sessionRepository.save(ChatSession.create(userId));
             isNew = true;
         } else {
-            session = sessionRepository.findByIdAndUserId(sessionId, userId)
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "세션을 찾을 수 없습니다: " + sessionId));
+            session = sessionRepository.findByIdAndUserId(sessionId, userId).orElseThrow(
+                    () -> new BusinessException(ChatSessionErrorCode.ERR_SESSION_NOT_FOUND)
+            );
         }
 
         // 유저 메시지 저장
@@ -51,13 +49,10 @@ public class ChatCommandService {
         return new ChatSetupResult(session, isNew);
     }
 
-    /**
-     * Assistant 응답 + 트랙 카드 저장 (트랜잭션).
-     */
     @Transactional
     public Long saveAssistantMessage(Long sessionId, String content, List<RetrievedTrack> tracks) {
         ChatSession session = sessionRepository.findById(sessionId).orElseThrow(
-                () -> new IllegalArgumentException("TODO")
+                () -> new BusinessException(ChatSessionErrorCode.ERR_SESSION_NOT_FOUND)
         );
 
         ChatMessage saved = messageRepository.save(ChatMessage.assistant(session.getId(), content));

@@ -11,11 +11,6 @@ import java.time.LocalDateTime;
 
 import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
-/**
- * 챗봇 대화 세션 (한 사용자의 한 대화방).
- *
- * MySQL에 저장 — JPA 사용 (벡터 데이터가 아니라서 JdbcTemplate 안 써도 됨).
- */
 @Getter
 @Entity
 @Table(name = "chat_sessions")

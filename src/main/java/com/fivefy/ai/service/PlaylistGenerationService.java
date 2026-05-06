@@ -1,13 +1,15 @@
 package com.fivefy.ai.service;
 
-import com.fivefy.ai.dto.PlaylistGenerateRequest;
-import com.fivefy.ai.dto.PlaylistGenerateResponse;
-import com.fivefy.ai.dto.RawTrack;
-import com.fivefy.ai.dto.RecommendationResponse;
+import com.fivefy.ai.dto.etc.Candidate;
+import com.fivefy.ai.dto.request.PlaylistGenerateRequest;
+import com.fivefy.ai.dto.response.PlaylistGenerateResponse;
+import com.fivefy.ai.dto.etc.RawTrack;
+import com.fivefy.ai.dto.response.RecommendationResponse;
+import com.fivefy.ai.enums.AiErrorCode;
 import com.fivefy.ai.repository.TrackEmbeddingRepository;
+import com.fivefy.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -16,21 +18,6 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 자동 플레이리스트 생성.
- *
- * 5단계:
- *  1) prompt → 검색 텍스트 (LLM)
- *  2) 검색 텍스트 + seed → 검색 벡터
- *  3) pgvector ANN 검색 (K = 3 × size)
- *  4) MMR 다양성 재정렬
- *  5) 메타데이터 join + (선택) 이름/설명 생성
- *
- * 2단계와 다른 점:
- *  - 유저 벡터가 아니라 prompt/seed 기반 쿼리 벡터
- *  - MMR lambda를 더 낮게 (플레이리스트는 다양성이 더 중요)
- *  - 시드 트랙 자체는 결과에서 제외
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -43,19 +30,18 @@ public class PlaylistGenerationService {
     private final NamedParameterJdbcTemplate primaryNamedJdbcTemplate;
 
     private static final int CANDIDATE_MULTIPLIER = 3;
-    // 추천(0.7)보다 다양성 더 강하게 — 플레이리스트는 한 분위기 안에서도 변화가 필요
     private static final double DEFAULT_PLAYLIST_LAMBDA = 0.5;
 
     public PlaylistGenerateResponse generate(PlaylistGenerateRequest req) {
         if (!req.hasInput()) {
-            throw new IllegalArgumentException("prompt 또는 seedTrackIds 중 하나는 필수입니다");
+            throw new BusinessException(AiErrorCode.ERR_AI_PLAYLIST_INVALID_INPUT);
         }
 
         // ─── 1. prompt → 검색 텍스트 ───
         String searchText = null;
         if (req.prompt() != null && !req.prompt().isBlank()) {
             searchText = promptConverter.convert(req.prompt());
-            log.debug("Prompt converted: '{}' → '{}'", req.prompt(), searchText);
+            log.debug("프롬프트 변환 완료: '{}' → '{}'", req.prompt(), searchText);
         }
 
         // ─── 2. 검색 벡터 빌드 ───
@@ -70,7 +56,7 @@ public class PlaylistGenerationService {
                 queryVector, k, excludeIds);
 
         if (candidateIds.isEmpty()) {
-            return new PlaylistGenerateResponse(null, null, searchText, List.of());
+            return new PlaylistGenerateResponse(searchText, List.of());
         }
 
         // ─── 4. MMR 재정렬 ───
@@ -81,9 +67,9 @@ public class PlaylistGenerationService {
         Map<Long, float[]> candidateVectors = trackEmbeddingRepository
                 .findVectorsByTrackIds(candidateIds);
 
-        List<MmrReranker.Candidate> mmrInput = candidateIds.stream()
+        List<Candidate> mmrInput = candidateIds.stream()
                 .filter(candidateVectors::containsKey)
-                .map(id -> new MmrReranker.Candidate(id, candidateVectors.get(id)))
+                .map(id -> new Candidate(id, candidateVectors.get(id)))
                 .toList();
 
         List<Long> finalIds = mmrReranker.rerank(queryVector, mmrInput, req.size(), lambda);
@@ -91,8 +77,8 @@ public class PlaylistGenerationService {
         // ─── 5. 메타데이터 ───
         List<RecommendationResponse.RecommendedTrack> tracks = enrichWithMetadata(finalIds, queryVector, candidateVectors);
 
-        // 이름/설명은 별도 메서드로 (호출자가 필요할 때만 추가 LLM 호출)
-        return new PlaylistGenerateResponse(null, null, searchText, tracks);
+        // 이름/설명은 별도 메서드로 (자동 생성된 플리 저장 시 추가 LLM 호출)
+        return new PlaylistGenerateResponse(searchText, tracks);
     }
 
     private List<RecommendationResponse.RecommendedTrack> enrichWithMetadata(

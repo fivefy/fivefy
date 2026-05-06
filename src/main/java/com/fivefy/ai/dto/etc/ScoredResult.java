@@ -1,4 +1,4 @@
-package com.fivefy.ai.dto;
+package com.fivefy.ai.dto.etc;
 
 public record ScoredResult(
         Long trackId,

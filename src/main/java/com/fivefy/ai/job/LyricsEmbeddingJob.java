@@ -1,29 +1,18 @@
 package com.fivefy.ai.job;
 
-import com.fivefy.ai.dto.TrackLyricsForEmbedding;
+import com.fivefy.ai.dto.etc.TrackLyricsForEmbedding;
 import com.fivefy.ai.service.LyricsEmbeddingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-/**
- * 가사 임베딩 배치 잡.
- *
- * 트랙 임베딩 잡과 비슷하지만:
- *  - 가사 한 곡당 호출 수가 더 많음 (청크 수만큼)
- *  - 따라서 청크 단위가 아닌 *트랙 단위* 처리 (한 곡씩 순차)
- *  - rate limit 더 보수적으로 (한 번에 적게)
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(name = "fivefy.ai.lyrics-embedding.enabled", havingValue = "true")
 public class LyricsEmbeddingJob {
 
     private static final int MAX_ITERATIONS = 10_000;
@@ -31,15 +20,12 @@ public class LyricsEmbeddingJob {
     private final LyricsEmbeddingService lyricsEmbeddingService;
     private final JdbcTemplate primaryJdbcTemplate;
 
-    @Value("${fivefy.ai.lyrics-embedding.batch-size:50}")
-    private int batchSize;
+    private static final int batchSize = 50;
 
-    /**
-     * 매일 새벽 4시 (트랙 임베딩 잡 끝난 후).
-     */
-    @Scheduled(cron = "${fivefy.ai.lyrics-embedding.cron:0 0 4 * * *}")
+    // 매일 새벽 4시 (트랙 임베딩 잡 끝난 후)
+    @Scheduled(cron = "0 0 4 * * *")
     public void runDailyEmbedding() {
-        log.info("=== Daily lyrics embedding job started ===");
+        log.info("=== 일일 가사 임베딩 작업 시작 ===");
         long startMs = System.currentTimeMillis();
 
         int processed = 0, skipped = 0, failed = 0;
@@ -47,7 +33,7 @@ public class LyricsEmbeddingJob {
         int iteration = 0;
 
         while (iteration++ < MAX_ITERATIONS) {
-            List<TrackLyricsForEmbedding> chunk = fetchLyricsChunk(lastTrackId, batchSize);
+            List<TrackLyricsForEmbedding> chunk = fetchLyricsChunk(lastTrackId);
             if (chunk.isEmpty()) break;
 
             for (TrackLyricsForEmbedding lyrics : chunk) {
@@ -55,7 +41,7 @@ public class LyricsEmbeddingJob {
                     boolean done = lyricsEmbeddingService.embedLyrics(lyrics);
                     if (done) processed++; else skipped++;
                 } catch (Exception e) {
-                    log.error("Lyrics embedding failed: trackId={}", lyrics.trackId(), e);
+                    log.error("가사 임베딩 작업 실패: trackId={}", lyrics.trackId(), e);
                     failed++;
                 }
 
@@ -67,23 +53,17 @@ public class LyricsEmbeddingJob {
         }
 
         if (iteration >= MAX_ITERATIONS) {
-            log.error("Hit MAX_ITERATIONS ({}). Job aborted; some tracks may be unprocessed.",
+            log.error("최대 반복 횟수 ({}) 도달: 작업 강제 종료; 일부 트랙의 처리가 누락되었을 수 있습니다",
                     MAX_ITERATIONS);
         }
 
         long elapsedSec = (System.currentTimeMillis() - startMs) / 1000;
-        log.info("=== Lyrics embedding done in {}s: processed={}, skipped={}, failed={}, iterations={} ===",
+        log.info("=== 일일 가사 임베딩 작업 완료 in {}s: processed={}, skipped={}, failed={}, iterations={} ===",
                 elapsedSec, processed, skipped, failed, iteration);
     }
 
-    /**
-     * tracks.lyrics 컬럼에서 가사 직접 조회.
-     *
-     * fivefy는 별도 lyrics 테이블 없이 tracks 테이블에 lyrics TEXT 컬럼 보유.
-     * - lyrics IS NOT NULL & 50자 이상만 임베딩 (의미 있는 가사만)
-     * - PUBLISHED & 미삭제 곡만
-     */
-    private List<TrackLyricsForEmbedding> fetchLyricsChunk(long lastTrackId, int size) {
+    // tracks.lyrics 컬럼에서 가사 직접 조회
+    private List<TrackLyricsForEmbedding> fetchLyricsChunk(long lastTrackId) {
         String sql = """
             SELECT id AS track_id, lyrics
             FROM tracks
@@ -101,7 +81,7 @@ public class LyricsEmbeddingJob {
                         rs.getLong("track_id"),
                         rs.getString("lyrics")
                 ),
-                lastTrackId, size);
+                lastTrackId, LyricsEmbeddingJob.batchSize);
     }
 
     private void sleep(long ms) {

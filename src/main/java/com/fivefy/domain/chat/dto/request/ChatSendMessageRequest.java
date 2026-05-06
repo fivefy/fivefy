@@ -1,4 +1,4 @@
-package com.fivefy.ai.dto;
+package com.fivefy.domain.chat.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

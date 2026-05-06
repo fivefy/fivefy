@@ -1,7 +1,6 @@
 package com.fivefy.ai.repository;
 
 import com.fivefy.ai.domain.TrackLyricsEmbedding;
-import com.fivefy.ai.dto.ScoredTrack;
 import com.pgvector.PGvector;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,30 +51,6 @@ public class TrackLyricsEmbeddingRepository {
         );
     }
 
-    /**
-     * 코사인 유사도 기반 검색.
-     * - 결과: trackId + score (0~1, 1이 가장 유사)
-     * - 점수 함께 반환하는 이유: 메타 검색 결과와 가중 결합하려면 점수가 필요
-     */
-    public List<ScoredTrack> findSimilar(float[] queryVector, int limit) {
-        String sql = """
-            SELECT track_id,
-                   1 - (embedding <=> ?::vector) AS similarity
-            FROM track_lyrics_embedding
-            ORDER BY embedding <=> ?::vector
-            LIMIT ?
-            """;
-
-        return vectorJdbcTemplate.query(sql,
-                (rs, rn) -> new ScoredTrack(
-                        rs.getLong("track_id"),
-                        rs.getFloat("similarity")),
-                new PGvector(queryVector), new PGvector(queryVector), limit);
-    }
-
-    /**
-     * 트랙 ID 리스트로 가사 유사도 점수만 조회 (메타 검색 후 가사 점수 보강용).
-     */
     public Map<Long, Float> getSimilarityScoresFor(float[] queryVector, List<Long> trackIds) {
         if (trackIds.isEmpty()) return Map.of();
 

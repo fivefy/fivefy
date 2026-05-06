@@ -1,4 +1,4 @@
-package com.fivefy.ai.dto;
+package com.fivefy.ai.dto.response;
 
 public record MoodTrack(
         Long trackId,

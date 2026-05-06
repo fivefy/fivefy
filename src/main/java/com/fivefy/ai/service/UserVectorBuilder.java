@@ -1,5 +1,6 @@
 package com.fivefy.ai.service;
 
+import com.fivefy.ai.dto.etc.BuildResult;
 import com.fivefy.ai.repository.TrackEmbeddingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,30 +12,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 유저 벡터 빌더 — 재생 기록 → 유저 취향 벡터.
- *
- * 가중 평균 공식:
- *   user_vec = Σ (track_vec_i × weight_i) / Σ weight_i
- *
- *   weight_i = recency_weight × action_weight × play_count_weight
- *
- * - recency_weight: 최근에 들을수록 큰 가중치 (지수 감쇠)
- * - action_weight : 좋아요/완청/부분재생에 따라 다른 가중치
- * - play_count    : 자주 들은 곡일수록 큰 가중치 (log scale 로 완화)
- *
- * 스킵(SKIP) 처리:
- *  스킵을 음수 가중치로 평균에 섞으면 분모가 0 근방으로 가서 결과가 폭주할 수 있고,
- *  표준 가중 평균 의미가 깨짐. 1차 구현에서는 SKIP 액션을 가중치 0 (무시) 으로 처리.
- *  나중에 negative signal 을 쓰려면 별도 anti-vector 를 만들어 검색 단계에서 페널티로
- *  주는 방식이 안전 (이 클래스 책임 밖).
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserVectorBuilder {
 
-    private final JdbcTemplate primaryJdbcTemplate;  // MySQL
+    private final JdbcTemplate primaryJdbcTemplate;
     private final TrackEmbeddingRepository trackEmbeddingRepository;
 
     private static final int MAX_SOURCE_TRACKS = 50;  // 너무 많으면 평균이 평탄해짐
@@ -43,17 +26,14 @@ public class UserVectorBuilder {
     // 가중치 상수 (튜닝 대상)
     private static final double HALF_LIFE_DAYS = 30.0;     // 30일 지나면 가중치 절반
     private static final double WEIGHT_LIKE = 3.0;         // 좋아요
-    private static final double WEIGHT_FULL_PLAY = 1.0;    // 완청 (90% 이상)
+    private static final double WEIGHT_FULL_PLAY = 1.0;    // 완청
     private static final double WEIGHT_PARTIAL_PLAY = 0.5; // 부분 재생
     // SKIP 은 0 (무시). 향후 negative signal 이 필요하면 별도 채널로.
 
-    /**
-     * 유저 벡터 생성. 재생 기록이 부족하면 Optional.empty.
-     */
     public BuildResult build(Long userId) {
         List<UserAction> actions = fetchRecentActions(userId, MAX_SOURCE_TRACKS);
         if (actions.isEmpty()) {
-            log.debug("No actions for userId={}, cannot build vector", userId);
+            log.debug("사용자 활동 기록 없음 for userId={}, 벡터 생성 불가", userId);
             return BuildResult.empty();
         }
 
@@ -88,9 +68,6 @@ public class UserVectorBuilder {
         return BuildResult.of(accumulated, actions.size());
     }
 
-    /**
-     * 단일 액션의 가중치 계산. 음수 가중치는 발생하지 않음.
-     */
     private double computeWeight(UserAction action, LocalDateTime now) {
         long daysAgo = Duration.between(action.actionAt, now).toDays();
         double recencyWeight = Math.pow(0.5, daysAgo / HALF_LIFE_DAYS);
@@ -109,12 +86,6 @@ public class UserVectorBuilder {
         return recencyWeight * actionWeight * playCountWeight;
     }
 
-    /**
-     * 두 단계 조회:
-     *  1) MySQL 에서 액션 + track_id
-     *  2) PostgreSQL 에서 track_id IN (...) 으로 임베딩 일괄 조회
-     * in-memory 에서 합침.
-     */
     private List<UserAction> fetchRecentActions(Long userId, int limit) {
         String sql = """
             (
@@ -193,10 +164,6 @@ public class UserVectorBuilder {
 
     private record UserAction(
             Long trackId, float[] vector, String actionType,
-            LocalDateTime actionAt, int playCount) {}
-
-    public record BuildResult(float[] vector, int sourceCount, boolean success) {
-        static BuildResult empty() { return new BuildResult(null, 0, false); }
-        static BuildResult of(float[] v, int n) { return new BuildResult(v, n, true); }
-    }
+            LocalDateTime actionAt, int playCount
+    ) {}
 }

@@ -6,18 +6,6 @@ import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-/**
- * AI 기능별 비즈니스 메트릭.
- *
- * 서비스에서 호출해서 메트릭 기록.
- *
- * 추적 항목:
- *  1) 기능별 호출 수 (recommendations / playlists / chat / mood)
- *  2) Cold start 비율 (추천 시 유저 벡터 만들 데이터 부족)
- *  3) 빈 결과 비율 (검색 결과 0건)
- *  4) 단계별 지연 시간 (retrieval / generation / 전체)
- *  5) 챗봇 추천 곡 수 분포
- */
 @Component
 @RequiredArgsConstructor
 public class AiBusinessMetrics {

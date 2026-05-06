@@ -1,5 +1,6 @@
 package com.fivefy.ai.dto;
 
+import com.fivefy.ai.dto.etc.TrackLyricsForEmbedding;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

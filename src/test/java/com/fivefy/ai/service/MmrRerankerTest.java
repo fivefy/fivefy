@@ -1,5 +1,6 @@
 package com.fivefy.ai.service;
 
+import com.fivefy.ai.dto.etc.Candidate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -16,11 +17,11 @@ class MmrRerankerTest {
     void lambdaOneEqualsTopK() {
         float[] user = {1.0f, 0.0f, 0.0f};
 
-        List<MmrReranker.Candidate> candidates = List.of(
-                new MmrReranker.Candidate(1L, new float[]{0.9f, 0.1f, 0.0f}),  // 가장 유사
-                new MmrReranker.Candidate(2L, new float[]{0.8f, 0.2f, 0.0f}),
-                new MmrReranker.Candidate(3L, new float[]{0.5f, 0.5f, 0.0f}),
-                new MmrReranker.Candidate(4L, new float[]{0.0f, 1.0f, 0.0f})
+        List<Candidate> candidates = List.of(
+                new Candidate(1L, new float[]{0.9f, 0.1f, 0.0f}),  // 가장 유사
+                new Candidate(2L, new float[]{0.8f, 0.2f, 0.0f}),
+                new Candidate(3L, new float[]{0.5f, 0.5f, 0.0f}),
+                new Candidate(4L, new float[]{0.0f, 1.0f, 0.0f})
         );
 
         List<Long> result = reranker.rerank(user, candidates, 3, 1.0);
@@ -36,10 +37,10 @@ class MmrRerankerTest {
 
         // 1번과 2번은 거의 동일한 곡 (유사도 0.99) - 둘 다 뽑히면 안 됨
         // 3번은 약간 다른 곡 - 다양성 측면에서 더 좋음
-        List<MmrReranker.Candidate> candidates = List.of(
-                new MmrReranker.Candidate(1L, new float[]{0.94f, 0.05f, 0.0f}),
-                new MmrReranker.Candidate(2L, new float[]{0.93f, 0.07f, 0.0f}),  // 1번과 거의 같음
-                new MmrReranker.Candidate(3L, new float[]{0.5f, 0.6f, 0.0f})    // 다른 방향
+        List<Candidate> candidates = List.of(
+                new Candidate(1L, new float[]{0.94f, 0.05f, 0.0f}),
+                new Candidate(2L, new float[]{0.93f, 0.07f, 0.0f}),  // 1번과 거의 같음
+                new Candidate(3L, new float[]{0.5f, 0.6f, 0.0f})    // 다른 방향
         );
 
         List<Long> result = reranker.rerank(user, candidates, 2, 0.3);
@@ -53,9 +54,9 @@ class MmrRerankerTest {
     @DisplayName("후보 개수 ≤ 요청 개수면 모두 반환")
     void allCandidatesIfFewerThanRequested() {
         float[] user = {1.0f, 0.0f};
-        List<MmrReranker.Candidate> candidates = List.of(
-                new MmrReranker.Candidate(1L, new float[]{1.0f, 0.0f}),
-                new MmrReranker.Candidate(2L, new float[]{0.5f, 0.5f})
+        List<Candidate> candidates = List.of(
+                new Candidate(1L, new float[]{1.0f, 0.0f}),
+                new Candidate(2L, new float[]{0.5f, 0.5f})
         );
 
         List<Long> result = reranker.rerank(user, candidates, 10);

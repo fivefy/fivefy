@@ -1,7 +1,9 @@
-package com.fivefy.ai.service;
+package com.fivefy.domain.chat.service;
 
+import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.chat.entity.ChatMessage;
 import com.fivefy.domain.chat.entity.ChatSession;
+import com.fivefy.domain.chat.enums.ChatSessionErrorCode;
 import com.fivefy.domain.chat.repository.ChatMessageRepository;
 import com.fivefy.domain.chat.repository.ChatSessionRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,20 +17,6 @@ import org.springframework.stereotype.Service;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * 오래된 대화를 요약해서 토큰 비용 관리.
- *
- * 비동기 (@Async):
- *   유저 응답 후 백그라운드에서 처리. 다음 메시지 보낼 때 즉시 사용 가능.
- *
- * 트리거:
- *   ConversationContextBuilder.shouldSummarize() == true 일 때 ChatService에서 호출.
- *
- * 동작:
- *   1) 기존 summary + 미요약 메시지 N개를 합쳐서 LLM에 요약 요청
- *   2) 새 요약본 + 마지막 메시지 ID를 세션에 저장
- *   3) 다음 컨텍스트 빌드 시 이 요약 + 그 이후 N턴만 사용
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -54,7 +42,7 @@ public class ChatSummarizer {
     @Async("summarizerExecutor")
     public void summarizeAsync(Long sessionId) {
         ChatSession session = sessionRepository.findById(sessionId).orElseThrow(
-                () -> new IllegalArgumentException("TODO")
+                () -> new BusinessException(ChatSessionErrorCode.ERR_SESSION_NOT_FOUND)
         );
 
         Long afterId = session.getSummaryUntilMessageId();
@@ -63,7 +51,7 @@ public class ChatSummarizer {
                 sessionId, afterId, PageRequest.of(0, 50));
 
         if (messages.size() < 4) {
-            log.debug("Skip summarization, too few messages: sessionId={}", sessionId);
+            log.debug("대화 요약 건너뜀 (메시지 부족): sessionId={}", sessionId);
             return;
         }
 
@@ -91,9 +79,9 @@ public class ChatSummarizer {
             // DB 저장은 짧은 트랜잭션으로 처리
             sessionPersistService.updateSummary(session.getId(), newSummary, lastMessageId);
 
-            log.info("Summarized sessionId={}, until messageId={}", sessionId, lastMessageId);
+            log.info("대화 요약 완료: sessionId={}, lastMessageId={}", sessionId, lastMessageId);
         } catch (Exception e) {
-            log.error("Summarization failed for sessionId={}", sessionId, e);
+            log.error("대화 요약 실패 for sessionId={}", sessionId, e);
             // 요약 실패해도 다음 메시지 처리에는 지장 없음 (폴백: 그냥 더 긴 컨텍스트)
         }
     }

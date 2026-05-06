@@ -1,8 +1,9 @@
 package com.fivefy.ai.service;
 
 import com.fivefy.ai.domain.UserEmbedding;
-import com.fivefy.ai.dto.RawTrack;
-import com.fivefy.ai.dto.RecommendationResponse;
+import com.fivefy.ai.dto.etc.Candidate;
+import com.fivefy.ai.dto.etc.RawTrack;
+import com.fivefy.ai.dto.response.RecommendationResponse;
 import com.fivefy.ai.observability.AiBusinessMetrics;
 import com.fivefy.ai.repository.TrackEmbeddingRepository;
 import com.fivefy.ai.repository.UserEmbeddingRepository;
@@ -23,17 +24,6 @@ import java.util.Map;
 
 import static com.fivefy.ai.observability.AiBusinessMetrics.Feature.RECOMMENDATION;
 
-/**
- * 개인화 추천 메인 서비스.
- *
- * 4단계 흐름:
- *  1) 유저 벡터 조회 (캐시 → DB → 신규 계산)
- *  2) pgvector ANN 검색으로 후보 K개
- *  3) MMR 다양성 재정렬 → 최종 N개
- *  4) MySQL에서 메타데이터 join
- *
- * 캐시 TTL: 6시간 (재생 패턴이 여섯 시간 안에 크게 안 바뀜)
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -43,8 +33,8 @@ public class RecommendationService {
     private final TrackEmbeddingRepository trackEmbeddingRepository;
     private final UserVectorBuilder userVectorBuilder;
     private final MmrReranker mmrReranker;
-    private final JdbcTemplate primaryJdbcTemplate;                       // 단순 위치 바인딩
-    private final NamedParameterJdbcTemplate primaryNamedJdbcTemplate;    // IN 절 안전 바인딩
+    private final JdbcTemplate primaryJdbcTemplate;
+    private final NamedParameterJdbcTemplate primaryNamedJdbcTemplate;
     private final AiBusinessMetrics metrics;
 
     // K 배수: 후보를 N개의 몇 배 가져올지 (MMR 여유)
@@ -62,7 +52,7 @@ public class RecommendationService {
             float[] userVector = resolveUserVector(userId);
             if (userVector == null) {
                 metrics.recordColdStart(RECOMMENDATION);
-                log.info("Cold start for userId={}, returning popular tracks", userId);
+                log.info("Cold start for userId={}, 인기 트랙 목록 반환", userId);
                 RecommendationResponse fallback = coldStartFallback(userId, limit);
                 metrics.recordResultCount(RECOMMENDATION, fallback.tracks().size());
                 metrics.recordCall(RECOMMENDATION, true);
@@ -87,9 +77,9 @@ public class RecommendationService {
             Map<Long, float[]> candidateVectors = trackEmbeddingRepository
                     .findVectorsByTrackIds(candidateIds);
 
-            List<MmrReranker.Candidate> mmrInput = candidateIds.stream()
+            List<Candidate> mmrInput = candidateIds.stream()
                     .filter(candidateVectors::containsKey)
-                    .map(id -> new MmrReranker.Candidate(id, candidateVectors.get(id)))
+                    .map(id -> new Candidate(id, candidateVectors.get(id)))
                     .toList();
 
             List<Long> finalIds = mmrReranker.rerank(userVector, mmrInput, limit);
@@ -112,9 +102,6 @@ public class RecommendationService {
         }
     }
 
-    /**
-     * 유저 벡터: 캐시 → DB → 신규 계산.
-     */
     private float[] resolveUserVector(Long userId) {
         var existingOpt = userEmbeddingRepository.findByUserId(userId);
 
@@ -124,7 +111,7 @@ public class RecommendationService {
             if (Duration.between(ue.getComputedAt(), LocalDateTime.now()).compareTo(STALE_AFTER) < 0) {
                 return ue.getEmbedding();
             }
-            log.debug("User vector stale for userId={}, rebuilding", userId);
+            log.debug("사용자 벡터 만료 for userId={}, 재구성 시작", userId);
         }
 
         // 신규 계산
@@ -142,10 +129,6 @@ public class RecommendationService {
         return result.vector();
     }
 
-    /**
-     * Cold start — 임베딩 만들 만큼의 재생 기록이 없는 경우.
-     * 기존 popular_chart 도메인 재사용.
-     */
     private RecommendationResponse coldStartFallback(Long userId, int limit) {
         String sql = """
             SELECT
@@ -177,9 +160,6 @@ public class RecommendationService {
         return new RecommendationResponse(tracks, "인기 트랙 기반 (이용 기록 부족)", 0);
     }
 
-    /**
-     * 최근 재생한 트랙 ID 조회 (추천에서 제외용).
-     */
     private List<Long> fetchRecentlyPlayedIds(Long userId, int limit) {
         return primaryJdbcTemplate.queryForList("""
                 SELECT track_id
@@ -201,9 +181,6 @@ public class RecommendationService {
                 """, Long.class, userId, userId, limit);
     }
 
-    /**
-     * 90일 내 유저 액션 수 (basedOnCount, 추천 신뢰도 지표).
-     */
     private int getActionCount(Long userId) {
         Integer count = primaryJdbcTemplate.queryForObject("""
                 SELECT (
@@ -217,13 +194,6 @@ public class RecommendationService {
         return count == null ? 0 : count;
     }
 
-    /**
-     * 트랙 ID 리스트 → 메타데이터 + 점수.
-     * finalIds 순서를 그대로 유지 (MMR 결과 순서 = 추천 순서).
-     *
-     * IN 절은 NamedParameterJdbcTemplate 으로 안전 바인딩.
-     * (String concat 패턴은 SQL Injection 위험을 코드베이스에 퍼뜨림)
-     */
     private List<RecommendationResponse.RecommendedTrack> enrichWithMetadata(
             List<Long> finalIds,
             float[] userVector,

@@ -1,9 +1,12 @@
 package com.fivefy.ai.service;
 
-import com.fivefy.ai.dto.*;
+import com.fivefy.ai.dto.etc.RawTrack;
+import com.fivefy.ai.dto.etc.ScoredResult;
+import com.fivefy.ai.dto.request.MoodSearchRequest;
+import com.fivefy.ai.dto.response.MoodSearchResponse;
+import com.fivefy.ai.dto.response.MoodTrack;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -12,15 +15,6 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 무드 검색 메인 서비스.
- *
- * 흐름:
- *   1) 자연어 → LLM이 검색 텍스트 변환 (3단계 재사용)
- *   2) 검색 텍스트 임베딩
- *   3) 하이브리드 검색 (메타 + 가사)
- *   4) 메타데이터 join → 응답
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -34,7 +28,7 @@ public class MoodSearchService {
     public MoodSearchResponse search(MoodSearchRequest request) {
         // 1) 자연어 → 검색 텍스트
         String searchText = promptConverter.convert(request.query());
-        log.debug("Mood search text: '{}' → '{}'", request.query(), searchText);
+        log.debug("무드 검색 텍스트 변환: '{}' → '{}'", request.query(), searchText);
 
         // 2) 임베딩
         float[] queryVector = embeddingClient.embed(searchText);

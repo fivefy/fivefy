@@ -1,4 +1,4 @@
-package com.fivefy.ai.dto;
+package com.fivefy.ai.enums;
 
 public enum MoodSearchMode {
     BALANCED, LYRICS, METADATA

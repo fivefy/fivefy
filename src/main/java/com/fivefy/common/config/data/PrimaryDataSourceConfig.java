@@ -19,11 +19,6 @@ import javax.sql.DataSource;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * 기존 fivefy 도메인용 MySQL DataSource (Primary).
- * 새로 추가하는 클래스이지만 기존 도메인의 JPA Repository 들이
- * 이 EntityManager를 자동으로 쓰도록 @Primary 로 지정.
- */
 @Configuration
 @EnableJpaRepositories(
         basePackages = "com.fivefy.domain", // 기존 fivefy의 JPA Repository 패키지들
@@ -64,30 +59,13 @@ public class PrimaryDataSourceConfig {
         return new JpaTransactionManager(emf);
     }
 
-    /**
-     * 기존 도메인 + AI 도메인의 raw SQL 조작용 JdbcTemplate (MySQL 단순 위치 파라미터용).
-     *
-     * @Primary 적용 이유:
-     *   AI 도메인의 6개 서비스가 모두 MySQL JdbcTemplate을 쓰는데,
-     *   매번 @Qualifier 다는 건 보일러플레이트.
-     *   - primaryJdbcTemplate: @Primary → 그냥 JdbcTemplate 타입 주입 시 자동 선택
-     *   - vectorJdbcTemplate: 빈 이름이 필드명과 일치 → Spring의 byName 매칭으로 주입
-     *
-     * 이렇게 두면 서비스 코드는 깔끔하게 `private final JdbcTemplate primaryJdbcTemplate;`
-     * 또는 `private final JdbcTemplate vectorJdbcTemplate;` 만 쓰면 됨.
-     */
     @Primary
     @Bean
     public JdbcTemplate primaryJdbcTemplate(@Qualifier("primaryDataSource") DataSource dataSource) {
         return new JdbcTemplate(dataSource);
     }
 
-    /**
-     * MySQL NamedParameterJdbcTemplate.
-     * IN 절 동적 길이 / named param 바인딩을 안전하게 처리하기 위함.
-     * String concat 으로 IN 절 만들면 SQL Injection 안티패턴이 코드베이스에 퍼지므로
-     * 기본적으로 이 빈을 쓰는 것을 권장.
-     */
+    @Primary
     @Bean
     public NamedParameterJdbcTemplate primaryNamedJdbcTemplate(
             @Qualifier("primaryDataSource") DataSource dataSource) {

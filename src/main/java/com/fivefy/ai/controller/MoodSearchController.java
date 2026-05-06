@@ -1,7 +1,7 @@
 package com.fivefy.ai.controller;
 
-import com.fivefy.ai.dto.MoodSearchRequest;
-import com.fivefy.ai.dto.MoodSearchResponse;
+import com.fivefy.ai.dto.request.MoodSearchRequest;
+import com.fivefy.ai.dto.response.MoodSearchResponse;
 import com.fivefy.ai.service.MoodSearchService;
 import com.fivefy.common.dto.response.BaseResponse;
 import jakarta.validation.Valid;
@@ -20,32 +20,6 @@ public class MoodSearchController {
 
     private final MoodSearchService moodSearchService;
 
-    /**
-     * POST /api/ai/search/mood
-     *
-     * 요청:
-     * {
-     *   "query": "이별 후에 혼자 우는 곡",
-     *   "limit": 20,
-     *   "mode": "LYRICS"
-     * }
-     *
-     * 응답:
-     * {
-     *   "searchTextUsed": "Heartbreak ballad, slow piano, ...",
-     *   "modeUsed": "LYRICS",
-     *   "tracks": [
-     *     {
-     *       "trackId": 142,
-     *       "title": "...",
-     *       "finalScore": 0.87,
-     *       "metaScore": 0.72,
-     *       "lyricsScore": 0.95,
-     *       "hasLyrics": true
-     *     }
-     *   ]
-     * }
-     */
     @PostMapping
     public ResponseEntity<BaseResponse<MoodSearchResponse>> search(@Valid @RequestBody MoodSearchRequest request) {
         return ResponseEntity.status(HttpStatus.OK).body(

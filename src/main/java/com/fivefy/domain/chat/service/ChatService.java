@@ -1,8 +1,9 @@
-package com.fivefy.ai.service;
+package com.fivefy.domain.chat.service;
 
-import com.fivefy.ai.domain.ChatSetupResult;
-import com.fivefy.ai.dto.ChatStreamEvent;
-import com.fivefy.ai.dto.RetrievedTrack;
+import com.fivefy.domain.chat.dto.etc.ChatSetupResult;
+import com.fivefy.domain.chat.dto.event.ChatStreamEvent;
+import com.fivefy.ai.dto.etc.RetrievedTrack;
+import com.fivefy.ai.service.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -13,21 +14,6 @@ import reactor.core.publisher.Flux;
 
 import java.util.List;
 
-/**
- * 챗봇 메인 서비스 — RAG + 스트리밍.
- *
- * 처리 순서:
- *  1) 세션 확보 (신규 or 기존)
- *  2) 유저 메시지 즉시 저장 (DB)
- *  3) Retrieval — 트랙 검색
- *  4) Augmentation — 시스템 프롬프트 조립 + 대화 기록
- *  5) Generation — Claude 스트리밍
- *  6) 응답 버퍼링 → 완료 후 ASSISTANT 메시지 + 트랙 카드 저장
- *
- * 스트리밍 전략:
- *   Reactor Flux<StreamEvent> 반환.
- *   컨트롤러에서 SSE로 변환.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -42,19 +28,6 @@ public class ChatService {
     @Qualifier("anthropicChatClient")
     private final ChatClient chatClient;
 
-    /**
-     * 메시지 전송 → 스트리밍 응답.
-     *
-     * 반환되는 Flux는 다음 이벤트들을 차례로 emit:
-     *   1) SESSION (신규 세션일 때만)
-     *   2) TEXT × N (LLM 응답 청크들 — 첫 토큰 빠르게)
-     *   3) TRACKS (LLM이 [N]으로 인용한 트랙만 — 응답 완료 시점)
-     *   4) DONE
-     *
-     *   TRACKS를 응답 완료 후로 미루고, 응답 텍스트에서 [숫자] 인용을 파싱해서
-     *   *실제 인용된 트랙만* 카드로 노출. 텍스트와 카드가 100% 일치.
-     *   ChatGPT의 References 패턴과 동일.
-     */
     public Flux<ChatStreamEvent> sendMessage(Long userId, Long sessionId, String userMessage) {
         // ─── 1. 세션 확보 + 유저 메시지 저장 (트랜잭션) ───
         ChatSetupResult setup = commandService.setupSession(userId, sessionId, userMessage);
@@ -64,7 +37,7 @@ public class ChatService {
         try {
             retrieved = retrievalService.retrieve(userMessage);
         } catch (Exception e) {
-            log.error("Retrieval failed for sessionId={}", setup.session().getId(), e);
+            log.error("검색 데이터 추출 실패 for sessionId={}", setup.session().getId(), e);
             return Flux.just(ChatStreamEvent.error("검색 중 오류가 발생했어요. 잠시 후 다시 시도해주세요."));
         }
 
@@ -121,7 +94,7 @@ public class ChatService {
         }));
 
         return result.onErrorResume(e -> {
-            log.error("Chat stream error for sessionId={}", setup.session().getId(), e);
+            log.error("채팅 스트림 오류 for sessionId={}", setup.session().getId(), e);
             return Flux.just(ChatStreamEvent.error("응답 생성 중 오류가 발생했어요."));
         });
     }

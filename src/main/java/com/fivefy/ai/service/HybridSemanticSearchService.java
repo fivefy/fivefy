@@ -1,6 +1,6 @@
 package com.fivefy.ai.service;
 
-import com.fivefy.ai.dto.ScoredResult;
+import com.fivefy.ai.dto.etc.ScoredResult;
 import com.fivefy.ai.repository.TrackEmbeddingRepository;
 import com.fivefy.ai.repository.TrackLyricsEmbeddingRepository;
 import lombok.RequiredArgsConstructor;
@@ -12,31 +12,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 하이브리드 의미 검색 — 메타 임베딩 + 가사 임베딩 결합.
- *
- * 알고리즘:
- *   final_score = α × meta_similarity + (1 - α) × lyrics_similarity
- *
- *   α = 0.6 (기본값):
- *     메타가 약간 더 비중. 장르/아티스트 일관성 ↑
- *
- *   α = 0.3 (감정 검색 모드):
- *     가사 비중. "이별 후 듣는 곡" 같은 감정 검색에 유리
- *
- *   α = 0.9 (장르 검색 모드):
- *     메타 비중. "K-pop 댄스 곡" 같은 검색에 유리
- *
- * 호출 방식:
- *  - 1차: 메타 검색으로 후보 K개 (빠름)
- *  - 2차: 그 K개에 한해 가사 점수 조회 (in-memory join)
- *  - 3차: 점수 결합 후 재정렬
- *
- * 왜 두 번 검색해서 결합 안 하나?
- *  - 두 인덱스에 별도 검색 → 각자 다른 곡 N개 → 합집합이 너무 커짐
- *  - 가사 임베딩 없는 곡은 가사 점수 0으로 처리 → 메타만 좋은 곡도 배제 안 됨
- *  - 메타 검색을 1차로 잡으면 "메타 OK + 가사 보너스" 구조 → 결과 안정
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor

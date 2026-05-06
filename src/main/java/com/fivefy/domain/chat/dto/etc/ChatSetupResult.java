@@ -1,4 +1,4 @@
-package com.fivefy.ai.domain;
+package com.fivefy.domain.chat.dto.etc;
 
 import com.fivefy.domain.chat.entity.ChatSession;
 

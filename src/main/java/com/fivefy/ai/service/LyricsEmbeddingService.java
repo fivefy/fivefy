@@ -1,7 +1,9 @@
 package com.fivefy.ai.service;
 
 import com.fivefy.ai.domain.TrackLyricsEmbedding;
-import com.fivefy.ai.dto.TrackLyricsForEmbedding;
+import com.fivefy.ai.dto.etc.TrackLyricsForEmbedding;
+import com.fivefy.common.enums.AlgorithmErrorCode;
+import com.fivefy.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -13,19 +15,6 @@ import java.time.LocalDateTime;
 import java.util.HexFormat;
 import java.util.List;
 
-/**
- * 가사 임베딩 서비스.
- *
- * 핵심 알고리즘:
- *   1) 가사 → 청크 N개 분할 (TrackLyrics.toChunks)
- *   2) 청크별로 임베딩 호출 (batch)
- *   3) 가중 평균: 첫 청크(보통 후렴/도입부) 1.3배 가중
- *   4) 정규화 → 1024차원 벡터
- *
- *  "왜 source_text를 저장 안 하나?"
- *   → 가사는 KOMCA 관리 저작물. 평문 보관은 라이선스 이슈.
- *     벡터는 역산 불가능해서 안전.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -35,15 +24,12 @@ public class LyricsEmbeddingService {
     private final LyricsEmbeddingPersistService lyricsEmbeddingPersistService;
 
     private static final int VECTOR_DIM = 1024;
-    private static final double FIRST_CHUNK_BOOST = 1.3;  // 첫 청크 가중치
-    private static final int MIN_LYRICS_LENGTH = 50;       // 너무 짧으면 무의미
+    private static final double FIRST_CHUNK_BOOST = 1.3;
+    private static final int MIN_LYRICS_LENGTH = 50;
 
-    /**
-     * 단일 트랙 가사 임베딩.
-     */
     public boolean embedLyrics(TrackLyricsForEmbedding input) {
         if (input.lyrics() == null || input.lyrics().length() < MIN_LYRICS_LENGTH) {
-            log.debug("Skip trackId={}, lyrics too short", input.trackId());
+            log.debug("Skip trackId={}, 가사 길이 부족", input.trackId());
             return false;
         }
 
@@ -52,7 +38,7 @@ public class LyricsEmbeddingService {
         // 변경 감지
         String existingHash = lyricsEmbeddingPersistService.getExistingHash(input.trackId());
         if (hash.equals(existingHash)) {
-            log.debug("Skip trackId={}, lyrics unchanged", input.trackId());
+            log.debug("Skip trackId={}, 가사 변동 없음", input.trackId());
             return false;
         }
 
@@ -80,25 +66,10 @@ public class LyricsEmbeddingService {
                 .modelVersion(embeddingClient.getModelVersion())
                 .build());
 
-        log.info("Lyrics embedded: trackId={}, chunks={}", input.trackId(), chunks.size());
+        log.info("가사 임베딩 완료: trackId={}, chunks={}", input.trackId(), chunks.size());
         return true;
     }
 
-    /**
-     * 청크 벡터들의 가중 평균.
-     *
-     * 가중치 분포:
-     *   chunk[0]: FIRST_CHUNK_BOOST (1.3)
-     *   chunk[1..N-1]: 1.0
-     *
-     * 후렴은 보통 곡 초반에 등장하거나 반복 등장하므로,
-     * 첫 청크(주로 도입부 + 첫 후렴)에 살짝 가중치를 더 줌.
-     *
-     * 더 정교하게 하려면:
-     *  - 가사 구조 파싱 (verse / chorus 인식)
-     *  - 반복 라인 감지 후 후렴 추론
-     *  - 하지만 ROI 낮음 — 단순 가중치로도 효과 충분
-     */
     private float[] weightedAverage(List<float[]> chunkVectors) {
         float[] sum = new float[VECTOR_DIM];
         double totalWeight = 0;
@@ -132,7 +103,7 @@ public class LyricsEmbeddingService {
             byte[] digest = md.digest(input.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(digest);
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
+            throw new BusinessException(AlgorithmErrorCode.ERR_ALGORITHM_NOT_FOUND);
         }
     }
 }

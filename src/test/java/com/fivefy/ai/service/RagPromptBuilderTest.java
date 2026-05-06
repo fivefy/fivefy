@@ -1,6 +1,6 @@
 package com.fivefy.ai.service;
 
-import com.fivefy.ai.dto.RetrievedTrack;
+import com.fivefy.ai.dto.etc.RetrievedTrack;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
