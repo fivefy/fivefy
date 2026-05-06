@@ -1,11 +1,15 @@
 package com.fivefy.domain.billingkey.controller;
 
+import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
+import com.fivefy.domain.subscription.enums.SubscriptionStatus;
+import com.fivefy.domain.subscription.entity.Subscription;
 import com.fivefy.domain.billingkey.dto.BillingKeyRegisterRequest;
 import com.fivefy.domain.billingkey.dto.BillingKeyResponse;
 import com.fivefy.domain.billingkey.entity.BillingKey;
 import com.fivefy.domain.billingkey.repository.BillingKeyRepository;
 import com.fivefy.domain.billingkey.service.BillingKeyService;
 import com.fivefy.domain.cashorder.service.CashOrderService;
+import com.fivefy.domain.subscription.repository.SubscriptionRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +24,7 @@ public class BillingKeyController {
     private final BillingKeyService billingKeyService;
     private final BillingKeyRepository billingKeyRepository;
     private final CashOrderService cashOrderService;
+    private final SubscriptionRepository subscriptionRepository;
 
     /**
      * 카드(빌링키) 등록
@@ -67,9 +72,16 @@ public class BillingKeyController {
         BillingKey billingKey = billingKeyRepository.findByUserIdAndActiveTrue(userId)
                 .orElseThrow(() -> new IllegalArgumentException("활성 빌링키가 없습니다. 먼저 카드를 등록하세요."));
 
-        cashOrderService.processRecurringCharge(billingKey);
+        // subscription 변수 선언 추가
+        Subscription subscription = subscriptionRepository
+                .findByUserIdAndPlanTypeAndStatus(
+                        userId,
+                        SubscriptionPlanType.RECURRING,
+                        SubscriptionStatus.ACTIVE)
+                .orElseThrow(() -> new IllegalArgumentException("활성 구독이 없습니다."));
+
+        cashOrderService.processRecurringCharge(billingKey, subscription);
 
         return ResponseEntity.ok("카드 청구 완료 — 지갑을 조회해서 포인트 충전을 확인하세요.");
     }
-
 }

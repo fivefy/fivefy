@@ -8,6 +8,8 @@ import com.fivefy.common.portone.dto.PortoneBillingPaymentResponse;
 import com.fivefy.common.portone.dto.PortoneCancelResponse;
 import com.fivefy.common.portone.dto.PortonePaymentResponse;
 import com.fivefy.common.portone.dto.PortoneWebhookRequest;
+import com.fivefy.domain.billingattempt.enums.BillingFailureReason;
+import com.fivefy.domain.billingattempt.service.BillingAttemptPersistenceService;
 import com.fivefy.domain.billingkey.entity.BillingKey;
 import com.fivefy.domain.billingkey.service.BillingKeyPersistenceService;
 import com.fivefy.domain.cashorder.dto.CashOrderPurchaseResponse;
@@ -22,6 +24,7 @@ import com.fivefy.domain.cashorder.repository.CashOrderRepository;
 import com.fivefy.domain.payment.entity.Payment;
 import com.fivefy.domain.payment.enums.PaymentErrorCode;
 import com.fivefy.domain.payment.repository.PaymentRepository;
+import com.fivefy.domain.subscription.entity.Subscription;
 import com.fivefy.domain.wallet.entity.PointHistory;
 import com.fivefy.domain.wallet.entity.Wallet;
 import com.fivefy.domain.wallet.enums.PointHistoryType;
@@ -51,6 +54,7 @@ public class CashOrderService {
     private final ObjectMapper objectMapper;
     private final CashOrderPersistenceService cashOrderPersistenceService;   // DB 저장 분리
     private final BillingKeyPersistenceService billingKeyPersistenceService;
+    private final BillingAttemptPersistenceService billingAttemptPersistenceService;
 
     /**
      * 포인트 충전 주문
@@ -262,24 +266,28 @@ public class CashOrderService {
      * 정기 포인트 자동 충전 (빌링키 청구)
      * RecurringChargeScheduler에서 매월 1일 오전 8시 호출
      *
-     * 흐름:
-     * 1. 포트원에 빌링키로 카드 청구 (1,000원)
-     * 2. 청구 성공 시 CashOrder(SUCCESS) + Payment 생성
-     * 3. 지갑에 포인트 충전 (1,500P) + PointHistory 기록
-     * 4. 실패 시 BillingKey 비활성화 (카드 만료/한도 초과 등)
+     * 포트원에 빌링키로 카드 청구 (1,000원)
+     * 청구 성공 시 CashOrder(SUCCESS) + Payment 생성
+     * 지갑에 포인트 충전 (1,500P) + PointHistory 기록
+     * 실패 시 BillingKey 비활성화 (카드 만료/한도 초과 등)
+     *
+     * 실패/성공 지점마다 BillingAttempt 기록
+     *    - portoneClient 예외 발생             : CARD_DECLINED or PG_TIMEOUT
+     *    - pgResponse.payment() == null       : CARD_DECLINED
+     *    - saveRecurringChargeResult 내부 예외 : DB_ERROR
      *
      * @param billingKey 청구할 빌링키 엔티티
      */
     @RedissonLock(key = "'wallet:' + #billingKey.userId")
     @Transactional
-    public void processRecurringCharge(BillingKey billingKey) {
+    public void processRecurringCharge(BillingKey billingKey, Subscription subscription) {
         Long userId = billingKey.getUserId();
         CashProductType productType = CashProductType.PRODUCT_4_RECURRING;
         String orderNumber = "REC-" + UUID.randomUUID().toString().substring(0, 8);
 
         log.info("[정기충전] 시작 userId={}, orderNumber={}", userId, orderNumber);
 
-        // 1. 포트원 빌링키 청구(외부 API 호출)
+        // 포트원 빌링키 청구(외부 API 호출)
         PortoneBillingPaymentResponse pgResponse;
         try {
             pgResponse = portoneClient.chargeWithBillingKey(
@@ -294,10 +302,13 @@ public class CashOrderService {
             log.error("[정기충전] 포트원 청구 실패 — userId={}, 사유={}", userId, e.getMessage());
             billingKeyPersistenceService.deactivateBillingKey(billingKey.getId());        // 카드 만료/한도 초과 등 → 비활성화
 
+            // 실패 기록 (별도 트랜잭션 — 부모 롤백과 무관하게 커밋)
+            billingAttemptPersistenceService.saveFailure(
+                    subscription.getId(), billingKey.getId(), BillingFailureReason.PG_TIMEOUT);
             return;
         }
 
-        // 청구 실패 상태 응답 처리
+        // 응답은 했으나 청구 실패 상태 처리
         // if ("FAILED".equals(pgResponse.status())) {
         // status 체크 대신 payment 객체로 성공 여부 판단
         if (pgResponse.payment() == null) {
@@ -308,7 +319,7 @@ public class CashOrderService {
         }
 
         // 포트원 청구 성공 확정 후 DB 작업만 별도 트랜잭션으로
-        cashOrderPersistenceService.saveRecurringChargeResult(billingKey, orderNumber, productType, pgResponse);
+        cashOrderPersistenceService.saveRecurringChargeResult(billingKey, subscription, orderNumber, productType, pgResponse);
 
         log.info("[정기충전] 완료 — userId={}, orderNumber={}, 충전P={}",
                 userId, orderNumber, productType.getPointAmount());

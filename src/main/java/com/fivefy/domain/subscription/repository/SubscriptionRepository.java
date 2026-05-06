@@ -35,6 +35,7 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
             LocalDateTime now
     );
 
+
     // [테스트 전용] 구독 포인트 차감 수동 실행(단건 조회, 취소용)
     Optional<Subscription> findByUserIdAndPlanTypeAndStatus(
             Long userId,
