@@ -1,6 +1,8 @@
 package com.fivefy.common.portone;
 
+import com.fivefy.common.exception.BusinessException;
 import com.fivefy.common.portone.config.PortoneProperties;
+import com.fivefy.common.portone.enums.PortoneErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -37,7 +39,7 @@ public class PortoneWebhookVerifier {
         long now = Instant.now().getEpochSecond();
         long sentAt = Long.parseLong(webhookTimestamp);
         if (Math.abs(now - sentAt) > MAX_TIMESTAMP_DIFF_SECONDS) {
-            throw new IllegalArgumentException("웹훅 타임스탬프 만료");
+            throw new BusinessException(PortoneErrorCode.ERR_PORTONE_WEBHOOK_TIMESTAMP_EXPIRED);
         }
 
         // 시그니처 검증 (위변조 방지)
@@ -70,7 +72,7 @@ public class PortoneWebhookVerifier {
                 : webhookSignature;
 
             if (!computed.equals(expected)) {
-                throw new IllegalArgumentException("웹훅 시그니처 불일치");
+                throw new BusinessException(PortoneErrorCode.ERR_PORTONE_WEBHOOK_SIGNATURE_MISMATCH);
             }
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             throw new RuntimeException("시그니처 검증 중 오류", e);

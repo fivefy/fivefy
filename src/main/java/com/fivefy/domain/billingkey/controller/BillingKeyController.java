@@ -1,5 +1,7 @@
 package com.fivefy.domain.billingkey.controller;
 
+import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.billingkey.enums.BillingKeyErrorCode;
 import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
 import com.fivefy.domain.subscription.enums.SubscriptionStatus;
 import com.fivefy.domain.subscription.entity.Subscription;
@@ -70,7 +72,7 @@ public class BillingKeyController {
             @AuthenticationPrincipal Long userId
     ) {
         BillingKey billingKey = billingKeyRepository.findByUserIdAndActiveTrue(userId)
-                .orElseThrow(() -> new IllegalArgumentException("활성 빌링키가 없습니다. 먼저 카드를 등록하세요."));
+                .orElseThrow(() -> new BusinessException(BillingKeyErrorCode.ERR_BILLING_KEY_ALREADY_DEACTIVATED));
 
         // subscription 변수 선언 추가
         Subscription subscription = subscriptionRepository
@@ -78,7 +80,7 @@ public class BillingKeyController {
                         userId,
                         SubscriptionPlanType.RECURRING,
                         SubscriptionStatus.ACTIVE)
-                .orElseThrow(() -> new IllegalArgumentException("활성 구독이 없습니다."));
+                .orElseThrow(() -> new BusinessException(BillingKeyErrorCode.ERR_BILLING_KEY_NOT_FOUND));
 
         cashOrderService.processRecurringCharge(billingKey, subscription);
 
