@@ -22,6 +22,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 @SpringBootTest
 @ActiveProfiles("test")
 class PlaylistTrackPerformanceTest {
@@ -149,6 +152,15 @@ class PlaylistTrackPerformanceTest {
         endLatch.await();
 
         executorService.shutdown();
+
+        assertTrue(exceptions.isEmpty(), () -> "동시 reorder 중 예외 발생: " + exceptions);
+
+        List<PlaylistTrack> ordered = playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(playlist.getId());
+
+        assertEquals(trackCount, ordered.size());
+        for (int i = 0; i < ordered.size(); i++) {
+            assertEquals(i + 1, ordered.get(i).getPosition());
+        }
 
         System.out.println();
         System.out.println("======================================");
