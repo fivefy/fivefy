@@ -7,6 +7,6 @@ import java.util.Optional;
 
 public interface BillingAttemptRepository extends JpaRepository<BillingAttempt, Long> {
 
-    Optional<BillingAttempt> findBySubscriptionIdAndBillingCycle(
-            Long subscriptionId, String billingCycle);
+    Optional<BillingAttempt> findByUserIdAndBillingCycle(
+            Long userId, String billingCycle);
 }

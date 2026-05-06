@@ -74,17 +74,12 @@ public class BillingKeyController {
     ) {
         // 빌링키  체크
         BillingKey billingKey = billingKeyRepository.findByUserIdAndActiveTrue(userId)
-                .orElseThrow(() -> new BusinessException(BillingKeyErrorCode.ERR_BILLING_KEY_ACTIVE_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(
+                        BillingKeyErrorCode.ERR_BILLING_KEY_ACTIVE_NOT_FOUND)
+                );
 
-        // subscription 변수 선언 추가(구독 체크)
-        Subscription subscription = subscriptionRepository
-                .findByUserIdAndPlanTypeAndStatus(
-                        userId,
-                        SubscriptionPlanType.RECURRING,
-                        SubscriptionStatus.ACTIVE)
-                .orElseThrow(() -> new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_NOT_FOUND));
-
-        cashOrderService.processRecurringCharge(billingKey, subscription);
+        // 구독 여부 확인 없이 바로 카드 청구
+        cashOrderService.processRecurringCharge(billingKey);
 
         return ResponseEntity.ok("카드 청구 완료 — 지갑을 조회해서 포인트 충전을 확인하세요.");
     }

@@ -23,7 +23,7 @@ public class BillingAttempt extends BaseEntity {
     private Long id;
 
     @Column(nullable = false)
-    private Long subscriptionId;
+    private Long userId;
 
     @Column(nullable = false)
     private Long billingKeyId;
@@ -48,9 +48,9 @@ public class BillingAttempt extends BaseEntity {
     private static final DateTimeFormatter CYCLE_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM");
 
-    public static BillingAttempt success(Long subscriptionId, Long billingKeyId) {
+    public static BillingAttempt success(Long userId, Long billingKeyId) {
         BillingAttempt attempt = new BillingAttempt();
-        attempt.subscriptionId = subscriptionId;
+        attempt.userId         = userId;
         attempt.billingKeyId   = billingKeyId;
         attempt.billingCycle   = YearMonth.now().format(CYCLE_FORMATTER);
         attempt.status         = BillingAttemptStatus.SUCCESS;
@@ -59,10 +59,10 @@ public class BillingAttempt extends BaseEntity {
         return attempt;
     }
 
-    public static BillingAttempt failure(Long subscriptionId, Long billingKeyId,
+    public static BillingAttempt failure(Long userId, Long billingKeyId,
                                           BillingFailureReason reason) {
         BillingAttempt attempt = new BillingAttempt();
-        attempt.subscriptionId = subscriptionId;
+        attempt.userId         = userId;
         attempt.billingKeyId   = billingKeyId;
         attempt.billingCycle   = YearMonth.now().format(CYCLE_FORMATTER);
         attempt.status         = BillingAttemptStatus.FAILED;

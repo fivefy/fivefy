@@ -24,7 +24,6 @@ import com.fivefy.domain.cashorder.repository.CashOrderRepository;
 import com.fivefy.domain.payment.entity.Payment;
 import com.fivefy.domain.payment.enums.PaymentErrorCode;
 import com.fivefy.domain.payment.repository.PaymentRepository;
-import com.fivefy.domain.subscription.entity.Subscription;
 import com.fivefy.domain.wallet.entity.PointHistory;
 import com.fivefy.domain.wallet.entity.Wallet;
 import com.fivefy.domain.wallet.enums.PointHistoryType;
@@ -280,7 +279,7 @@ public class CashOrderService {
      */
     @RedissonLock(key = "'wallet:' + #billingKey.userId")
     @Transactional
-    public void processRecurringCharge(BillingKey billingKey, Subscription subscription) {
+    public void processRecurringCharge(BillingKey billingKey) {
         Long userId = billingKey.getUserId();
         CashProductType productType = CashProductType.PRODUCT_4_RECURRING;
         String orderNumber = "REC-" + UUID.randomUUID().toString().substring(0, 8);
@@ -304,7 +303,7 @@ public class CashOrderService {
 
             // 실패 기록 (별도 트랜잭션 — 부모 롤백과 무관하게 커밋)
             billingAttemptPersistenceService.saveFailure(
-                    subscription.getId(), billingKey.getId(), BillingFailureReason.PG_TIMEOUT);
+                    userId, billingKey.getId(), BillingFailureReason.PG_TIMEOUT);
 
             return;
         }
@@ -318,15 +317,15 @@ public class CashOrderService {
 
             // CARD_DECLINED 실패 기록
             billingAttemptPersistenceService.saveFailure(
-                    subscription.getId(), billingKey.getId(), BillingFailureReason.CARD_DECLINED
+                    userId, billingKey.getId(), BillingFailureReason.CARD_DECLINED
             );
-            
+
             return;
         }
 
         // 포트원 청구 성공 확정 후 DB 작업만 별도 트랜잭션으로
         cashOrderPersistenceService.saveRecurringChargeResult(
-                billingKey, subscription, orderNumber, productType, pgResponse
+                billingKey, orderNumber, productType, pgResponse
         );
 
         log.info("[정기충전] 완료 — userId={}, orderNumber={}, 충전P={}",
