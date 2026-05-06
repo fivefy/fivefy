@@ -1,6 +1,8 @@
 package com.fivefy.domain.billingkey.service;
 
+import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.billingkey.entity.BillingKey;
+import com.fivefy.domain.billingkey.enums.BillingKeyErrorCode;
 import com.fivefy.domain.billingkey.repository.BillingKeyRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,8 +46,10 @@ public class BillingKeyPersistenceService {
      * BillingKeyService.deactivate()에서 portoneClient.deleteBillingKey() 성공 확인 후 호출
      */
     @Transactional
-    public void deactivateBillingKey(BillingKey billingKey) {
-        billingKey.deactivate();
+    public void deactivateBillingKey(Long billingKeyId) {  // BillingKey → Long으로 변경
+        BillingKey billingKey = billingKeyRepository.findById(billingKeyId)
+                .orElseThrow(() -> new BusinessException(BillingKeyErrorCode.ERR_BILLING_KEY_NOT_FOUND));
+        billingKey.deactivate();  // 트랜잭션 안에서 조회했으므로 dirty checking 정상 작동
         log.info("[BillingKey] DB 비활성화 완료 userId={}", billingKey.getUserId());
     }
 }

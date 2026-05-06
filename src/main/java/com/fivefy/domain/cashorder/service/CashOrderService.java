@@ -9,6 +9,7 @@ import com.fivefy.common.portone.dto.PortoneCancelResponse;
 import com.fivefy.common.portone.dto.PortonePaymentResponse;
 import com.fivefy.common.portone.dto.PortoneWebhookRequest;
 import com.fivefy.domain.billingkey.entity.BillingKey;
+import com.fivefy.domain.billingkey.service.BillingKeyPersistenceService;
 import com.fivefy.domain.cashorder.dto.CashOrderPurchaseResponse;
 import com.fivefy.domain.cashorder.dto.CashOrderRefundRequest;
 import com.fivefy.domain.cashorder.dto.CashOrderResponse;
@@ -48,7 +49,8 @@ public class CashOrderService {
     private final PortoneClient portoneClient;
     private final PortoneWebhookVerifier portoneWebhookVerifier;
     private final ObjectMapper objectMapper;
-    private final CashOrderPersistenceService persistenceService;   // DB 저장 분리
+    private final CashOrderPersistenceService cashOrderPersistenceService;   // DB 저장 분리
+    private final BillingKeyPersistenceService billingKeyPersistenceService;
 
     /**
      * 포인트 충전 주문
@@ -138,8 +140,8 @@ public class CashOrderService {
 
         log.info("[CashOrder] 환불 완료 userId={}, orderNumber={}", userId, request.orderNumber());
 
-        // 3. DB 상태 변경만 트랜잭션으로 처리(기존에 같은 파일에서 실행하던 걸 persistenceService으로 옮김)
-        return persistenceService.saveRefundResult(cashOrder, payment, request.reason());
+        // DB 상태 변경만 트랜잭션으로 처리(기존에 같은 파일에서 실행하던 걸 persistenceService으로 옮김)
+        return cashOrderPersistenceService.saveRefundResult(cashOrder, payment, request.reason());
     }
 
     /**
@@ -290,7 +292,8 @@ public class CashOrderService {
             // 청구 자체가 실패 (네트워크 오류, 카드 만료 등)
             // → 빌링키 비활성화도 DB 작업이므로 persistenceService 위임(billingKey.deactivate();)
             log.error("[정기충전] 포트원 청구 실패 — userId={}, 사유={}", userId, e.getMessage());
-            persistenceService.deactivateBillingKey(billingKey);        // 카드 만료/한도 초과 등 → 비활성화
+            billingKeyPersistenceService.deactivateBillingKey(billingKey.getId());        // 카드 만료/한도 초과 등 → 비활성화
+
             return;
         }
 
@@ -299,12 +302,13 @@ public class CashOrderService {
         // status 체크 대신 payment 객체로 성공 여부 판단
         if (pgResponse.payment() == null) {
             log.warn("[정기충전] 포트원 청구 거절 — userId={}", userId);
-            billingKey.deactivate();
+            billingKeyPersistenceService.deactivateBillingKey(billingKey.getId());
+
             return;
         }
 
         // 포트원 청구 성공 확정 후 DB 작업만 별도 트랜잭션으로
-        persistenceService.saveRecurringChargeResult(billingKey, orderNumber, productType, pgResponse);
+        cashOrderPersistenceService.saveRecurringChargeResult(billingKey, orderNumber, productType, pgResponse);
 
         log.info("[정기충전] 완료 — userId={}, orderNumber={}, 충전P={}",
                 userId, orderNumber, productType.getPointAmount());

@@ -112,7 +112,7 @@ public class BillingKeyService {
         portoneClient.deleteBillingKey(billingKey.getBillingKey());
 
         // DB 비활성화
-        persistenceService.deactivateBillingKey(billingKey);
+        persistenceService.deactivateBillingKey(billingKeyId);
 
         log.info("빌링키 해지 완료 — userId={}, billingKeyId={}", userId, billingKeyId);
     }

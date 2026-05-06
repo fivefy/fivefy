@@ -1,6 +1,8 @@
 package com.fivefy.domain.cashorder.service;
 
 import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.billingkey.enums.BillingKeyErrorCode;
+import com.fivefy.domain.billingkey.repository.BillingKeyRepository;
 import com.fivefy.domain.cashorder.dto.CashOrderResponse;
 import com.fivefy.domain.cashorder.entity.CashOrder;
 import com.fivefy.domain.cashorder.enums.CashProductType;
@@ -37,6 +39,7 @@ public class CashOrderPersistenceService {
     private final PaymentRepository paymentRepository;
     private final WalletRepository walletRepository;
     private final PointHistoryRepository pointHistoryRepository;
+    private final BillingKeyRepository billingKeyRepository;
 
     /**
      * [refund] DB 상태 변경만 담당
@@ -51,6 +54,11 @@ public class CashOrderPersistenceService {
         cashOrder.refund();
         // Payment 상태 변경    : COMPLETED → REFUNDED, 환불 사유/시간 기록
         payment.refund(reason);
+
+        // 토끼 : cashOrder와 payment는 트랜잭션 밖에서 로드된 detached 엔티티라 CashOrder.refund() 호출 시 dirty checking이 작동하지 않아 DB에 반영이 안 될 수 있다.
+        // 토끼 해결 : 명시적 save() 추가 — detached 엔티티여도 merge되어 DB 반영 보장
+        cashOrderRepository.save(cashOrder);
+        paymentRepository.save(payment);
 
 
         // 지갑 포인트 차감
@@ -124,16 +132,5 @@ public class CashOrderPersistenceService {
         ));
 
         log.info("[정기충전] DB 저장 완료 userId={}, orderNumber={}", userId, orderNumber);
-    }
-
-    /**
-     * 빌링키 비활성화 DB 저장
-     * portoneClient.chargeWithBillingKey() 실패/거절 시 호출
-     * 카드 만료, 한도 초과 등의 사유로 더 이상 청구 불가한 빌링키를 비활성화
-     */
-    @Transactional
-    public void deactivateBillingKey(BillingKey billingKey) {
-        billingKey.deactivate();
-        log.info("[BillingKey] DB 비활성화 완료 userId={}", billingKey.getUserId());
     }
 }
