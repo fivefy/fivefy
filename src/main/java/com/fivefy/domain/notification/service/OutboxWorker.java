@@ -26,7 +26,7 @@ public class OutboxWorker {
     private final NotificationOutboxRepository outboxRepository;
     private final NotificationService notificationService;
 
-    @Scheduled(fixedDelay = 1000)
+    @Scheduled(fixedDelay = 10000)
     @SchedulerLock(name = "outboxWorker", lockAtMostFor = "PT30S", lockAtLeastFor = "PT1S")
     @Transactional
     public void process() {

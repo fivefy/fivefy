@@ -50,7 +50,7 @@ public class NotificationService {
     private static final String SSE_EVENT_NOTIFICATION = "notification";
     private static final int CHUNK_SIZE = 1000;
     private static final String IDEM_KEY_PREFIX = "notif:v1:";
-    private static final Duration IDEM_TTL = Duration.ofDays(1);
+    private static final Duration IDEM_TTL = Duration.ofHours(1);
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
@@ -189,6 +189,10 @@ public class NotificationService {
             // 동일 키로 이미 발송된 알림 — 중복 스킵
             log.info("중복 알림 스킵: userId={}, type={}, key={}", userId, type, idempotencyKey);
             return;
+        } catch (Exception e) {
+            stringRedisTemplate.delete(IDEM_KEY_PREFIX + idempotencyKey);
+            log.warn("DB 저장 실패, Redis Key 삭제: userId={}, type={}, key={}", userId, type, idempotencyKey);
+            throw e;
         }
 
         try {
