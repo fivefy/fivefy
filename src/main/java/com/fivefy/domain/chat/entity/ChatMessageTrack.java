@@ -1,11 +1,7 @@
 package com.fivefy.domain.chat.entity;
 
-import groovy.transform.EqualsAndHashCode;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.io.Serializable;
 

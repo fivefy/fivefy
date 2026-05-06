@@ -28,4 +28,6 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
             Pageable pageable);
 
     long countBySessionIdAndIdGreaterThan(Long sessionId, Long messageId);
+
+    long countBySessionId(Long id);
 }

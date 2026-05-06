@@ -83,7 +83,7 @@ public class ConversationContextBuilder {
     public boolean shouldSummarize(ChatSession session) {
         Long afterId = session.getSummaryUntilMessageId();
         long unsummarizedCount = afterId == null
-                ? messageRepository.count() // 비효율 - 실제로는 sessionId 조건 추가 필요
+                ? messageRepository.countBySessionId(session.getId())
                 : messageRepository.countBySessionIdAndIdGreaterThan(session.getId(), afterId);
 
         // 미요약 메시지가 24개(=12턴) 넘어가면 요약 갱신 트리거

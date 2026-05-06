@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
@@ -37,6 +36,7 @@ public class ChatSummarizer {
 
     private final ChatSessionRepository sessionRepository;
     private final ChatMessageRepository messageRepository;
+    private final ChatSessionPersistService sessionPersistService;
     @Qualifier("anthropicChatClient")
     private final ChatClient chatClient;
 
@@ -52,10 +52,10 @@ public class ChatSummarizer {
             """;
 
     @Async("summarizerExecutor")
-    @Transactional
     public void summarizeAsync(Long sessionId) {
-        ChatSession session = sessionRepository.findById(sessionId).orElse(null);
-        if (session == null) return;
+        ChatSession session = sessionRepository.findById(sessionId).orElseThrow(
+                () -> new IllegalArgumentException("TODO")
+        );
 
         Long afterId = session.getSummaryUntilMessageId();
         // 미요약 메시지 모두 가져옴 (최대 50개로 안전장치)
@@ -87,8 +87,9 @@ public class ChatSummarizer {
                     .content();
 
             Long lastMessageId = messages.get(messages.size() - 1).getId();
-            session.updateSummary(newSummary, lastMessageId);
-            sessionRepository.save(session);
+
+            // DB 저장은 짧은 트랜잭션으로 처리
+            sessionPersistService.updateSummary(session.getId(), newSummary, lastMessageId);
 
             log.info("Summarized sessionId={}, until messageId={}", sessionId, lastMessageId);
         } catch (Exception e) {
