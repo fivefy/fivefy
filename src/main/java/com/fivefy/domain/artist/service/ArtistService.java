@@ -19,6 +19,7 @@ import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.enums.UserRole;
 import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -52,7 +53,7 @@ public class ArtistService {
         validateDuplicateArtistApplication(userId, request.requestedName(), request.artistType());
 
         // 등록 신청 생성 및 저장
-        ArtistApplication savedApplication = artistApplicationRepository.save(
+        ArtistApplication savedApplication = saveArtistApplication(
                 ArtistApplication.create(
                         userId,
                         request.requestedName(),
@@ -328,5 +329,16 @@ public class ArtistService {
                 application.getBio(),
                 application.getProfileImageUrl()
         );
+    }
+
+    // 아티스트 등록 신청 저장
+    private ArtistApplication saveArtistApplication(ArtistApplication application) {
+        try {
+            return artistApplicationRepository.saveAndFlush(application);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(
+                    ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_EXISTS
+            );
+        }
     }
 }
