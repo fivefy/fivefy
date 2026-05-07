@@ -1,8 +1,9 @@
 package com.fivefy.domain.subscription.service;
 
 import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.notification.entity.NotificationOutbox;
 import com.fivefy.domain.notification.enums.NotificationType;
-import com.fivefy.domain.notification.event.NotificationEvent;
+import com.fivefy.domain.notification.repository.NotificationOutboxRepository;
 import com.fivefy.domain.pointorder.repository.PointOrderRepository;
 import com.fivefy.domain.subscription.dto.SubscriptionResponse;
 import com.fivefy.domain.subscription.entity.Subscription;
@@ -11,7 +12,6 @@ import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
 import com.fivefy.domain.subscription.enums.SubscriptionStatus;
 import com.fivefy.domain.subscription.repository.SubscriptionRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,7 +23,7 @@ public class SubscriptionService {
 
     private final SubscriptionRepository subscriptionRepository;
     private final PointOrderRepository pointOrderRepository;
-    private final ApplicationEventPublisher eventPublisher;
+    private final NotificationOutboxRepository outboxRepository;
 
     /**
      * 내 구독 조회
@@ -58,9 +58,11 @@ public class SubscriptionService {
 
         subscription.cancel();
 
-        eventPublisher.publishEvent(NotificationEvent.of(
-                subscription.getUserId(),
+        outboxRepository.save(NotificationOutbox.create(
                 NotificationType.SUBSCRIPTION_CANCEL,
+                subscription.getUserId(),
+                null,
+                subscription.getId(),
                 "구독 취소 성공"
         ));
     }
@@ -72,5 +74,13 @@ public class SubscriptionService {
         Subscription subscription = subscriptionRepository.findById(subscriptionId)
                 .orElseThrow(() -> new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_NOT_FOUND));
         subscription.expire();
+
+        outboxRepository.save(NotificationOutbox.create(
+                NotificationType.SUBSCRIPTION_EXPIRE,
+                subscription.getUserId(),
+                null,
+                subscription.getId(),
+                "구독이 만료되었습니다."
+        ));
     }
 }

@@ -11,7 +11,6 @@ import com.fivefy.domain.notification.enums.NotificationChannel;
 import com.fivefy.domain.notification.enums.NotificationErrorCode;
 import com.fivefy.domain.notification.enums.NotificationStatus;
 import com.fivefy.domain.notification.enums.NotificationType;
-import com.fivefy.domain.notification.event.NotificationEvent;
 import com.fivefy.domain.notification.repository.NotificationRepository;
 import com.fivefy.domain.notification.repository.SseEmitterRepository;
 import com.fivefy.domain.track.event.PublishTrackChunkEvent;
@@ -22,6 +21,7 @@ import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -35,7 +35,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.time.Duration;
 import java.util.List;
 
 
@@ -49,6 +49,8 @@ public class NotificationService {
     private static final String REDIS_NOTIFICATION_CHANNEL = "notification:";
     private static final String SSE_EVENT_NOTIFICATION = "notification";
     private static final int CHUNK_SIZE = 1000;
+    private static final String IDEM_KEY_PREFIX = "notif:v1:";
+    private static final Duration IDEM_TTL = Duration.ofHours(1);
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
@@ -115,13 +117,6 @@ public class NotificationService {
         }
     }
 
-    // 알림 발송 (수신 -> 저장 -> sse push)
-    @Async
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleNotificationEvent(NotificationEvent event) {
-        send(event.targetUserId(), event.type(), event.content());
-    }
-
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handlePublishTrackEvent(PublishTrackEvent event) {
@@ -168,9 +163,37 @@ public class NotificationService {
     }
 
     // Redis publish
-    public void send(Long userId, NotificationType type, String content) {
-        Notification notification = Notification.create(userId, content, type, NotificationChannel.IN_APP);
-        Notification saved = notificationRepository.save(notification);
+    public void send(Long userId, NotificationType type, String content,
+                     Long actorId, Long resourceId) {
+        String idempotencyKey = buildIdempotencyKey(userId, type, actorId, resourceId);
+
+        Notification saved;
+
+        try {
+            Boolean isFirst = stringRedisTemplate.opsForValue()
+                    .setIfAbsent(IDEM_KEY_PREFIX + idempotencyKey, "1", IDEM_TTL);
+            if (Boolean.FALSE.equals(isFirst)) {
+                log.info("중복 알림 스킵 (Redis): userId={}, type={}, key={}", userId, type, idempotencyKey);
+                return;
+            }
+        } catch (Exception e) {
+            log.warn("Redis idempotency 실패, DB 제약으로 폴백: key={}", idempotencyKey);
+        }
+
+        try {
+            Notification notification = Notification.create(
+                    userId, content, type, NotificationChannel.IN_APP,
+                    actorId, resourceId, idempotencyKey);
+            saved = notificationRepository.save(notification);
+        } catch (DataIntegrityViolationException e) {
+            // 동일 키로 이미 발송된 알림 — 중복 스킵
+            log.info("중복 알림 스킵: userId={}, type={}, key={}", userId, type, idempotencyKey);
+            return;
+        } catch (Exception e) {
+            stringRedisTemplate.delete(IDEM_KEY_PREFIX + idempotencyKey);
+            log.warn("DB 저장 실패, Redis Key 삭제: userId={}, type={}, key={}", userId, type, idempotencyKey);
+            throw e;
+        }
 
         try {
             NotificationMessage message = new NotificationMessage(
@@ -195,6 +218,40 @@ public class NotificationService {
             // redis 실패 보완 현재 연결된 emitter 직접 전송
             fallbackSseDirectPush(saved);
         }
+    }
+
+    /**
+     * idempotency key 생성
+     *
+     * actorId / resourceId 가 있는 타입 → 행위자/리소스 기반으로 세분화
+     *   NEW_FOLLOWER  : {userId}:NEW_FOLLOWER:{actorId}          (다른 사람이 팔로우 = 다른 알림)
+     *   TRACK_LIKED   : {userId}:TRACK_LIKED:{resourceId}:{actorId}
+     *   ALBUM_LIKED   : {userId}:ALBUM_LIKED:{resourceId}:{actorId}
+     *   PUBLISH_TRACK : {userId}:PUBLISH_TRACK:{resourceId}      (같은 트랙 발매 알림 중복 방지)
+     *
+     *   SUBSCRIBE           : {userId}:SUBSCRIBE:{subscriptionId}
+     *   SUBSCRIPTION_CANCEL : {userId}:SUBSCRIPTION_CANCEL:{subscriptionId}
+     *   SUBSCRIPTION_EXPIRE : {userId}:SUBSCRIPTION_EXPIRE:{subscriptionId}
+     */
+
+    private String buildIdempotencyKey(Long userId, NotificationType type,
+                                       Long actorId, Long resourceId) {
+        return switch (type) {
+            case NEW_FOLLOWER ->
+                    userId + ":NEW_FOLLOWER:" + actorId;
+            case TRACK_LIKED ->
+                    userId + ":TRACK_LIKED:" + resourceId + ":" + actorId;
+            case ALBUM_LIKED ->
+                    userId + ":ALBUM_LIKED:" + resourceId + ":" + actorId;
+            case PUBLISH_TRACK ->
+                    userId + ":PUBLISH_TRACK:" + resourceId;
+            case SUBSCRIBE ->
+                    userId + ":SUBSCRIBE:" + resourceId; // resourceId = subscriptionId
+            case SUBSCRIPTION_CANCEL ->
+                    userId + ":SUBSCRIPTION_CANCEL:" + resourceId;
+            case SUBSCRIPTION_EXPIRE ->
+                    userId + ":SUBSCRIPTION_EXPIRE:" + resourceId;
+        };
     }
 
     private void fallbackSseDirectPush(Notification notification) {

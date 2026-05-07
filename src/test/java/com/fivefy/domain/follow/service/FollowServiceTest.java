@@ -9,6 +9,7 @@ import com.fivefy.domain.follow.dto.response.FollowGetResponse;
 import com.fivefy.domain.follow.entity.Follow;
 import com.fivefy.domain.follow.enums.FollowErrorCode;
 import com.fivefy.domain.follow.repository.FollowRepository;
+import com.fivefy.domain.notification.repository.NotificationOutboxRepository;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.repository.UserRepository;
@@ -19,7 +20,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -47,7 +47,7 @@ class FollowServiceTest {
     private ArtistRepository artistRepository;
 
     @Mock
-    private ApplicationEventPublisher eventPublisher;
+    private NotificationOutboxRepository outboxRepository;
 
     @InjectMocks
     private FollowService followService;
@@ -87,6 +87,7 @@ class FollowServiceTest {
         assertThat(response.artistId()).isEqualTo(ARTIST_ID);
         assertThat(response.notificationEnabled()).isTrue();
         verify(followRepository).save(any(Follow.class));
+        verify(outboxRepository).save(any());
     }
 
     // createFollow 실패

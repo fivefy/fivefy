@@ -9,13 +9,13 @@ import com.fivefy.domain.follow.dto.response.FollowGetResponse;
 import com.fivefy.domain.follow.entity.Follow;
 import com.fivefy.domain.follow.enums.FollowErrorCode;
 import com.fivefy.domain.follow.repository.FollowRepository;
+import com.fivefy.domain.notification.entity.NotificationOutbox;
 import com.fivefy.domain.notification.enums.NotificationType;
-import com.fivefy.domain.notification.event.NotificationEvent;
+import com.fivefy.domain.notification.repository.NotificationOutboxRepository;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,7 +29,7 @@ public class FollowService {
     private final FollowRepository followRepository;
     private final ArtistRepository artistRepository;
     private final UserRepository userRepository;
-    private final ApplicationEventPublisher eventPublisher;
+    private final NotificationOutboxRepository outboxRepository;
 
     // 팔로우 등록
     @Transactional
@@ -45,9 +45,11 @@ public class FollowService {
             Follow follow = Follow.create(artist.getId(), user.getId());
             followRepository.save(follow);
 
-            eventPublisher.publishEvent(NotificationEvent.of(
-                    artist.getOwnerUserId(),
+            outboxRepository.save(NotificationOutbox.create(
                     NotificationType.NEW_FOLLOWER,
+                    artist.getOwnerUserId(),
+                    user.getId(),
+                    null,
                     user.getName() + "님이 팔로우했습니다"
             ));
 

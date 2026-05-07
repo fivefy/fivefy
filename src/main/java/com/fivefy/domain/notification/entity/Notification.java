@@ -43,7 +43,17 @@ public class Notification extends BaseEntity {
 
     private LocalDateTime readAt;
 
-    public static Notification create(Long userId, String content, NotificationType type, NotificationChannel channel) {
+    private Long actorId;    // 행위자 ID (팔로우한 유저, 좋아요 누른 유저 등)
+
+    private Long resourceId; // 대상 리소스 ID (트랙 ID, 앨범 ID 등)
+
+    @Column(unique = true)
+    private String idempotencyKey;
+
+    public static Notification create(Long userId, String content, NotificationType type,
+                                      NotificationChannel channel,
+                                      Long actorId, Long resourceId,
+                                      String idempotencyKey) {
         validateNonNull(userId, "userId");
         validateNonNull(content, "content");
         validateNonNull(type, "type");
@@ -55,6 +65,9 @@ public class Notification extends BaseEntity {
         notification.content = content;
         notification.status = NotificationStatus.QUEUED;
         notification.channel = channel;
+        notification.actorId = actorId;
+        notification.resourceId = resourceId;
+        notification.idempotencyKey = idempotencyKey;
 
         return notification;
     }
