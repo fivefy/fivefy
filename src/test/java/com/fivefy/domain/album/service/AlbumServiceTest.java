@@ -350,6 +350,43 @@ class AlbumServiceTest {
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_EXISTS.getMessage());
         }
+
+        @Test
+        @DisplayName("동일한 처리 완료 신청이 이미 있으면 앨범 등록 신청 생성 실패")
+        void createAlbumApplication_fail_whenApprovedApplicationAlreadyExists() {
+            Long userId = 1L;
+            Long artistId = 10L;
+
+            AlbumApplicationCreateRequest request = new AlbumApplicationCreateRequest(
+                    artistId,
+                    "Love poem",
+                    "앨범 설명",
+                    "https://example.com/cover.jpg",
+                    0
+            );
+
+            User user = mock(User.class);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
+
+            Artist artist = Artist.create(
+                    userId,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/artist.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+
+            when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
+            when(albumApplicationRepository.existsPendingApplication(userId, artistId, request.title()))
+                    .thenReturn(false);
+            when(albumApplicationRepository.existsApprovedApplication(userId, artistId, request.title()))
+                    .thenReturn(true);
+
+            assertThatThrownBy(() -> albumService.createAlbumApplication(userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_PROCESSED.getMessage());
+        }
     }
 
     @Nested
