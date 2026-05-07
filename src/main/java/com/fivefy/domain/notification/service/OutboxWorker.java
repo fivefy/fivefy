@@ -24,11 +24,10 @@ public class OutboxWorker {
     private static final int MAX_RETRY_COUNT = 3;
 
     private final NotificationOutboxRepository outboxRepository;
-    private final NotificationService notificationService;
+    private final OutboxProcessor outboxProcessor;
 
     @Scheduled(fixedDelay = 10000)
     @SchedulerLock(name = "outboxWorker", lockAtMostFor = "PT30S", lockAtLeastFor = "PT1S")
-    @Transactional
     public void process() {
         List<NotificationOutbox> pending = outboxRepository
                 .findAllByStatusOrderByCreatedAtAsc(OutboxStatus.PENDING, PageRequest.of(0, BATCH_SIZE));
@@ -38,32 +37,12 @@ public class OutboxWorker {
         log.info("[OutboxWorker] 처리 시작: {}건", pending.size());
 
         for (NotificationOutbox outbox : pending) {
-            try {
-                notificationService.send(
-                        outbox.getTargetUserId(),
-                        outbox.getEventType(),
-                        outbox.getContent(),
-                        outbox.getActorId(),
-                        outbox.getResourceId()
-                );
-                outbox.markAsProcessed();
-            } catch (Exception e) {
-                log.error("[OutboxWorker] 처리 실패: outboxId={}, type={}, 사유={}",
-                        outbox.getId(), outbox.getEventType(), e.getMessage());
-                outbox.markAsFailed();
-            }
-            outboxRepository.save(outbox);
+            outboxProcessor.processOne(outbox.getId());
         }
     }
 
-    /**
-     * FAILED 상태 중 재시도 횟수가 MAX_RETRY_COUNT 미만인 대상을 재처리
-     * 재시도 성공 시 PROCESSED, 실패 시 retryCount 증가
-     * retryCount가 MAX_RETRY_COUNT에 도달하면 FAILED 상태로 고정
-     */
-    @Scheduled(fixedDelay = 60000) // 1분마다
+    @Scheduled(fixedDelay = 60000)
     @SchedulerLock(name = "outboxRetry", lockAtMostFor = "PT2M", lockAtLeastFor = "PT30S")
-    @Transactional
     public void retry() {
         List<NotificationOutbox> retryTargets = outboxRepository
                 .findAllByStatusAndRetryCountLessThanOrderByCreatedAtAsc(
@@ -74,24 +53,7 @@ public class OutboxWorker {
         log.info("[OutboxWorker] 재시도 시작: {}건", retryTargets.size());
 
         for (NotificationOutbox outbox : retryTargets) {
-            outbox.incrementRetry();
-            try {
-                notificationService.send(
-                        outbox.getTargetUserId(),
-                        outbox.getEventType(),
-                        outbox.getContent(),
-                        outbox.getActorId(),
-                        outbox.getResourceId()
-                );
-                outbox.markAsProcessed();
-                log.info("[OutboxWorker] 재시도 성공: outboxId={}, retryCount={}",
-                        outbox.getId(), outbox.getRetryCount());
-            } catch (Exception e) {
-                log.error("[OutboxWorker] 재시도 실패: outboxId={}, retryCount={}, 사유={}",
-                        outbox.getId(), outbox.getRetryCount(), e.getMessage());
-                // retryCount가 MAX_RETRY_COUNT에 도달하면 FAILED 상태 유지
-            }
-            outboxRepository.save(outbox);
+            outboxProcessor.retryOne(outbox.getId());
         }
     }
 

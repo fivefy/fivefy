@@ -193,7 +193,7 @@ public class PointOrderService {
 
         outboxRepository.save(NotificationOutbox.create(
                 NotificationType.SUBSCRIBE, userId, null,
-                subscription.getId(),
+                pointOrder.getId(),
                 "정기 구독이 갱신되었습니다. 다음 만료일: " + subscription.getExpiryDate().format(DATE_FORMATTER)
         ));
     }

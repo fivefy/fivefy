@@ -32,7 +32,7 @@ public class NotificationOutbox {
 
     private Long resourceId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String content;
 
     @Enumerated(EnumType.STRING)

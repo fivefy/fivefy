@@ -180,8 +180,6 @@ public class SearchQueryRepositoryImpl implements SearchQueryRepository {
     private String relevanceSortSql(String keyword, String column) {
         String safeColumn = column.matches("^[a-z_]+$") ? column : "title";
         String sanitized  = sanitizeKeyword(keyword);           // LIKE 용
-        String sanitizedFt = keyword.replace("\\", "\\\\")
-                .replace("'", "''");        // Full-Text 용 (% _ 이스케이프 제외)
 
         return String.format("""
             CASE
@@ -189,9 +187,9 @@ public class SearchQueryRepositoryImpl implements SearchQueryRepository {
                 WHEN %s LIKE '%s%%' THEN 1
                 ELSE 0
             END DESC,
-            MATCH(%s) AGAINST('%s' IN BOOLEAN MODE) DESC,
+            MATCH(%s) AGAINST('%s' IN NATURAL LANGUAGE MODE) DESC,
             id DESC
-            """, safeColumn, sanitized, safeColumn, sanitized, safeColumn, sanitizedFt);
+            """, safeColumn, sanitized, safeColumn, sanitized, safeColumn, sanitized);
     }
 
     private String sanitizeKeyword(String keyword) {
