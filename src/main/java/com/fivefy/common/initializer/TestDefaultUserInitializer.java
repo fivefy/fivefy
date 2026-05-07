@@ -121,6 +121,7 @@ public class TestDefaultUserInitializer implements ApplicationRunner {
         LocalDateTime expiryDate = switch (subscriptionPlanType) {
             case FREE -> now.plusDays(3);
             case RECURRING -> now.plusMonths(1);
+            case RECURRING_AUTO -> now.plusMonths(1);
         };
         LocalDateTime nextBillingDate = null;
         if (subscriptionPlanType != SubscriptionPlanType.FREE) {
