@@ -260,6 +260,13 @@ class TrackServiceTest {
                     request.trackNumber(),
                     request.title()
             )).thenReturn(false);
+            when(trackApplicationRepository.existsApprovedOfficialReleaseApplication(
+                    userId,
+                    artistId,
+                    albumId,
+                    request.trackNumber(),
+                    request.title()
+            )).thenReturn(false);
 
             TrackApplication savedApplication = TrackApplication.create(
                     userId,
@@ -720,75 +727,141 @@ class TrackServiceTest {
                     .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS.getMessage());
         }
 
-        @Nested
-        @DisplayName("내 트랙 등록 신청 목록 조회")
-        class GetMyTrackApplications {
+        @Test
+        @DisplayName("동일한 처리 완료 신청이 이미 있으면 정식 발매 트랙 등록 신청 생성 실패")
+        void createOfficialTrackApplication_fail_whenAlreadyProcessed() {
+            Long userId = 1L;
+            Long artistId = 10L;
+            Long albumId = 100L;
 
-            @Test
-            @DisplayName("내 트랙 등록 신청 목록 조회 성공")
-            void getMyTrackApplications_success() {
-                Long userId = 1L;
+            OfficialTrackApplicationCreateRequest request =
+                    new OfficialTrackApplicationCreateRequest(
+                            artistId,
+                            albumId,
+                            1L,
+                            "밤편지",
+                            "가사",
+                            "BALLAD",
+                            "https://example.com/audio.mp3",
+                            230L,
+                            "feat. 10cm",
+                            3
+                    );
 
-                User user = mock(User.class);
-                when(userRepository.findByIdAndDeletedAtIsNull(userId))
-                        .thenReturn(Optional.of(user));
+            User user = mock(User.class);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
-                TrackApplication application1 = mock(TrackApplication.class);
-                TrackApplication application2 = mock(TrackApplication.class);
+            Artist artist = Artist.create(
+                    userId,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/artist.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
 
-                when(trackApplicationRepository.searchMyTrackApplications(userId))
-                        .thenReturn(List.of(application1, application2));
+            Album album = Album.create(
+                    artistId,
+                    "Love poem",
+                    "앨범 설명",
+                    "https://example.com/cover.jpg",
+                    null
+            );
+            ReflectionTestUtils.setField(album, "id", albumId);
 
-                when(application1.getId()).thenReturn(1L);
-                when(application2.getId()).thenReturn(2L);
+            when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
+            when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
 
-                when(application1.getTrackType()).thenReturn(TrackType.FREE_CREATION);
-                when(application2.getTrackType()).thenReturn(TrackType.OFFICIAL_RELEASE);
+            when(trackApplicationRepository.existsPendingOfficialReleaseApplication(
+                    userId,
+                    artistId,
+                    albumId,
+                    request.trackNumber(),
+                    request.title()
+            )).thenReturn(false);
 
-                when(application1.getStatus()).thenReturn(ApplicationStatus.PENDING);
-                when(application2.getStatus()).thenReturn(ApplicationStatus.PENDING);
+            when(trackApplicationRepository.existsApprovedOfficialReleaseApplication(
+                    userId,
+                    artistId,
+                    albumId,
+                    request.trackNumber(),
+                    request.title()
+            )).thenReturn(true);
 
-                when(application1.getCreatedAt()).thenReturn(LocalDateTime.now());
-                when(application2.getCreatedAt()).thenReturn(LocalDateTime.now());
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_PROCESSED.getMessage());
+        }
+    }
 
-                List<TrackApplicationResponse> response =
-                        trackService.getMyTrackApplications(userId);
+    @Nested
+    @DisplayName("내 트랙 등록 신청 목록 조회")
+    class GetMyTrackApplications {
 
-                assertThat(response).hasSize(2);
-                assertThat(response.get(0).applicationId()).isEqualTo(1L);
-                assertThat(response.get(1).applicationId()).isEqualTo(2L);
-            }
+        @Test
+        @DisplayName("내 트랙 등록 신청 목록 조회 성공")
+        void getMyTrackApplications_success() {
+            Long userId = 1L;
 
-            @Test
-            @DisplayName("존재하지 않는 유저면 목록 조회 실패")
-            void getMyTrackApplications_fail_whenUserNotFound() {
-                Long userId = 1L;
+            User user = mock(User.class);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId))
+                    .thenReturn(Optional.of(user));
 
-                when(userRepository.findByIdAndDeletedAtIsNull(userId))
-                        .thenReturn(Optional.empty());
+            TrackApplication application1 = mock(TrackApplication.class);
+            TrackApplication application2 = mock(TrackApplication.class);
 
-                assertThatThrownBy(() -> trackService.getMyTrackApplications(userId))
-                        .isInstanceOf(BusinessException.class)
-                        .hasMessage(UserErrorCode.ERR_USER_NOT_FOUND.getMessage());
-            }
+            when(trackApplicationRepository.searchMyTrackApplications(userId))
+                    .thenReturn(List.of(application1, application2));
 
-            @Test
-            @DisplayName("등록 신청이 없으면 빈 리스트 반환")
-            void getMyTrackApplications_empty() {
-                Long userId = 1L;
+            when(application1.getId()).thenReturn(1L);
+            when(application2.getId()).thenReturn(2L);
 
-                User user = mock(User.class);
-                when(userRepository.findByIdAndDeletedAtIsNull(userId))
-                        .thenReturn(Optional.of(user));
+            when(application1.getTrackType()).thenReturn(TrackType.FREE_CREATION);
+            when(application2.getTrackType()).thenReturn(TrackType.OFFICIAL_RELEASE);
 
-                when(trackApplicationRepository.searchMyTrackApplications(userId))
-                        .thenReturn(List.of());
+            when(application1.getStatus()).thenReturn(ApplicationStatus.PENDING);
+            when(application2.getStatus()).thenReturn(ApplicationStatus.PENDING);
 
-                List<TrackApplicationResponse> response =
-                        trackService.getMyTrackApplications(userId);
+            when(application1.getCreatedAt()).thenReturn(LocalDateTime.now());
+            when(application2.getCreatedAt()).thenReturn(LocalDateTime.now());
 
-                assertThat(response).isEmpty();
-            }
+            List<TrackApplicationResponse> response =
+                    trackService.getMyTrackApplications(userId);
+
+            assertThat(response).hasSize(2);
+            assertThat(response.get(0).applicationId()).isEqualTo(1L);
+            assertThat(response.get(1).applicationId()).isEqualTo(2L);
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 유저면 목록 조회 실패")
+        void getMyTrackApplications_fail_whenUserNotFound() {
+            Long userId = 1L;
+
+            when(userRepository.findByIdAndDeletedAtIsNull(userId))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> trackService.getMyTrackApplications(userId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(UserErrorCode.ERR_USER_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("등록 신청이 없으면 빈 리스트 반환")
+        void getMyTrackApplications_empty() {
+            Long userId = 1L;
+
+            User user = mock(User.class);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId))
+                    .thenReturn(Optional.of(user));
+
+            when(trackApplicationRepository.searchMyTrackApplications(userId))
+                    .thenReturn(List.of());
+
+            List<TrackApplicationResponse> response =
+                    trackService.getMyTrackApplications(userId);
+
+            assertThat(response).isEmpty();
         }
     }
 
