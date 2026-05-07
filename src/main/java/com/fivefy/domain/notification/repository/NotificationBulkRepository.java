@@ -30,14 +30,15 @@ public class NotificationBulkRepository {
      */
     public int bulkInsert(List<Long> userIds, NotificationType type,
                           String content, NotificationChannel channel,
-                          NotificationStatus status) {
+                          NotificationStatus status, Long trackId) {
         if (userIds == null || userIds.isEmpty()) return 0;
 
+        // INSERT IGNORE — idempotency_key UNIQUE 충돌 시 해당 행만 스킵
         String sql = """
-                INSERT INTO notifications
-                    (user_id, type, content, status, channel, created_at)
+                INSERT IGNORE INTO notifications
+                    (user_id, type, content, status, channel, created_at, idempotency_key)
                 VALUES
-                    (?, ?, ?, ?, ?, ?)
+                    (?, ?, ?, ?, ?, ?, ?)
                 """;
 
         Timestamp now = Timestamp.valueOf(LocalDateTime.now());
@@ -50,6 +51,7 @@ public class NotificationBulkRepository {
                     ps.setString(4, status.name());
                     ps.setString(5, channel.name());
                     ps.setTimestamp(6, now);
+                    ps.setString(7, userId + ":PUBLISH_TRACK:" + trackId);
                 });
 
         int totalInserted = Arrays.stream(results)

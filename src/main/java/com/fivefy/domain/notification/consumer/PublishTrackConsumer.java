@@ -104,7 +104,8 @@ public class PublishTrackConsumer {
                     NotificationType.PUBLISH_TRACK,
                     content,
                     NotificationChannel.IN_APP,
-                    NotificationStatus.QUEUED
+                    NotificationStatus.QUEUED,
+                    event.trackId()
             );
 
             List<CompletableFuture<Void>> futures = event.userIds().stream()
