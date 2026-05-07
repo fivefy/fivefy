@@ -26,11 +26,11 @@ public class ArtistApplicationQueryRepositoryImpl implements ArtistApplicationQu
     private final JPAQueryFactory queryFactory;
 
     /**
-     * 동일 유저 + 이름 + 타입 기준으로 진행 중/승인된 신청 존재 여부 조회
+     * 진행 중인 동일 아티스트 신청 존재 여부 조회
      */
     @Override
-    public boolean existsActiveApplication(Long requesterUserId, String requestedName, ArtistType artistType) {
-        // 중복 신청 방지를 위해 PENDING/APPROVED 상태만 검사
+    public boolean existsPendingApplication(Long requesterUserId, String requestedName, ArtistType artistType) {
+        // PENDING 상태의 동일 아티스트 신청 존재 여부 확인
         Integer result = queryFactory
                 .selectOne()
                 .from(artistApplication)
@@ -38,13 +38,30 @@ public class ArtistApplicationQueryRepositoryImpl implements ArtistApplicationQu
                         artistApplication.requesterUserId.eq(requesterUserId),
                         artistApplication.requestedName.eq(requestedName),
                         artistApplication.artistType.eq(artistType),
-                        artistApplication.status.in(
-                                ApplicationStatus.PENDING,
-                                ApplicationStatus.APPROVED
-                        )
+                        artistApplication.status.eq(ApplicationStatus.PENDING)
                 )
                 .fetchFirst();
-        // 결과 존재 여부로 boolean 반환
+
+        return result != null;
+    }
+
+    /**
+     * 승인된 동일 아티스트 신청 존재 여부 조회
+     */
+    @Override
+    public boolean existsApprovedApplication(Long requesterUserId, String requestedName, ArtistType artistType) {
+        // APPROVED 상태의 동일 아티스트 신청 존재 여부 확인
+        Integer result = queryFactory
+                .selectOne()
+                .from(artistApplication)
+                .where(
+                        artistApplication.requesterUserId.eq(requesterUserId),
+                        artistApplication.requestedName.eq(requestedName),
+                        artistApplication.artistType.eq(artistType),
+                        artistApplication.status.eq(ApplicationStatus.APPROVED)
+                )
+                .fetchFirst();
+
         return result != null;
     }
 

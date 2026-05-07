@@ -49,7 +49,7 @@ public class ArtistService {
         findUser(userId);
 
         // 중복 신청 검증
-        validateDuplicateActiveApplication(userId, request.requestedName(), request.artistType());
+        validateDuplicateArtistApplication(userId, request.requestedName(), request.artistType());
 
         // 등록 신청 생성 및 저장
         ArtistApplication savedApplication = artistApplicationRepository.save(
@@ -278,10 +278,16 @@ public class ArtistService {
     // =========================
 
     // 중복 신청 검증
-    private void validateDuplicateActiveApplication(Long userId, String requestedName, ArtistType artistType) {
-        if (artistApplicationRepository.existsActiveApplication(userId, requestedName, artistType)) {
+    private void validateDuplicateArtistApplication(Long userId, String requestedName, ArtistType artistType) {
+        if (artistApplicationRepository.existsPendingApplication(userId, requestedName, artistType)) {
             throw new BusinessException(
                     ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_EXISTS
+            );
+        }
+
+        if (artistApplicationRepository.existsApprovedApplication(userId, requestedName, artistType)) {
+            throw new BusinessException(
+                    ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_PROCESSED
             );
         }
     }
