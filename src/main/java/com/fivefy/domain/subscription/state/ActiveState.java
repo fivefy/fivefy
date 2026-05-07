@@ -43,12 +43,12 @@ public class ActiveState implements SubscriptionState {
 
     /**
      * ACTIVE 유지 + 기간 연장
-     * - RECURRING 플랜만 가능
+     * - 재갱신은 정기 결제 플랜만 가능
      * - nextBillingDate 없으면 이미 취소된 상태
      */
     @Override
     public void renew(Subscription subscription) {
-        if (subscription.getPlanType() != SubscriptionPlanType.RECURRING) {
+        if (subscription.getPlanType() != SubscriptionPlanType.RECURRING_AUTO) {
             throw new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_NOT_RECURRING);
         }
 

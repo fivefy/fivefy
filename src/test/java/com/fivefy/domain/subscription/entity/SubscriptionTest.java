@@ -30,7 +30,7 @@ class SubscriptionTest {
     @Test
     @DisplayName("RECURRING 구독 생성 시 nextBillingDate가 1개월 후로 설정된다")
     void create_RECURRING_nextBillingDate_1개월후() {
-        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.RECURRING, NOW);
+        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.RECURRING_AUTO, NOW);
 
         assertThat(subscription.getNextBillingDate()).isNotNull();
         assertThat(subscription.getNextBillingDate()).isAfter(NOW);
@@ -51,7 +51,7 @@ class SubscriptionTest {
     @Test
     @DisplayName("ACTIVE 상태에서 cancel() 호출 시 CANCELED로 전이되고 nextBillingDate가 null이 된다")
     void cancel_ACTIVE에서_CANCELED로() {
-        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.RECURRING, NOW);
+        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.RECURRING_AUTO, NOW);
 
         subscription.cancel();
 
@@ -86,6 +86,14 @@ class SubscriptionTest {
 
         assertThatThrownBy(() -> subscription.cancel())
                 .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    @DisplayName("RECURRING 구독 생성 시 nextBillingDate는 null이다")
+    void create_RECURRING_nextBillingDate_null() {
+        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.RECURRING, NOW);
+
+        assertThat(subscription.getNextBillingDate()).isNull();
     }
 
     // ─────────────────────────────────────────
@@ -132,7 +140,7 @@ class SubscriptionTest {
     @Test
     @DisplayName("RECURRING 구독에서 renew() 호출 시 expiryDate와 nextBillingDate가 1개월 연장된다")
     void renew_날짜_1개월_연장() {
-        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.RECURRING, NOW);
+        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.RECURRING_AUTO, NOW);
         LocalDateTime beforeExpiry = subscription.getExpiryDate();
         LocalDateTime beforeBilling = subscription.getNextBillingDate();
 
