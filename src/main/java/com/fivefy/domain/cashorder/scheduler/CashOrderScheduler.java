@@ -33,9 +33,10 @@ public class CashOrderScheduler {
         LocalDateTime now = LocalDateTime.now();
         log.info("[정기충전 스케줄러] 실행 시작 — {}", now);
 
+        // 카드 자동 청구 대상은 RECURRING_AUTO만
         List<Subscription> targets = subscriptionRepository
                 .findAllByPlanTypeAndStatusAndNextBillingDateBefore(
-                        SubscriptionPlanType.RECURRING,
+                        SubscriptionPlanType.RECURRING_AUTO,
                         SubscriptionStatus.ACTIVE,
                         now
                 );

@@ -76,11 +76,12 @@ public class PointOrderService {
             }
         }
 
-        // 2. RECURRING 중복 가입 방지 (ACTIVE만 체크)
-        if (planType == SubscriptionPlanType.RECURRING) {
+        // 2. RECURRING/RECURRING_AUTO 중복 가입 방지 (ACTIVE만 체크)
+        if (planType == SubscriptionPlanType.RECURRING || planType == SubscriptionPlanType.RECURRING_AUTO) {
             boolean alreadyActive = subscriptionRepository
                     .findAllByUserId(userId).stream()
-                    .anyMatch(s -> s.getPlanType() == SubscriptionPlanType.RECURRING
+                    .anyMatch(s -> (s.getPlanType() == SubscriptionPlanType.RECURRING
+                                        || s.getPlanType() == SubscriptionPlanType.RECURRING_AUTO)
                             && s.getStatus() == SubscriptionStatus.ACTIVE);
             if (alreadyActive) {
                 throw new BusinessException(PointOrderErrorCode.ERR_SUBSCRIPTION_ALREADY_ACTIVE);
@@ -198,7 +199,8 @@ public class PointOrderService {
     private String buildSubscribeContent(SubscriptionPlanType planType, LocalDateTime expiryDate) {
         return switch (planType) {
             case FREE -> "무료 체험 구독이 시작되었습니다. 만료일: " + expiryDate.format(DATE_FORMATTER);
-            case RECURRING -> "정기 구독이 시작되었습니다. 다음 갱신일: " + expiryDate.format(DATE_FORMATTER);
+            case RECURRING -> "단건 구독이 시작되었습니다. 만료일: " + expiryDate.format(DATE_FORMATTER);
+            case RECURRING_AUTO -> "정기 구독이 시작되었습니다. 다음 갱신일: " + expiryDate.format(DATE_FORMATTER);
         };
     }
 }

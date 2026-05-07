@@ -1,11 +1,18 @@
 package com.fivefy.domain.billingkey.controller;
 
+import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.billingkey.enums.BillingKeyErrorCode;
+import com.fivefy.domain.subscription.enums.SubscriptionErrorCode;
+import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
+import com.fivefy.domain.subscription.enums.SubscriptionStatus;
+import com.fivefy.domain.subscription.entity.Subscription;
 import com.fivefy.domain.billingkey.dto.BillingKeyRegisterRequest;
 import com.fivefy.domain.billingkey.dto.BillingKeyResponse;
 import com.fivefy.domain.billingkey.entity.BillingKey;
 import com.fivefy.domain.billingkey.repository.BillingKeyRepository;
 import com.fivefy.domain.billingkey.service.BillingKeyService;
 import com.fivefy.domain.cashorder.service.CashOrderService;
+import com.fivefy.domain.subscription.repository.SubscriptionRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +27,7 @@ public class BillingKeyController {
     private final BillingKeyService billingKeyService;
     private final BillingKeyRepository billingKeyRepository;
     private final CashOrderService cashOrderService;
+    private final SubscriptionRepository subscriptionRepository;
 
     /**
      * 카드(빌링키) 등록
@@ -64,12 +72,15 @@ public class BillingKeyController {
     public ResponseEntity<String> testCharge(
             @AuthenticationPrincipal Long userId
     ) {
+        // 빌링키  체크
         BillingKey billingKey = billingKeyRepository.findByUserIdAndActiveTrue(userId)
-                .orElseThrow(() -> new IllegalArgumentException("활성 빌링키가 없습니다. 먼저 카드를 등록하세요."));
+                .orElseThrow(() -> new BusinessException(
+                        BillingKeyErrorCode.ERR_BILLING_KEY_ACTIVE_NOT_FOUND)
+                );
 
+        // 구독 여부 확인 없이 바로 카드 청구
         cashOrderService.processRecurringCharge(billingKey);
 
         return ResponseEntity.ok("카드 청구 완료 — 지갑을 조회해서 포인트 충전을 확인하세요.");
     }
-
 }

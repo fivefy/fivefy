@@ -1,6 +1,8 @@
 package com.fivefy.common.portone;
 
+import com.fivefy.common.exception.BusinessException;
 import com.fivefy.common.portone.config.PortoneProperties;
+import com.fivefy.common.portone.enums.PortoneErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -8,6 +10,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Base64;
@@ -35,9 +38,16 @@ public class PortoneWebhookVerifier {
 
         // 타임스탬프 검증 (리플레이 공격 방지)
         long now = Instant.now().getEpochSecond();
-        long sentAt = Long.parseLong(webhookTimestamp);
+        long sentAt;
+        try {
+            // 1단계 : 웹훅 타임스탬프가 아니면 즉시 차단 : 숫자가 아닌 문자나 날짜, 빈값 등
+            sentAt = Long.parseLong(webhookTimestamp);
+        } catch (NumberFormatException e) {
+            throw new BusinessException(PortoneErrorCode.ERR_PORTONE_WEBHOOK_INVALID_TIMESTAMP);
+        }
+        // 2단계 : 숫자인데 현재 시각과 차이가 있음 = 리플레이 공격 차단
         if (Math.abs(now - sentAt) > MAX_TIMESTAMP_DIFF_SECONDS) {
-            throw new IllegalArgumentException("웹훅 타임스탬프 만료");
+            throw new BusinessException(PortoneErrorCode.ERR_PORTONE_WEBHOOK_TIMESTAMP_EXPIRED);
         }
 
         // 시그니처 검증 (위변조 방지)
@@ -69,8 +79,12 @@ public class PortoneWebhookVerifier {
                 ? webhookSignature.split(",")[1]
                 : webhookSignature;
 
-            if (!computed.equals(expected)) {
-                throw new IllegalArgumentException("웹훅 시그니처 불일치");
+            // 바이트 비교
+            if (!MessageDigest.isEqual(
+                computed.getBytes(StandardCharsets.UTF_8),  // 서버가 계산한 서명
+                expected.getBytes(StandardCharsets.UTF_8)   // 포트원이 보낸 서명
+            )) {
+                throw new BusinessException(PortoneErrorCode.ERR_PORTONE_WEBHOOK_SIGNATURE_MISMATCH);
             }
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             throw new RuntimeException("시그니처 검증 중 오류", e);

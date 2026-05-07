@@ -1,9 +1,11 @@
 package com.fivefy.domain.subscription.controller;
 
 
+import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.pointorder.service.PointOrderService;
 import com.fivefy.domain.subscription.dto.SubscriptionResponse;
 import com.fivefy.domain.subscription.entity.Subscription;
+import com.fivefy.domain.subscription.enums.SubscriptionErrorCode;
 import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
 import com.fivefy.domain.subscription.enums.SubscriptionStatus;
 import com.fivefy.domain.subscription.repository.SubscriptionRepository;
@@ -65,11 +67,11 @@ public class SubscriptionController {
         Subscription subscription = subscriptionRepository
                 .findByUserIdAndPlanTypeAndStatus(
                         userId,
-                        SubscriptionPlanType.RECURRING,
+                        SubscriptionPlanType.RECURRING_AUTO,
                         SubscriptionStatus.ACTIVE
                 )
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "RECURRING(PlanType : 정기구독) + ACTIVE(Status : 활성화) 구독이 없습니다. 먼저 정기구독을 구매하세요."
+                .orElseThrow(() -> new BusinessException(
+                        SubscriptionErrorCode.ERR_SUBSCRIPTION_RECURRING_NOT_FOUND
                 ));
 
         pointOrderService.processRecurringPayment(subscription);
@@ -92,8 +94,9 @@ public class SubscriptionController {
                         userId,
                         SubscriptionPlanType.RECURRING,
                         SubscriptionStatus.ACTIVE)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "RECURRING + ACTIVE 구독이 없습니다."));
+                .orElseThrow(() -> new BusinessException(
+                        SubscriptionErrorCode.ERR_SUBSCRIPTION_RECURRING_NOT_FOUND
+                ));
 
         sub.skipOneMonth(); // 엔티티 메서드 추가 필요
         subscriptionRepository.save(sub);
