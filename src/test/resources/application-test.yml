@@ -37,6 +37,13 @@ spring:
           max-tokens: 200
           temperature: 0.3
 
+custom:
+  flyway:
+    mysql:
+      enabled: false
+    postgre:
+      enabled: false
+
 kafka:
   bootstrap-servers: localhost:9092,localhost:9093,localhost:9094
 

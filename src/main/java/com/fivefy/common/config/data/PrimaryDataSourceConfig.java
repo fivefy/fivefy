@@ -2,9 +2,11 @@ package com.fivefy.common.config.data;
 
 import jakarta.persistence.EntityManagerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.boot.jpa.EntityManagerFactoryBuilder;
+import org.springframework.boot.jpa.autoconfigure.JpaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -38,11 +40,12 @@ public class PrimaryDataSourceConfig {
     @Bean
     public LocalContainerEntityManagerFactoryBean primaryEntityManagerFactory(
             EntityManagerFactoryBuilder builder,
-            @Qualifier("primaryDataSource") DataSource dataSource) {
+            @Qualifier("primaryDataSource") DataSource dataSource,
+            @Value("${spring.jpa.hibernate.ddl-auto:validate}") String ddlAuto) {
 
         Map<String, Object> props = new HashMap<>();
         props.put("hibernate.dialect", "org.hibernate.dialect.MySQLDialect");
-        props.put("hibernate.hbm2ddl.auto", "validate");
+        props.put("hibernate.hbm2ddl.auto", ddlAuto);
 
         return builder
                 .dataSource(dataSource)

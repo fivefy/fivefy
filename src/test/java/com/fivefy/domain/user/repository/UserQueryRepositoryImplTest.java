@@ -1,5 +1,6 @@
 package com.fivefy.domain.user.repository;
 
+import com.fivefy.common.config.flyway.FlywayConfig;
 import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserStatus;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
@@ -23,7 +25,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
 @ActiveProfiles("test")
-@Import(UserQueryRepositoryImplTest.QueryDslTestConfig.class)
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+// 여기서 직접 Flyway 자동 설정을 끄면 YAML 설정보다 우선합니다.
+@Import({UserQueryRepositoryImplTest.QueryDslTestConfig.class, FlywayConfig.class})
 class UserQueryRepositoryImplTest {
 
     @TestConfiguration
