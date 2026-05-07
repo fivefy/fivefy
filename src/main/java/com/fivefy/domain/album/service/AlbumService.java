@@ -22,6 +22,7 @@ import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.enums.UserRole;
 import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -67,10 +68,10 @@ public class AlbumService {
         validatePublishDelayDays(request.publishDelayDays());
 
         // 중복 신청 검증
-        validateDuplicateActiveApplication(userId, request.artistId(), request.title());
+        validateDuplicateAlbumApplication(userId, request.artistId(), request.title());
 
         // 등록 신청 생성 및 저장
-        AlbumApplication savedApplication = albumApplicationRepository.save(
+        AlbumApplication savedApplication = saveAlbumApplication(
                 AlbumApplication.create(
                         userId,
                         request.artistId(),
@@ -132,7 +133,7 @@ public class AlbumService {
      */
     @Transactional
     public AlbumApplicationApproveResponse approveAlbumApplication(Long adminId, Long applicationId) {
-        AlbumApplication application = findAlbumApplication(applicationId);
+        AlbumApplication application = findAlbumApplicationForUpdate(applicationId);
 
         // 상태 전이는 엔티티에 위임
         application.approve(adminId);
@@ -152,7 +153,7 @@ public class AlbumService {
             Long applicationId,
             String rejectionReason
     ) {
-        AlbumApplication application = findAlbumApplication(applicationId);
+        AlbumApplication application = findAlbumApplicationForUpdate(applicationId);
 
         // 상태 전이는 엔티티에 위임
         application.reject(adminId, rejectionReason);
@@ -238,6 +239,14 @@ public class AlbumService {
                 ));
     }
 
+    // 앨범 등록 신청 조회 (비관적 락)
+    private AlbumApplication findAlbumApplicationForUpdate(Long applicationId) {
+        return albumApplicationRepository.findByIdForUpdate(applicationId)
+                .orElseThrow(() -> new BusinessException(
+                        AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_NOT_FOUND
+                ));
+    }
+
     // 공개 가능한 앨범 조회
     private Album findPublishedAlbum(Long albumId) {
         Album album = albumRepository.findById(albumId)
@@ -280,10 +289,16 @@ public class AlbumService {
     }
 
     // 중복 신청 검증
-    private void validateDuplicateActiveApplication(Long userId, Long artistId, String title) {
-        if (albumApplicationRepository.existsActiveApplication(userId, artistId, title)) {
+    private void validateDuplicateAlbumApplication(Long userId, Long artistId, String title) {
+        if (albumApplicationRepository.existsPendingApplication(userId, artistId, title)) {
             throw new BusinessException(
                     AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_EXISTS
+            );
+        }
+
+        if (albumApplicationRepository.existsApprovedApplication(userId, artistId, title)) {
+            throw new BusinessException(
+                    AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_PROCESSED
             );
         }
     }
@@ -336,5 +351,16 @@ public class AlbumService {
         }
 
         return LocalDateTime.now().plusDays(publishDelayDays);
+    }
+
+    // 앨범 등록 신청 저장
+    private AlbumApplication saveAlbumApplication(AlbumApplication application) {
+        try {
+            return albumApplicationRepository.saveAndFlush(application);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(
+                    AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_EXISTS
+            );
+        }
     }
 }

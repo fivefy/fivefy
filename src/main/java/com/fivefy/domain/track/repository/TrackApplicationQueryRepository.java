@@ -24,6 +24,14 @@ public interface TrackApplicationQueryRepository {
             String title
     );
 
+    boolean existsApprovedOfficialReleaseApplication(
+            Long requesterUserId,
+            Long artistId,
+            Long albumId,
+            Long trackNumber,
+            String title
+    );
+
     List<TrackApplication> searchMyTrackApplications(Long requesterUserId);
 
     Page<TrackApplication> searchTrackApplications(

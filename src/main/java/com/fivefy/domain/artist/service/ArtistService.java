@@ -19,6 +19,7 @@ import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.enums.UserRole;
 import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -49,10 +50,10 @@ public class ArtistService {
         findUser(userId);
 
         // 중복 신청 검증
-        validateDuplicateActiveApplication(userId, request.requestedName(), request.artistType());
+        validateDuplicateArtistApplication(userId, request.requestedName(), request.artistType());
 
         // 등록 신청 생성 및 저장
-        ArtistApplication savedApplication = artistApplicationRepository.save(
+        ArtistApplication savedApplication = saveArtistApplication(
                 ArtistApplication.create(
                         userId,
                         request.requestedName(),
@@ -113,7 +114,7 @@ public class ArtistService {
      */
     @Transactional
     public ArtistApplicationApproveResponse approveArtistApplication(Long adminId, Long applicationId) {
-        ArtistApplication application = findArtistApplication(applicationId);
+        ArtistApplication application = findArtistApplicationForUpdate(applicationId);
 
         // 상태 전이는 엔티티에 위임
         application.approve(adminId);
@@ -133,7 +134,7 @@ public class ArtistService {
             Long applicationId,
             ArtistApplicationRejectRequest request
     ) {
-        ArtistApplication application = findArtistApplication(applicationId);
+        ArtistApplication application = findArtistApplicationForUpdate(applicationId);
 
         // 상태 전이는 엔티티에 위임
         application.reject(adminId, request.rejectionReason());
@@ -265,15 +266,29 @@ public class ArtistService {
                 ));
     }
 
+    // 아티스트 등록 신청 조회 (비관적 락)
+    private ArtistApplication findArtistApplicationForUpdate(Long applicationId) {
+        return artistApplicationRepository.findByIdForUpdate(applicationId)
+                .orElseThrow(() -> new BusinessException(
+                        ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_NOT_FOUND
+                ));
+    }
+
     // =========================
     // 검증
     // =========================
 
     // 중복 신청 검증
-    private void validateDuplicateActiveApplication(Long userId, String requestedName, ArtistType artistType) {
-        if (artistApplicationRepository.existsActiveApplication(userId, requestedName, artistType)) {
+    private void validateDuplicateArtistApplication(Long userId, String requestedName, ArtistType artistType) {
+        if (artistApplicationRepository.existsPendingApplication(userId, requestedName, artistType)) {
             throw new BusinessException(
                     ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_EXISTS
+            );
+        }
+
+        if (artistApplicationRepository.existsApprovedApplication(userId, requestedName, artistType)) {
+            throw new BusinessException(
+                    ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_PROCESSED
             );
         }
     }
@@ -314,5 +329,16 @@ public class ArtistService {
                 application.getBio(),
                 application.getProfileImageUrl()
         );
+    }
+
+    // 아티스트 등록 신청 저장
+    private ArtistApplication saveArtistApplication(ArtistApplication application) {
+        try {
+            return artistApplicationRepository.saveAndFlush(application);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(
+                    ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_EXISTS
+            );
+        }
     }
 }

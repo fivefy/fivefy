@@ -13,7 +13,9 @@ import java.util.List;
  */
 public interface ArtistApplicationQueryRepository {
 
-    boolean existsActiveApplication(Long requesterUserId, String requestedName, ArtistType artistType);
+    boolean existsPendingApplication(Long requesterUserId, String requestedName, ArtistType artistType);
+
+    boolean existsApprovedApplication(Long requesterUserId, String requestedName, ArtistType artistType);
 
     List<ArtistApplication> searchMyArtistApplications(Long requesterUserId);
 
