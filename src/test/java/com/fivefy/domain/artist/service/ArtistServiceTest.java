@@ -90,7 +90,12 @@ class ArtistServiceTest {
 
             User user = mock(User.class);
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
-            when(artistApplicationRepository.existsActiveApplication(
+            when(artistApplicationRepository.existsPendingApplication(
+                    userId,
+                    request.requestedName(),
+                    request.artistType()
+            )).thenReturn(false);
+            when(artistApplicationRepository.existsApprovedApplication(
                     userId,
                     request.requestedName(),
                     request.artistType()
@@ -145,8 +150,8 @@ class ArtistServiceTest {
         }
 
         @Test
-        @DisplayName("중복 신청이면 실패")
-        void createArtistApplication_fail_whenAlreadyExists() {
+        @DisplayName("진행 중인 중복 신청이면 실패")
+        void createArtistApplication_fail_whenPendingApplicationExists() {
             Long userId = 1L;
 
             ArtistApplicationCreateRequest request = new ArtistApplicationCreateRequest(
@@ -158,7 +163,7 @@ class ArtistServiceTest {
 
             User user = mock(User.class);
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
-            when(artistApplicationRepository.existsActiveApplication(
+            when(artistApplicationRepository.existsPendingApplication(
                     userId,
                     request.requestedName(),
                     request.artistType()
@@ -167,6 +172,36 @@ class ArtistServiceTest {
             assertThatThrownBy(() -> artistService.createArtistApplication(userId, request))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_EXISTS.getMessage());
+        }
+
+        @Test
+        @DisplayName("승인된 중복 신청이면 실패")
+        void createArtistApplication_fail_whenApprovedApplicationExists() {
+            Long userId = 1L;
+
+            ArtistApplicationCreateRequest request = new ArtistApplicationCreateRequest(
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/profile.jpg"
+            );
+
+            User user = mock(User.class);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
+            when(artistApplicationRepository.existsPendingApplication(
+                    userId,
+                    request.requestedName(),
+                    request.artistType()
+            )).thenReturn(false);
+            when(artistApplicationRepository.existsApprovedApplication(
+                    userId,
+                    request.requestedName(),
+                    request.artistType()
+            )).thenReturn(true);
+
+            assertThatThrownBy(() -> artistService.createArtistApplication(userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_PROCESSED.getMessage());
         }
     }
 
