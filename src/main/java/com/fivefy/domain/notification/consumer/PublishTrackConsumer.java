@@ -9,6 +9,7 @@ import com.fivefy.domain.notification.repository.NotificationBulkRepository;
 import com.fivefy.domain.notification.repository.SseEmitterRepository;
 import com.fivefy.domain.track.event.PublishTrackChunkEvent;
 import com.rabbitmq.client.Channel;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
@@ -30,6 +31,7 @@ import static com.fivefy.common.config.rabbitmq.NotificationRabbitConfig.MAX_RET
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class PublishTrackConsumer {
 
     private static final String DEDUP_KEY_PREFIX = "notification:dedup:publish:";
@@ -40,18 +42,6 @@ public class PublishTrackConsumer {
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate stringRedisTemplate;
     private final Executor notificationSendExecutor;
-
-    public PublishTrackConsumer(
-            NotificationBulkRepository notificationBulkRepository,
-            SseEmitterRepository sseEmitterRepository,
-            ObjectMapper objectMapper,
-            StringRedisTemplate stringRedisTemplate,
-            @Qualifier("notificationSendExecutor") Executor notificationSendExecutor) {
-        this.notificationBulkRepository = notificationBulkRepository;
-        this.objectMapper = objectMapper;
-        this.stringRedisTemplate = stringRedisTemplate;
-        this.notificationSendExecutor = notificationSendExecutor;
-    }
 
     @RabbitListener(
             queues = NotificationRabbitConfig.PUBLISH_TRACK_QUEUE,
