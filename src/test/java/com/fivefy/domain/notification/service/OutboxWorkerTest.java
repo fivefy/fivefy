@@ -15,18 +15,16 @@ import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class OutboxWorkerTest {
 
     @Mock private NotificationOutboxRepository outboxRepository;
-    @Mock private NotificationService notificationService;
+    @Mock private OutboxProcessor outboxProcessor;
 
     @InjectMocks
     private OutboxWorker outboxWorker;
@@ -41,8 +39,8 @@ class OutboxWorkerTest {
     class Process {
 
         @Test
-        @DisplayName("PENDING 처리 성공 시 PROCESSED 상태로 변경된다")
-        void process_success_marksAsProcessed() {
+        @DisplayName("PENDING 항목이 있으면 outboxProcessor.processOne()을 호출한다")
+        void process_delegatesToProcessor() {
             // given
             NotificationOutbox outbox = makeOutbox();
             given(outboxRepository.findAllByStatusOrderByCreatedAtAsc(eq(OutboxStatus.PENDING), any(Pageable.class)))
@@ -52,26 +50,21 @@ class OutboxWorkerTest {
             outboxWorker.process();
 
             // then
-            assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.PROCESSED);
-            verify(outboxRepository).save(outbox);
+            verify(outboxProcessor).processOne(outbox.getId());
         }
 
         @Test
-        @DisplayName("PENDING 처리 실패 시 FAILED 상태로 변경된다")
-        void process_fails_marksAsFailed() {
+        @DisplayName("PENDING 항목이 없으면 outboxProcessor를 호출하지 않는다")
+        void process_noPending_doesNotDelegate() {
             // given
-            NotificationOutbox outbox = makeOutbox();
             given(outboxRepository.findAllByStatusOrderByCreatedAtAsc(eq(OutboxStatus.PENDING), any(Pageable.class)))
-                    .willReturn(List.of(outbox));
-            willThrow(new RuntimeException("Redis 장애"))
-                    .given(notificationService).send(any(), any(), any(), any(), any());
+                    .willReturn(List.of());
 
             // when
             outboxWorker.process();
 
             // then
-            assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.FAILED);
-            verify(outboxRepository).save(outbox);
+            verify(outboxProcessor, org.mockito.Mockito.never()).processOne(any());
         }
     }
 
@@ -80,8 +73,8 @@ class OutboxWorkerTest {
     class Retry {
 
         @Test
-        @DisplayName("FAILED 재시도 성공 시 PROCESSED 상태로 변경된다")
-        void retry_success_marksAsProcessed() {
+        @DisplayName("FAILED 항목이 있으면 outboxProcessor.retryOne()을 호출한다")
+        void retry_delegatesToProcessor() {
             // given
             NotificationOutbox outbox = makeOutbox();
             given(outboxRepository.findAllByStatusAndRetryCountLessThanOrderByCreatedAtAsc(
@@ -92,34 +85,11 @@ class OutboxWorkerTest {
             outboxWorker.retry();
 
             // then
-            assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.PROCESSED);
-            assertThat(outbox.getRetryCount()).isEqualTo(1);
-            verify(outboxRepository).save(outbox);
+            verify(outboxProcessor).retryOne(outbox.getId());
         }
 
         @Test
-        @DisplayName("FAILED 재시도 실패 시 retryCount가 증가한다")
-        void retry_fails_incrementsRetryCount() {
-            // given
-            NotificationOutbox outbox = makeOutbox();
-            outbox.markAsFailed();
-            given(outboxRepository.findAllByStatusAndRetryCountLessThanOrderByCreatedAtAsc(
-                    eq(OutboxStatus.FAILED), eq(3), any(Pageable.class)))
-                    .willReturn(List.of(outbox));
-            willThrow(new RuntimeException("Redis 장애"))
-                    .given(notificationService).send(any(), any(), any(), any(), any());
-
-            // when
-            outboxWorker.retry();
-
-            // then
-            assertThat(outbox.getRetryCount()).isEqualTo(1);
-            assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.FAILED);
-            verify(outboxRepository).save(outbox);
-        }
-
-        @Test
-        @DisplayName("retryCount가 3이면 조회 대상에서 제외되어 재시도하지 않는다")
+        @DisplayName("retryCount가 3이면 조회 대상에서 제외되어 retryOne()을 호출하지 않는다")
         void retry_maxRetryCount_skipsProcessing() {
             // given
             given(outboxRepository.findAllByStatusAndRetryCountLessThanOrderByCreatedAtAsc(
@@ -129,9 +99,8 @@ class OutboxWorkerTest {
             // when
             outboxWorker.retry();
 
-            // then — notificationService.send() 호출 없음
-            verify(notificationService, org.mockito.Mockito.never())
-                    .send(any(), any(), any(), any(), any());
+            // then
+            verify(outboxProcessor, org.mockito.Mockito.never()).retryOne(any());
         }
     }
 }
