@@ -26,6 +26,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -115,7 +116,7 @@ class ArtistServiceTest {
                     LocalDateTime.of(2026, 4, 14, 22, 30, 0)
             );
 
-            when(artistApplicationRepository.save(any(ArtistApplication.class)))
+            when(artistApplicationRepository.saveAndFlush(any(ArtistApplication.class)))
                     .thenReturn(savedApplication);
 
             ArtistApplicationResponse response =
@@ -284,6 +285,38 @@ class ArtistServiceTest {
             assertThatThrownBy(() -> artistService.getMyArtistApplications(userId))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(UserErrorCode.ERR_USER_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("동시 중복 신청으로 저장 충돌이 발생하면 아티스트 등록 신청 생성 실패")
+        void createArtistApplication_fail_whenDuplicateSaveConflict() {
+            Long userId = 1L;
+
+            ArtistApplicationCreateRequest request = new ArtistApplicationCreateRequest(
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/profile.jpg"
+            );
+
+            User user = mock(User.class);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
+            when(artistApplicationRepository.existsPendingApplication(
+                    userId,
+                    request.requestedName(),
+                    request.artistType()
+            )).thenReturn(false);
+            when(artistApplicationRepository.existsApprovedApplication(
+                    userId,
+                    request.requestedName(),
+                    request.artistType()
+            )).thenReturn(false);
+            when(artistApplicationRepository.saveAndFlush(any(ArtistApplication.class)))
+                    .thenThrow(new DataIntegrityViolationException("duplicate artist application"));
+
+            assertThatThrownBy(() -> artistService.createArtistApplication(userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_EXISTS.getMessage());
         }
     }
 

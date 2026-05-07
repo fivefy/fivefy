@@ -30,6 +30,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -126,7 +127,7 @@ class AlbumServiceTest {
             ReflectionTestUtils.setField(savedApplication, "id", 1L);
             ReflectionTestUtils.setField(savedApplication, "createdAt", LocalDateTime.of(2026, 4, 16, 16, 0, 0));
 
-            when(albumApplicationRepository.save(any(AlbumApplication.class)))
+            when(albumApplicationRepository.saveAndFlush(any(AlbumApplication.class)))
                     .thenReturn(savedApplication);
 
             AlbumApplicationResponse response =
@@ -386,6 +387,45 @@ class AlbumServiceTest {
             assertThatThrownBy(() -> albumService.createAlbumApplication(userId, request))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_PROCESSED.getMessage());
+        }
+
+        @Test
+        @DisplayName("동시 중복 신청으로 저장 충돌이 발생하면 앨범 등록 신청 생성 실패")
+        void createAlbumApplication_fail_whenDuplicateSaveConflict() {
+            Long userId = 1L;
+            Long artistId = 10L;
+
+            AlbumApplicationCreateRequest request = new AlbumApplicationCreateRequest(
+                    artistId,
+                    "Love poem",
+                    "앨범 설명",
+                    "https://example.com/cover.jpg",
+                    0
+            );
+
+            User user = mock(User.class);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
+
+            Artist artist = Artist.create(
+                    userId,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/artist.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+
+            when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
+            when(albumApplicationRepository.existsPendingApplication(userId, artistId, request.title()))
+                    .thenReturn(false);
+            when(albumApplicationRepository.existsApprovedApplication(userId, artistId, request.title()))
+                    .thenReturn(false);
+            when(albumApplicationRepository.saveAndFlush(any(AlbumApplication.class)))
+                    .thenThrow(new DataIntegrityViolationException("duplicate album application"));
+
+            assertThatThrownBy(() -> albumService.createAlbumApplication(userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_EXISTS.getMessage());
         }
     }
 
