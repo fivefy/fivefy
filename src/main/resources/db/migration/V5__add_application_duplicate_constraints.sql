@@ -8,8 +8,10 @@ ALTER TABLE album_applications
                 END
             ) STORED;
 
-CREATE UNIQUE INDEX uq_album_application_active_duplicate_key
-    ON album_applications (active_duplicate_key);
+ALTER TABLE album_applications
+    ADD UNIQUE INDEX uq_album_application_active_duplicate_key (active_duplicate_key),
+    ALGORITHM=INPLACE,
+    LOCK=NONE;
 
 ALTER TABLE artist_applications
     ADD COLUMN active_duplicate_key VARCHAR(500)
@@ -21,5 +23,7 @@ ALTER TABLE artist_applications
                 END
             ) STORED;
 
-CREATE UNIQUE INDEX uq_artist_application_active_duplicate_key
-    ON artist_applications (active_duplicate_key);
+ALTER TABLE artist_applications
+    ADD UNIQUE INDEX uq_artist_application_active_duplicate_key (active_duplicate_key),
+    ALGORITHM=INPLACE,
+    LOCK=NONE;
