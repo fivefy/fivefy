@@ -489,6 +489,18 @@ public class TrackService {
                     TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS
             );
         }
+
+        if (trackApplicationRepository.existsApprovedOfficialReleaseApplication(
+                requesterUserId,
+                artistId,
+                albumId,
+                trackNumber,
+                title
+        )) {
+            throw new BusinessException(
+                    TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_PROCESSED
+            );
+        }
     }
 
     // 상세 조회 권한 검증

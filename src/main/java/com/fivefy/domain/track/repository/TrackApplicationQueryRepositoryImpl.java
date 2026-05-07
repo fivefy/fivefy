@@ -80,6 +80,33 @@ public class TrackApplicationQueryRepositoryImpl implements TrackApplicationQuer
     }
 
     /**
+     * 정식 발매 Approved 중복 신청 여부 조회
+     */
+    @Override
+    public boolean existsApprovedOfficialReleaseApplication(
+            Long requesterUserId,
+            Long artistId,
+            Long albumId,
+            Long trackNumber,
+            String title
+    ) {
+        Integer result = queryFactory
+                .selectOne()
+                .from(trackApplication)
+                .where(
+                        trackApplication.requesterUserId.eq(requesterUserId),
+                        trackApplication.status.eq(ApplicationStatus.APPROVED),
+                        trackApplication.trackType.eq(TrackType.OFFICIAL_RELEASE),
+                        trackApplication.artistId.eq(artistId),
+                        trackApplication.albumId.eq(albumId),
+                        officialReleaseDuplicateCondition(trackNumber, title)
+                )
+                .fetchFirst();
+
+        return result != null;
+    }
+
+    /**
      * 내 트랙 등록 신청 목록 조회
      */
     @Override
