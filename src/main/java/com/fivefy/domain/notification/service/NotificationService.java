@@ -25,6 +25,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -124,8 +125,9 @@ public class NotificationService {
             int page = 0;
             int totalChunks = 0;
             long chunkIndex = 0L;
-            Page<Follow> chunk;
+            Slice<Follow> chunk;
 
+            long start = System.currentTimeMillis();
             do {
                 chunk = followRepository.findAllByArtistIdAndNotificationEnabledTrue(
                         event.artistId(), PageRequest.of(page++, CHUNK_SIZE));
@@ -153,6 +155,8 @@ public class NotificationService {
                 totalChunks++;
 
             } while (chunk.hasNext());
+            log.info("PUBLISH_TRACK 발행 완료 — artistId={}, 총 청크={}, 소요={}ms",
+                    event.artistId(), totalChunks, System.currentTimeMillis() - start);
 
             log.info("PUBLISH_TRACK RabbitMQ 발행 완료: artistId={}, trackId={}, 총 청크 수={}",
                     event.artistId(), event.trackId(), totalChunks);
