@@ -35,6 +35,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.*;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -140,7 +141,7 @@ class TrackServiceTest {
                     LocalDateTime.of(2026, 4, 19, 20, 0, 0)
             );
 
-            when(trackApplicationRepository.save(any(TrackApplication.class)))
+            when(trackApplicationRepository.saveAndFlush(any(TrackApplication.class)))
                     .thenReturn(savedApplication);
 
             TrackApplicationResponse response =
@@ -203,6 +204,37 @@ class TrackServiceTest {
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS.getMessage());
         }
+
+        @Test
+        @DisplayName("동시 중복 신청으로 저장 충돌이 발생하면 자유 창작 트랙 등록 신청 생성 실패")
+        void createFreeTrackApplication_fail_whenDuplicateSaveConflict() {
+            Long userId = 1L;
+
+            FreeTrackApplicationCreateRequest request =
+                    new FreeTrackApplicationCreateRequest(
+                            "밤편지 AI 버전",
+                            "가사",
+                            "BALLAD",
+                            "https://example.com/audio.mp3",
+                            210L
+                    );
+
+            User user = mock(User.class);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
+
+            when(trackApplicationRepository.existsPendingFreeCreationApplication(
+                    userId,
+                    request.title(),
+                    request.audioUrl()
+            )).thenReturn(false);
+
+            when(trackApplicationRepository.saveAndFlush(any(TrackApplication.class)))
+                    .thenThrow(new DataIntegrityViolationException("duplicate free creation application"));
+
+            assertThatThrownBy(() -> trackService.createFreeTrackApplication(userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS.getMessage());
+        }
     }
 
     @Nested
@@ -234,6 +266,7 @@ class TrackServiceTest {
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -243,6 +276,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(artist, "id", artistId);
 
             Album album = Album.create(
+                    1L,
                     artistId,
                     "Love poem",
                     "앨범 설명",
@@ -289,7 +323,7 @@ class TrackServiceTest {
                     LocalDateTime.of(2026, 4, 19, 21, 0, 0)
             );
 
-            when(trackApplicationRepository.save(any(TrackApplication.class)))
+            when(trackApplicationRepository.saveAndFlush(any(TrackApplication.class)))
                     .thenReturn(savedApplication);
 
             TrackApplicationResponse response =
@@ -383,6 +417,7 @@ class TrackServiceTest {
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -423,6 +458,7 @@ class TrackServiceTest {
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
+                    1L,
                     2L,
                     "아이유",
                     ArtistType.SOLO,
@@ -462,6 +498,7 @@ class TrackServiceTest {
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -503,6 +540,7 @@ class TrackServiceTest {
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -544,6 +582,7 @@ class TrackServiceTest {
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -553,6 +592,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(artist, "id", artistId);
 
             Album album = Album.create(
+                    1L,
                     artistId,
                     "Love poem",
                     "앨범 설명",
@@ -595,6 +635,7 @@ class TrackServiceTest {
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -604,6 +645,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(artist, "id", artistId);
 
             Album album = Album.create(
+                    1L,
                     999L,
                     "Love poem",
                     "앨범 설명",
@@ -645,6 +687,7 @@ class TrackServiceTest {
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -654,6 +697,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(artist, "id", artistId);
 
             Album album = Album.create(
+                    1L,
                     artistId,
                     "Love poem",
                     "앨범 설명",
@@ -695,6 +739,7 @@ class TrackServiceTest {
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -704,6 +749,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(artist, "id", artistId);
 
             Album album = Album.create(
+                    1L,
                     artistId,
                     "Love poem",
                     "앨범 설명",
@@ -752,6 +798,7 @@ class TrackServiceTest {
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -761,6 +808,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(artist, "id", artistId);
 
             Album album = Album.create(
+                    1L,
                     artistId,
                     "Love poem",
                     "앨범 설명",
@@ -791,6 +839,76 @@ class TrackServiceTest {
             assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_PROCESSED.getMessage());
+        }
+
+        @Test
+        @DisplayName("동시 중복 신청으로 저장 충돌이 발생하면 정식 발매 트랙 등록 신청 생성 실패")
+        void createOfficialTrackApplication_fail_whenDuplicateSaveConflict() {
+            Long userId = 1L;
+            Long artistId = 10L;
+            Long albumId = 100L;
+
+            OfficialTrackApplicationCreateRequest request =
+                    new OfficialTrackApplicationCreateRequest(
+                            artistId,
+                            albumId,
+                            1L,
+                            "밤편지",
+                            "가사",
+                            "BALLAD",
+                            "https://example.com/audio.mp3",
+                            230L,
+                            "feat. 10cm",
+                            3
+                    );
+
+            User user = mock(User.class);
+            when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
+
+            Artist artist = Artist.create(
+                    1L,
+                    userId,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/artist.jpg"
+            );
+            ReflectionTestUtils.setField(artist, "id", artistId);
+
+            Album album = Album.create(
+                    1L,
+                    artistId,
+                    "Love poem",
+                    "앨범 설명",
+                    "https://example.com/cover.jpg",
+                    null
+            );
+            ReflectionTestUtils.setField(album, "id", albumId);
+
+            when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
+            when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
+
+            when(trackApplicationRepository.existsPendingOfficialReleaseApplication(
+                    userId,
+                    artistId,
+                    albumId,
+                    request.trackNumber(),
+                    request.title()
+            )).thenReturn(false);
+            when(trackApplicationRepository.existsApprovedOfficialReleaseApplication(
+                    userId,
+                    artistId,
+                    albumId,
+                    request.trackNumber(),
+                    request.title()
+            )).thenReturn(false);
+
+            when(trackApplicationRepository.saveAndFlush(any(TrackApplication.class)))
+                    .thenThrow(new DataIntegrityViolationException("duplicate official release application"));
+
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS.getMessage());
         }
     }
 
@@ -1174,6 +1292,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(application, "id", applicationId);
 
             Artist artist = Artist.create(
+                    1L,
                     application.getRequesterUserId(),
                     "아이유",
                     ArtistType.SOLO,
@@ -1183,6 +1302,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(artist, "id", artistId);
 
             Album album = Album.create(
+                    1L,
                     artistId,
                     "Palette",
                     "정규 앨범",
@@ -1192,6 +1312,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(album, "id", albumId);
 
             Track savedTrack = Track.createOfficialRelease(
+                    1L,
                     application.getRequesterUserId(),
                     application.getArtistId(),
                     application.getAlbumId(),
@@ -1210,7 +1331,7 @@ class TrackServiceTest {
             when(trackApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.of(application));
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
             when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
-            when(trackRepository.save(any(Track.class))).thenReturn(savedTrack);
+            when(trackRepository.saveAndFlush(any(Track.class))).thenReturn(savedTrack);
 
             TrackApplicationApproveResponse response =
                     trackService.approveTrackApplication(adminId, applicationId);
@@ -1247,6 +1368,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(application, "id", applicationId);
 
             Artist artist = Artist.create(
+                    1L,
                     application.getRequesterUserId(),
                     "아이유",
                     ArtistType.SOLO,
@@ -1256,6 +1378,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(artist, "id", artistId);
 
             Album album = Album.create(
+                    1L,
                     artistId,
                     "Palette",
                     "정규 앨범",
@@ -1265,6 +1388,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(album, "id", albumId);
 
             Track savedTrack = Track.createOfficialRelease(
+                    1L,
                     application.getRequesterUserId(),
                     application.getArtistId(),
                     application.getAlbumId(),
@@ -1282,7 +1406,7 @@ class TrackServiceTest {
             when(trackApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.of(application));
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
             when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
-            when(trackRepository.save(any(Track.class))).thenReturn(savedTrack);
+            when(trackRepository.saveAndFlush(any(Track.class))).thenReturn(savedTrack);
 
             TrackApplicationApproveResponse response =
                     trackService.approveTrackApplication(adminId, applicationId);
@@ -1333,6 +1457,7 @@ class TrackServiceTest {
             application.approve(adminId);
 
             Artist artist = Artist.create(
+                    1L,
                     application.getRequesterUserId(),
                     "아이유",
                     ArtistType.SOLO,
@@ -1342,6 +1467,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(artist, "id", artistId);
 
             Album album = Album.create(
+                    1L,
                     artistId,
                     "Palette",
                     "정규 앨범",
@@ -1382,6 +1508,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(application, "id", applicationId);
 
             Track savedTrack = Track.createFreeCreation(
+                    1L,
                     application.getRequesterUserId(),
                     application.getTitle(),
                     application.getLyrics(),
@@ -1392,7 +1519,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(savedTrack, "id", 1000L);
 
             when(trackApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.of(application));
-            when(trackRepository.save(any(Track.class))).thenReturn(savedTrack);
+            when(trackRepository.saveAndFlush(any(Track.class))).thenReturn(savedTrack);
 
             TrackApplicationApproveResponse response =
                     trackService.approveTrackApplication(adminId, applicationId);
@@ -1429,6 +1556,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(application, "id", applicationId);
 
             Artist artist = Artist.create(
+                    1L,
                     application.getRequesterUserId(),
                     "아이유",
                     ArtistType.SOLO,
@@ -1475,6 +1603,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(application, "id", applicationId);
 
             Artist artist = Artist.create(
+                    1L,
                     application.getRequesterUserId(),
                     "아이유",
                     ArtistType.SOLO,
@@ -1517,6 +1646,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(application, "id", applicationId);
 
             Artist artist = Artist.create(
+                    1L,
                     application.getRequesterUserId(),
                     "아이유",
                     ArtistType.SOLO,
@@ -1526,6 +1656,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(artist, "id", artistId);
 
             Album album = Album.create(
+                    1L,
                     artistId,
                     "Palette",
                     "정규 앨범",
@@ -1573,6 +1704,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(application, "id", applicationId);
 
             Artist artist = Artist.create(
+                    1L,
                     application.getRequesterUserId(),
                     "아이유",
                     ArtistType.SOLO,
@@ -1582,6 +1714,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(artist, "id", artistId);
 
             Album album = Album.create(
+                    1L,
                     999L,
                     "Palette",
                     "정규 앨범",
@@ -1597,6 +1730,38 @@ class TrackServiceTest {
             assertThatThrownBy(() -> trackService.approveTrackApplication(adminId, applicationId))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_ALBUM_ARTIST_MISMATCH.getMessage());
+        }
+
+        @Test
+        @DisplayName("승인 결과 트랙 저장 중 unique 충돌이 발생하면 승인 실패")
+        void approveTrackApplication_fail_whenTrackSaveConflict() {
+            Long adminId = 1L;
+            Long applicationId = 10L;
+
+            TrackApplication application = TrackApplication.create(
+                    2L,
+                    TrackType.FREE_CREATION,
+                    null,
+                    null,
+                    null,
+                    "밤편지 AI 버전",
+                    "가사",
+                    "BALLAD",
+                    "https://example.com/audio.mp3",
+                    210L,
+                    null,
+                    null
+            );
+            ReflectionTestUtils.setField(application, "id", applicationId);
+
+            when(trackApplicationRepository.findByIdForUpdate(applicationId))
+                    .thenReturn(Optional.of(application));
+            when(trackRepository.saveAndFlush(any(Track.class)))
+                    .thenThrow(new DataIntegrityViolationException("duplicate track application id"));
+
+            assertThatThrownBy(() -> trackService.approveTrackApplication(adminId, applicationId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_PROCESSED.getMessage());
         }
     }
 
@@ -1712,6 +1877,7 @@ class TrackServiceTest {
 
             Track track = Track.createOfficialRelease(
                     1L,
+                    1L,
                     artistId,
                     albumId,
                     1L,
@@ -1734,6 +1900,7 @@ class TrackServiceTest {
 
             when(trackRepository.findById(trackId)).thenReturn(Optional.of(track));
             Album album = Album.create(
+                    1L,
                     artistId,
                     "Palette",
                     "정규 앨범",
@@ -1744,6 +1911,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(album, "id", albumId);
 
             Artist artist = Artist.create(
+                    1L,
                     1L,
                     "아이유",
                     ArtistType.SOLO,
@@ -1788,6 +1956,7 @@ class TrackServiceTest {
             Long trackId = 2L;
 
             Track track = Track.createFreeCreation(
+                    1L,
                     1L,
                     "밤편지 AI 버전",
                     "가사",
@@ -1842,6 +2011,7 @@ class TrackServiceTest {
 
             Track track = Track.createFreeCreation(
                     1L,
+                    1L,
                     "밤편지 AI 버전",
                     "가사",
                     "BALLAD",
@@ -1868,6 +2038,7 @@ class TrackServiceTest {
             Long trackId = 1L;
 
             Track track = Track.createOfficialRelease(
+                    1L,
                     1L,
                     10L,
                     100L,
@@ -1898,6 +2069,7 @@ class TrackServiceTest {
 
             Track track = Track.createOfficialRelease(
                     1L,
+                    1L,
                     artistId,
                     albumId,
                     1L,
@@ -1913,6 +2085,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(track, "id", trackId);
 
             Album album = Album.create(
+                    1L,
                     artistId,
                     "Palette",
                     "정규 앨범",
@@ -1943,6 +2116,7 @@ class TrackServiceTest {
 
             Track track = Track.createOfficialRelease(
                     1L,
+                    1L,
                     artistId,
                     albumId,
                     1L,
@@ -1958,6 +2132,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(track, "id", trackId);
 
             Album album = Album.create(
+                    1L,
                     artistId,
                     "Palette",
                     "정규 앨범",
@@ -1983,6 +2158,7 @@ class TrackServiceTest {
 
             Track track = Track.createOfficialRelease(
                     1L,
+                    1L,
                     artistId,
                     albumId,
                     1L,
@@ -1998,6 +2174,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(track, "id", trackId);
 
             Album album = Album.create(
+                    1L,
                     artistId,
                     "Palette",
                     "정규 앨범",
@@ -2008,6 +2185,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(album, "id", albumId);
 
             Artist artist = Artist.create(
+                    1L,
                     1L,
                     "아이유",
                     ArtistType.SOLO,
@@ -2036,6 +2214,7 @@ class TrackServiceTest {
             Long trackId = 1L;
 
             Track track = Track.createFreeCreation(
+                    1L,
                     1L,
                     "캐시 이전 제목",
                     "가사",
@@ -2107,6 +2286,7 @@ class TrackServiceTest {
 
             Track track = Track.createOfficialRelease(
                     1L,
+                    1L,
                     artistId,
                     albumId,
                     1L,
@@ -2122,6 +2302,7 @@ class TrackServiceTest {
             ReflectionTestUtils.setField(track, "id", trackId);
 
             Album album = Album.create(
+                    1L,
                     artistId,
                     "Palette",
                     "정규 앨범",
@@ -2325,6 +2506,7 @@ class TrackServiceTest {
             Pageable pageable = PageRequest.of(0, 20);
 
             Artist artist = Artist.create(
+                    1L,
                     10L,
                     "아이유",
                     ArtistType.SOLO,
