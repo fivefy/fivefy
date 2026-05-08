@@ -9,6 +9,54 @@
 -- - 본 마이그레이션은 application_id UNIQUE와 TrackApplication 정책별 UNIQUE를 한 번에 정리해
 --   신청 row 중복 생성과 승인 결과 엔티티 중복 생성을 DB 레벨에서 차단하기 위한 변경이다.
 --
+-- 배포 전 사전 검증:
+-- - UNIQUE INDEX 생성 시 기존 데이터에 중복 key가 있으면 ERROR 1062로 마이그레이션이 중단된다.
+-- - 운영 DB 반영 전 아래 쿼리로 TrackApplication 정책별 중복 데이터를 먼저 확인한다.
+-- - 중복이 발견되면 기존 중복 신청을 REJECTED 등 정책상 유효한 상태로 정리한 뒤 V8을 적용한다.
+--
+-- FREE_CREATION PENDING 중복 확인
+/*
+ SELECT
+     requester_user_id,
+     title,
+     audio_url,
+     COUNT(*) AS duplicate_count
+ FROM track_applications
+ WHERE track_type = 'FREE_CREATION'
+   AND status = 'PENDING'
+ GROUP BY requester_user_id, title, audio_url
+ HAVING COUNT(*) > 1;
+*/
+--
+-- OFFICIAL_RELEASE track_number 기준 중복 확인
+/*
+ SELECT
+     requester_user_id,
+     artist_id,
+     album_id,
+     track_number,
+     COUNT(*) AS duplicate_count
+ FROM track_applications
+ WHERE track_type = 'OFFICIAL_RELEASE'
+   AND status IN ('PENDING', 'APPROVED')
+ GROUP BY requester_user_id, artist_id, album_id, track_number
+ HAVING COUNT(*) > 1;
+*/
+--
+-- OFFICIAL_RELEASE title 기준 중복 확인
+/*
+ SELECT
+     requester_user_id,
+     artist_id,
+     album_id,
+     title,
+     COUNT(*) AS duplicate_count
+ FROM track_applications
+ WHERE track_type = 'OFFICIAL_RELEASE'
+   AND status IN ('PENDING', 'APPROVED')
+ GROUP BY requester_user_id, artist_id, album_id, title
+ HAVING COUNT(*) > 1;
+*/
 -- Rollback 참고:
 /*
  ALTER TABLE track_applications
@@ -68,10 +116,10 @@ ALTER TABLE track_applications
                         CONCAT_WS(
                                 CHAR(31),
                                 requester_user_id,
-                                CHAR_LENGTH(title),
-                                title,
-                                CHAR_LENGTH(audio_url),
-                                audio_url
+                                CHAR_LENGTH(COALESCE(title, '')),
+                                COALESCE(title, ''),
+                                CHAR_LENGTH(COALESCE(audio_url, '')),
+                                COALESCE(audio_url, '')
                         ),
                         256
                          )
