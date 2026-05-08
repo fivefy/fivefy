@@ -8,6 +8,7 @@ import com.fivefy.domain.playlisttrack.repository.PlaylistTrackRepository;
 import com.fivefy.domain.track.entity.Track;
 import com.fivefy.domain.track.repository.TrackRepository;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,7 @@ import java.util.concurrent.Executors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@Disabled("성능/동시성 관찰용 테스트 - CI 자동 실행 제외")
 @SpringBootTest
 @ActiveProfiles("test")
 class PlaylistTrackPerformanceTest {
