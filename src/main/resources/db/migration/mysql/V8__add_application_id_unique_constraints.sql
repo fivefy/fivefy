@@ -35,16 +35,28 @@
 */
 
 ALTER TABLE tracks
-    ADD COLUMN track_application_id BIGINT NULL,
-    ADD UNIQUE INDEX uq_tracks_track_application_id (track_application_id);
+    ADD COLUMN track_application_id BIGINT NULL;
 
 ALTER TABLE albums
-    ADD COLUMN album_application_id BIGINT NULL,
-    ADD UNIQUE INDEX uq_albums_album_application_id (album_application_id);
+    ADD COLUMN album_application_id BIGINT NULL;
 
 ALTER TABLE artists
-    ADD COLUMN artist_application_id BIGINT NULL,
-    ADD UNIQUE INDEX uq_artists_artist_application_id (artist_application_id);
+    ADD COLUMN artist_application_id BIGINT NULL;
+
+ALTER TABLE tracks
+    ADD UNIQUE INDEX uq_tracks_track_application_id (track_application_id),
+    ALGORITHM=INPLACE,
+    LOCK=NONE;
+
+ALTER TABLE albums
+    ADD UNIQUE INDEX uq_albums_album_application_id (album_application_id),
+    ALGORITHM=INPLACE,
+    LOCK=NONE;
+
+ALTER TABLE artists
+    ADD UNIQUE INDEX uq_artists_artist_application_id (artist_application_id),
+    ALGORITHM=INPLACE,
+    LOCK=NONE;
 
 ALTER TABLE track_applications
     ADD COLUMN free_creation_pending_key CHAR(64)
@@ -111,4 +123,6 @@ ALTER TABLE track_applications
         (official_release_track_number_key),
 
     ADD UNIQUE INDEX uq_track_applications_official_release_title
-        (official_release_title_key);
+        (official_release_title_key),
+    ALGORITHM=INPLACE,
+    LOCK=NONE;

@@ -192,7 +192,7 @@ class PlaylistTrackPerformanceTest {
         for (int i = 1; i <= count; i++) {
 
             Track track = Track.createFreeCreation(
-                    1L,
+                    null,
                     USER_ID,
                     "track-" + i,
                     "lyrics-" + i,
