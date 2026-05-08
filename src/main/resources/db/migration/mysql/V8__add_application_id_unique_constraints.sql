@@ -32,19 +32,20 @@
  ALTER TABLE artists
      DROP INDEX uq_artists_artist_application_id,
      DROP COLUMN artist_application_id;
+*/
 
- ALTER TABLE tracks
-     ADD COLUMN track_application_id BIGINT NULL,
-     ADD UNIQUE INDEX uq_tracks_track_application_id (track_application_id);
+ALTER TABLE tracks
+    ADD COLUMN track_application_id BIGINT NULL,
+    ADD UNIQUE INDEX uq_tracks_track_application_id (track_application_id);
 
- ALTER TABLE albums
-     ADD COLUMN album_application_id BIGINT NULL,
-     ADD UNIQUE INDEX uq_albums_album_application_id (album_application_id);
+ALTER TABLE albums
+    ADD COLUMN album_application_id BIGINT NULL,
+    ADD UNIQUE INDEX uq_albums_album_application_id (album_application_id);
 
- ALTER TABLE artists
-     ADD COLUMN artist_application_id BIGINT NULL,
-     ADD UNIQUE INDEX uq_artists_artist_application_id (artist_application_id);
- */
+ALTER TABLE artists
+    ADD COLUMN artist_application_id BIGINT NULL,
+    ADD UNIQUE INDEX uq_artists_artist_application_id (artist_application_id);
+
 ALTER TABLE track_applications
     ADD COLUMN free_creation_pending_key CHAR(64)
         GENERATED ALWAYS AS (
@@ -74,11 +75,11 @@ ALTER TABLE track_applications
                     THEN CONCAT(
                         requester_user_id,
                         ':',
-                        artist_id,
+                        COALESCE(artist_id, 'NULL'),
                         ':',
-                        album_id,
+                        COALESCE(album_id, 'NULL'),
                         ':',
-                        track_number
+                        COALESCE(track_number, 'NULL')
                          )
                 ELSE NULL
                 END
@@ -92,11 +93,11 @@ ALTER TABLE track_applications
                     THEN CONCAT(
                         requester_user_id,
                         ':',
-                        artist_id,
+                        COALESCE(artist_id, 'NULL'),
                         ':',
-                        album_id,
+                        COALESCE(album_id, 'NULL'),
                         ':',
-                        title
+                        COALESCE(title, 'NULL')
                          )
                 ELSE NULL
                 END
