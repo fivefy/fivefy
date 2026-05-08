@@ -157,7 +157,7 @@ ALTER TABLE track_applications
                         ':',
                         COALESCE(album_id, 'NULL'),
                         ':',
-                        COALESCE(title, 'NULL')
+                        title
                          )
                 ELSE NULL
                 END
