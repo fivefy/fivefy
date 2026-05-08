@@ -30,6 +30,7 @@ import com.fivefy.domain.user.enums.UserRole;
 import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -70,7 +71,7 @@ public class TrackService {
         validateDuplicateFreeCreationApplication(userId, request.title(), request.audioUrl());
 
         // 등록 신청 생성 및 저장
-        TrackApplication savedApplication = trackApplicationRepository.save(
+        TrackApplication savedApplication = saveTrackApplication(
                 TrackApplication.create(
                         userId,
                         TrackType.FREE_CREATION,
@@ -129,7 +130,7 @@ public class TrackService {
         );
 
         // 등록 신청 생성 및 저장
-        TrackApplication savedApplication = trackApplicationRepository.save(
+        TrackApplication savedApplication = saveTrackApplication(
                 TrackApplication.create(
                         userId,
                         TrackType.OFFICIAL_RELEASE,
@@ -212,7 +213,7 @@ public class TrackService {
         application.approve(adminId);
 
         // 승인된 신청 기반으로 트랙 생성
-        Track savedTrack = trackRepository.save(createTrack(application));
+        Track savedTrack = saveTrack(createTrack(application));
 
         // OFFICIAL_RELEASE이고 즉시 발행된 경우에만 알림 발송
         if (application.getTrackType() == TrackType.OFFICIAL_RELEASE
@@ -533,6 +534,7 @@ public class TrackService {
     private Track createTrack(TrackApplication application) {
         if (application.getTrackType() == TrackType.FREE_CREATION) {
             return Track.createFreeCreation(
+                    application.getId(),
                     application.getRequesterUserId(),
                     application.getTitle(),
                     application.getLyrics(),
@@ -546,6 +548,7 @@ public class TrackService {
                 calculateScheduledPublishAt(application.getPublishDelayDays());
 
         Track track = Track.createOfficialRelease(
+                application.getId(),
                 application.getRequesterUserId(),
                 application.getArtistId(),
                 application.getAlbumId(),
@@ -586,5 +589,27 @@ public class TrackService {
         String albumTitle = projection == null ? null : projection.albumTitle();
 
         return TrackDetailCache.of(track, artistName, albumTitle);
+    }
+
+    // 트랙 등록 신청 저장
+    private TrackApplication saveTrackApplication(TrackApplication application) {
+        try {
+            return trackApplicationRepository.saveAndFlush(application);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(
+                    TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS
+            );
+        }
+    }
+
+    // 트랙 저장
+    private Track saveTrack(Track track) {
+        try {
+            return trackRepository.saveAndFlush(track);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(
+                    TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_PROCESSED
+            );
+        }
     }
 }

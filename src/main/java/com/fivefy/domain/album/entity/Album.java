@@ -30,6 +30,9 @@ public class Album extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "album_application_id", unique = true)
+    private Long albumApplicationId;
+
     @Column(name = "artist_id", nullable = false)
     private Long artistId;
 
@@ -66,6 +69,7 @@ public class Album extends BaseEntity {
     private LocalDateTime deletedAt;
 
     public static Album create(
+            Long albumApplicationId,
             Long artistId,
             String title,
             String description,
@@ -77,6 +81,7 @@ public class Album extends BaseEntity {
 
         Album album = new Album();
 
+        album.albumApplicationId = albumApplicationId;
         album.artistId = artistId;
         album.title = title;
         album.description = description;

@@ -33,6 +33,9 @@ public class Artist extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "artist_application_id", unique = true)
+    private Long artistApplicationId;
+
     @Column(name = "owner_user_id", nullable = false)
     private Long ownerUserId;
 
@@ -61,6 +64,7 @@ public class Artist extends BaseEntity {
     private LocalDateTime deletedAt;
 
     public static Artist create(
+            Long artistApplicationId,
             Long ownerUserId,
             String name,
             ArtistType artistType,
@@ -75,6 +79,7 @@ public class Artist extends BaseEntity {
 
         Artist artist = new Artist();
 
+        artist.artistApplicationId = artistApplicationId;
         artist.ownerUserId = ownerUserId;
         artist.name = name;
         artist.artistType = artistType;
