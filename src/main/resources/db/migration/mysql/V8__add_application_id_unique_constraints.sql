@@ -11,17 +11,21 @@ ALTER TABLE artists
     ADD UNIQUE INDEX uq_artists_artist_application_id (artist_application_id);
 
 ALTER TABLE track_applications
-    ADD COLUMN free_creation_pending_key VARCHAR(500)
+    ADD COLUMN free_creation_pending_key CHAR(64)
         GENERATED ALWAYS AS (
             CASE
                 WHEN track_type = 'FREE_CREATION'
                     AND status = 'PENDING'
-                    THEN CONCAT(
-                        requester_user_id,
-                        ':',
-                        title,
-                        ':',
-                        audio_url
+                    THEN SHA2(
+                        CONCAT_WS(
+                                CHAR(31),
+                                requester_user_id,
+                                CHAR_LENGTH(title),
+                                title,
+                                CHAR_LENGTH(audio_url),
+                                audio_url
+                        ),
+                        256
                          )
                 ELSE NULL
                 END
