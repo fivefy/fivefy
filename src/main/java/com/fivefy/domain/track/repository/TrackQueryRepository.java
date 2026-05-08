@@ -23,11 +23,6 @@ public interface TrackQueryRepository {
     Slice<PublicTrackListProjection> searchPublicTracks(Pageable pageable);
 
     /**
-     * 아티스트별 자유 창작 트랙 목록 조회
-     */
-    Page<Track> searchArtistFreeCreations(Long ownerUserId, Pageable pageable);
-
-    /**
      * 앨범 수록곡 목록 조회
      */
     List<Track> searchAlbumTracks(Long albumId);
