@@ -137,27 +137,47 @@ def generate_artists(count: int, user_count: int):
         updated_at = random_datetime_between(created_at, NOW)
         yield [artist_id, random.randint(1,user_count), f"Artist {artist_id}", weighted_choice([("SOLO",90),("COLLABORATION",10)]), f"Bio for artist {artist_id}", f"https://cdn.fivefy.local/artists/{artist_id}.jpg", weighted_choice([("ACTIVE",90),("INACTIVE",10)]), format_dt(created_at), format_dt(updated_at), format_dt(random_datetime_between(updated_at, NOW) if random.random()<0.05 else None)]
 
-def generate_albums(count: int, artist_count: int):
+def generate_album_artist_ids(album_count: int, artist_count: int) -> list[int]:
+    return [random.randint(1, artist_count) for _ in range(album_count)]
+
+def generate_albums(count: int, album_artist_ids: list[int]):
     for album_id in range(1, count + 1):
         status = weighted_choice([("PUBLISHED",70),("UNPUBLISHED",20),("BLOCKED",10)])
         created_at = random_datetime_between(BASE_DATE, NOW)
         updated_at = random_datetime_between(created_at, NOW)
         published_at = random_datetime_between(created_at, NOW) if status == "PUBLISHED" else None
         scheduled_publish_at = None if status == "PUBLISHED" else created_at + timedelta(days=random.randint(1,7))
-        yield [album_id, random.randint(1,artist_count), f"Album {album_id}", f"Description for album {album_id}", f"https://cdn.fivefy.local/albums/{album_id}.jpg", status, format_dt(scheduled_publish_at), format_dt(published_at), 0, 0, format_dt(created_at), format_dt(updated_at), format_dt(random_datetime_between(updated_at, NOW) if random.random()<0.05 else None)]
+        artist_id = album_artist_ids[album_id - 1]
+        yield [album_id, artist_id, f"Album {album_id}", f"Description for album {album_id}", f"https://cdn.fivefy.local/albums/{album_id}.jpg", status, format_dt(scheduled_publish_at), format_dt(published_at), 0, 0, format_dt(created_at), format_dt(updated_at), format_dt(random_datetime_between(updated_at, NOW) if random.random()<0.05 else None)]
 
-def generate_tracks(count: int, user_count: int, artist_count: int, album_count: int):
+def generate_tracks(count: int, user_count: int, artist_count: int, album_count: int, album_artist_ids: list[int]):
+    used_official_track_numbers = set()
+
     for track_id in range(1, count + 1):
         track_type = weighted_choice([("OFFICIAL_RELEASE",70),("FREE_CREATION",30)])
         status = weighted_choice([("PUBLISHED",70),("UNPUBLISHED",20),("BLOCKED",10)])
         owner_user_id = random.randint(1,user_count)
+
         if track_type == "OFFICIAL_RELEASE":
-            artist_id=random.randint(1,artist_count); album_id=random.randint(1,album_count); track_number=random.randint(1,20); featured_artist_text=None if random.random()<0.8 else f"Featured Artist {random.randint(1,1000)}"
+            while True:
+                album_id = random.randint(1, album_count)
+                artist_id = album_artist_ids[album_id - 1]
+                track_number = random.randint(1, 20)
+                track_number_key = (album_id, track_number)
+
+                if track_number_key not in used_official_track_numbers:
+                    used_official_track_numbers.add(track_number_key)
+                    break
+
+            featured_artist_text = None if random.random()<0.8 else f"Featured Artist {random.randint(1,1000)}"
         else:
-            artist_id=album_id=track_number=featured_artist_text=None
-        created_at=random_datetime_between(BASE_DATE,NOW); updated_at=random_datetime_between(created_at,NOW)
+            artist_id = album_id = track_number = featured_artist_text = None
+
+        created_at=random_datetime_between(BASE_DATE,NOW)
+        updated_at=random_datetime_between(created_at,NOW)
         published_at=random_datetime_between(created_at,NOW) if status=="PUBLISHED" else None
         scheduled_publish_at=None if status=="PUBLISHED" else created_at+timedelta(days=random.randint(1,7))
+
         yield [track_id, owner_user_id, track_type, nullable(artist_id), nullable(album_id), nullable(track_number), f"Track {track_id}", f"Lyrics for track {track_id}", f"GENRE_{random.randint(1,20)}", f"https://cdn.fivefy.local/audio/{track_id}.mp3", random.randint(60,420), nullable(featured_artist_text), status, format_dt(scheduled_publish_at), format_dt(published_at), int(random.paretovariate(1.5)*100), format_dt(created_at), format_dt(updated_at), format_dt(random_datetime_between(updated_at,NOW) if random.random()<0.05 else None)]
 
 def generate_likes(count: int, user_count: int, track_count: int):
@@ -244,22 +264,64 @@ def generate_album_applications(count: int, user_count: int, artist_count: int):
         if status=="REJECTED": rejection_reason="앨범 등록 신청 기준에 부합하지 않습니다."
         yield [application_id, requester_user_id, random.randint(1,artist_count), f"Requested Album {application_id}", f"Requested album description {application_id}", f"https://cdn.fivefy.local/album-applications/{application_id}.jpg", random.randint(0,7), status, nullable(reviewed_by_admin_id), format_dt(reviewed_at), nullable(rejection_reason), format_dt(created_at), format_dt(updated_at)]
 
-def generate_track_applications(count: int, user_count: int, artist_count: int, album_count: int):
+def generate_track_applications(count: int, user_count: int, artist_count: int, album_count: int, album_artist_ids: list[int]):
+    used_official_track_numbers = set()
+    used_official_titles = set()
+
     for application_id in range(1,count+1):
-        requester_user_id=random.randint(1,user_count); track_type=weighted_choice([("OFFICIAL_RELEASE",70),("FREE_CREATION",30)]); status=weighted_choice([("PENDING",30),("APPROVED",40),("REJECTED",30)])
+        requester_user_id=random.randint(1,user_count)
+        track_type=weighted_choice([("OFFICIAL_RELEASE",70),("FREE_CREATION",30)])
+        status=weighted_choice([("PENDING",30),("APPROVED",40),("REJECTED",30)])
+        title = f"Requested Track {application_id}"
+
         if track_type=="OFFICIAL_RELEASE":
-            artist_id=random.randint(1,artist_count); album_id=random.randint(1,album_count); track_number=random.randint(1,20); featured_artist_text=None if random.random()<0.8 else f"Featured Artist {random.randint(1,1000)}"; publish_delay_days=random.randint(0,7)
+            while True:
+                album_id=random.randint(1,album_count)
+                artist_id=album_artist_ids[album_id - 1]
+                track_number=random.randint(1,20)
+
+                track_number_key = (
+                    requester_user_id,
+                    artist_id,
+                    album_id,
+                    track_number
+                )
+                title_key = (
+                    requester_user_id,
+                    artist_id,
+                    album_id,
+                    title
+                )
+
+                if (
+                        track_number_key not in used_official_track_numbers
+                        and title_key not in used_official_titles
+                ):
+                    used_official_track_numbers.add(track_number_key)
+                    used_official_titles.add(title_key)
+                    break
+
+            featured_artist_text=None if random.random()<0.8 else f"Featured Artist {random.randint(1,1000)}"
+            publish_delay_days=random.randint(0,7)
         else:
             artist_id=album_id=track_number=featured_artist_text=publish_delay_days=None
-        created_at=random_datetime_between(BASE_DATE,NOW); updated_at=random_datetime_between(created_at,NOW)
+
+        created_at=random_datetime_between(BASE_DATE,NOW)
+        updated_at=random_datetime_between(created_at,NOW)
         reviewed_by_admin_id=reviewed_at=rejection_reason=None
+
         if status in ("APPROVED","REJECTED"):
-            reviewed_by_admin_id=random.randint(1,max(1,user_count//200)); reviewed_at=random_datetime_between(created_at,NOW)
-        if status=="REJECTED": rejection_reason="트랙 등록 신청 기준에 부합하지 않습니다."
-        yield [application_id, requester_user_id, track_type, nullable(artist_id), nullable(album_id), nullable(track_number), f"Requested Track {application_id}", f"Requested lyrics {application_id}", f"GENRE_{random.randint(1,20)}", f"https://cdn.fivefy.local/application-audio/{application_id}.mp3", random.randint(60,420), nullable(featured_artist_text), nullable(publish_delay_days), status, nullable(reviewed_by_admin_id), format_dt(reviewed_at), nullable(rejection_reason), format_dt(created_at), format_dt(updated_at)]
+            reviewed_by_admin_id=random.randint(1,max(1,user_count//200))
+            reviewed_at=random_datetime_between(created_at,NOW)
+
+        if status=="REJECTED":
+            rejection_reason="트랙 등록 신청 기준에 부합하지 않습니다."
+
+        yield [application_id, requester_user_id, track_type, nullable(artist_id), nullable(album_id), nullable(track_number), title, f"Requested lyrics {application_id}", f"GENRE_{random.randint(1,20)}", f"https://cdn.fivefy.local/application-audio/{application_id}.mp3", random.randint(60,420), nullable(featured_artist_text), nullable(publish_delay_days), status, nullable(reviewed_by_admin_id), format_dt(reviewed_at), nullable(rejection_reason), format_dt(created_at), format_dt(updated_at)]
 
 def generate_all(config: ScaleConfig, output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
+    album_artist_ids = generate_album_artist_ids(config.albums, config.artists)
     write_csv(output_dir / "users.csv", ["id","email","password","name","role","status","last_active_at","created_at","updated_at","deleted_at"], generate_users(config.users))
     write_csv(output_dir / "wallets.csv", ["id","user_id","balance","event_balance","total_balance","created_at","updated_at"], generate_wallets(config.wallets))
     write_csv(output_dir / "point_histories.csv", ["id","wallet_id","point_type","point_history_type","amount","balance_after","log_description","created_at"], generate_point_histories(config.point_histories, config.wallets))
@@ -269,8 +331,8 @@ def generate_all(config: ScaleConfig, output_dir: Path) -> None:
     write_csv(output_dir / "payments.csv", ["id","user_id","amount","status","order_number","pg_transaction_id","webhook_id","refund_reason","paid_at","refunded_at","created_at"], generate_payments(config.payments, config.users, config.cash_orders))
     write_csv(output_dir / "subscriptions.csv", ["id","user_id","point_order_id","plan_type","status","start_date","expiry_date","next_billing_date","created_at"], generate_subscriptions(config.subscriptions, config.users, config.point_orders))
     write_csv(output_dir / "artists.csv", ["id","owner_user_id","name","artist_type","bio","profile_image_url","status","created_at","updated_at","deleted_at"], generate_artists(config.artists, config.users))
-    write_csv(output_dir / "albums.csv", ["id","artist_id","title","description","cover_image_url","status","scheduled_publish_at","published_at","track_count","total_duration_sec","created_at","updated_at","deleted_at"], generate_albums(config.albums, config.artists))
-    write_csv(output_dir / "tracks.csv", ["id","owner_user_id","track_type","artist_id","album_id","track_number","title","lyrics","genre","audio_url","duration_sec","featured_artist_text","status","scheduled_publish_at","published_at","play_count","created_at","updated_at","deleted_at"], generate_tracks(config.tracks, config.users, config.artists, config.albums))
+    write_csv(output_dir / "albums.csv", ["id","artist_id","title","description","cover_image_url","status","scheduled_publish_at","published_at","track_count","total_duration_sec","created_at","updated_at","deleted_at"], generate_albums(config.albums, album_artist_ids))
+    write_csv(output_dir / "tracks.csv", ["id","owner_user_id","track_type","artist_id","album_id","track_number","title","lyrics","genre","audio_url","duration_sec","featured_artist_text","status","scheduled_publish_at","published_at","play_count","created_at","updated_at","deleted_at"], generate_tracks(config.tracks, config.users, config.artists, config.albums, album_artist_ids))
     write_csv(output_dir / "likes.csv", ["id","user_id","target_id","target_type","created_at"], generate_likes(config.likes, config.users, config.tracks))
     write_csv(output_dir / "follows.csv", ["id","artist_id","user_id","notification_enabled","created_at"], generate_follows(config.follows, config.users, config.artists))
     write_csv(output_dir / "playbacks.csv", ["id","playlist_id","track_id","user_id","session_id","device_id","status","played_duration","started_at","last_played_at","ended_at"], generate_playbacks(config.playbacks, config.users, config.playlists, config.tracks))
@@ -280,7 +342,7 @@ def generate_all(config: ScaleConfig, output_dir: Path) -> None:
     write_csv(output_dir / "track_comments.csv", ["id","user_id","track_id","content","created_at","updated_at","deleted_at"], generate_track_comments(config.track_comments, config.users, config.tracks))
     write_csv(output_dir / "artist_applications.csv", ["id","requester_user_id","requested_name","artist_type","bio","profile_image_url","status","reviewed_by_admin_id","reviewed_at","rejection_reason","created_at","updated_at"], generate_artist_applications(config.artist_applications, config.users))
     write_csv(output_dir / "album_applications.csv", ["id","requester_user_id","artist_id","title","description","cover_image_url","publish_delay_days","status","reviewed_by_admin_id","reviewed_at","rejection_reason","created_at","updated_at"], generate_album_applications(config.album_applications, config.users, config.artists))
-    write_csv(output_dir / "track_applications.csv", ["id","requester_user_id","track_type","artist_id","album_id","track_number","title","lyrics","genre","audio_url","duration_sec","featured_artist_text","publish_delay_days","status","reviewed_by_admin_id","reviewed_at","rejection_reason","created_at","updated_at"], generate_track_applications(config.track_applications, config.users, config.artists, config.albums))
+    write_csv(output_dir / "track_applications.csv", ["id","requester_user_id","track_type","artist_id","album_id","track_number","title","lyrics","genre","audio_url","duration_sec","featured_artist_text","publish_delay_days","status","reviewed_by_admin_id","reviewed_at","rejection_reason","created_at","updated_at"], generate_track_applications(config.track_applications, config.users, config.artists, config.albums, album_artist_ids))
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate integrated seed CSV files for performance testing.")

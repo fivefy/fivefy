@@ -54,3 +54,84 @@ UNION ALL SELECT 'track_applications_invalid_artist', COUNT(*) FROM track_applic
 UNION ALL SELECT 'track_applications_invalid_album', COUNT(*) FROM track_applications ta LEFT JOIN albums a ON ta.album_id = a.id WHERE ta.album_id IS NOT NULL AND a.id IS NULL
 UNION ALL SELECT 'track_applications_invalid_reviewer', COUNT(*) FROM track_applications ta LEFT JOIN users u ON ta.reviewed_by_admin_id = u.id WHERE ta.reviewed_by_admin_id IS NOT NULL AND u.id IS NULL;
 
+
+SELECT '==================== DOMAIN POLICY CHECK ====================' AS section;
+
+SELECT 'tracks_official_release_album_artist_mismatch' AS check_name, COUNT(*) AS invalid_count
+FROM tracks t
+         JOIN albums a ON t.album_id = a.id
+WHERE t.track_type = 'OFFICIAL_RELEASE'
+  AND t.artist_id <> a.artist_id
+
+UNION ALL SELECT 'tracks_free_creation_invalid_fields', COUNT(*)
+FROM tracks t
+WHERE t.track_type = 'FREE_CREATION'
+  AND (
+    t.artist_id IS NOT NULL
+        OR t.album_id IS NOT NULL
+        OR t.track_number IS NOT NULL
+        OR t.featured_artist_text IS NOT NULL
+    )
+
+UNION ALL SELECT 'tracks_official_release_missing_fields', COUNT(*)
+FROM tracks t
+WHERE t.track_type = 'OFFICIAL_RELEASE'
+  AND (
+    t.artist_id IS NULL
+        OR t.album_id IS NULL
+        OR t.track_number IS NULL
+    )
+
+UNION ALL SELECT 'track_applications_official_release_album_artist_mismatch', COUNT(*)
+FROM track_applications ta
+         JOIN albums a ON ta.album_id = a.id
+WHERE ta.track_type = 'OFFICIAL_RELEASE'
+  AND ta.artist_id <> a.artist_id
+
+UNION ALL SELECT 'track_applications_free_creation_invalid_fields', COUNT(*)
+FROM track_applications ta
+WHERE ta.track_type = 'FREE_CREATION'
+  AND (
+    ta.artist_id IS NOT NULL
+        OR ta.album_id IS NOT NULL
+        OR ta.track_number IS NOT NULL
+        OR ta.featured_artist_text IS NOT NULL
+        OR ta.publish_delay_days IS NOT NULL
+    )
+
+UNION ALL SELECT 'track_applications_official_release_missing_fields', COUNT(*)
+FROM track_applications ta
+WHERE ta.track_type = 'OFFICIAL_RELEASE'
+  AND (
+    ta.artist_id IS NULL
+        OR ta.album_id IS NULL
+        OR ta.track_number IS NULL
+        OR ta.publish_delay_days IS NULL
+    )
+
+UNION ALL SELECT 'track_applications_pending_invalid_review_fields', COUNT(*)
+FROM track_applications ta
+WHERE ta.status = 'PENDING'
+  AND (
+    ta.reviewed_by_admin_id IS NOT NULL
+        OR ta.reviewed_at IS NOT NULL
+        OR ta.rejection_reason IS NOT NULL
+    )
+
+UNION ALL SELECT 'track_applications_approved_invalid_review_fields', COUNT(*)
+FROM track_applications ta
+WHERE ta.status = 'APPROVED'
+  AND (
+    ta.reviewed_by_admin_id IS NULL
+        OR ta.reviewed_at IS NULL
+        OR ta.rejection_reason IS NOT NULL
+    )
+
+UNION ALL SELECT 'track_applications_rejected_invalid_review_fields', COUNT(*)
+FROM track_applications ta
+WHERE ta.status = 'REJECTED'
+  AND (
+    ta.reviewed_by_admin_id IS NULL
+        OR ta.reviewed_at IS NULL
+        OR ta.rejection_reason IS NULL
+    );
