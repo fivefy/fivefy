@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,10 +26,7 @@ public class WebhookEventService {
      * @return true  : 최초 수신 (처리 계속)
      * @return false : 중복 수신 (처리 스킵)
      */
-    @Transactional(
-            propagation = Propagation.REQUIRES_NEW,
-            isolation = Isolation.READ_COMMITTED
-    )
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean saveIfNotDuplicate(String webhookEventId, String paymentId) {
         // 순차 중복 방어: 이미 존재하면 즉시 false 반환
         if (webhookEventRepository.existsByWebhookEventIdAndPaymentId(webhookEventId, paymentId)) {

@@ -7,7 +7,6 @@ import com.fivefy.domain.cashorder.entity.CashOrder;
 import com.fivefy.domain.cashorder.enums.CashOrderStatus;
 import com.fivefy.domain.cashorder.enums.CashProductType;
 import com.fivefy.domain.cashorder.repository.CashOrderRepository;
-import com.fivefy.domain.payment.repository.PaymentRepository;
 import com.fivefy.domain.payment.repository.WebhookEventRepository;
 import com.fivefy.domain.wallet.entity.Wallet;
 import com.fivefy.domain.wallet.repository.WalletRepository;
@@ -35,20 +34,10 @@ import static org.mockito.Mockito.doNothing;
 @ActiveProfiles("test")
 class CashOrderWebhookTest {
 
-    @Autowired
-    CashOrderService cashOrderService;
-
-    @Autowired
-    CashOrderRepository cashOrderRepository;
-
-    @Autowired
-    WebhookEventRepository webhookEventRepository;
-
-    @Autowired
-    WalletRepository walletRepository;
-    
-    @Autowired
-    PaymentRepository paymentRepository;
+    @Autowired CashOrderService cashOrderService;
+    @Autowired CashOrderRepository cashOrderRepository;
+    @Autowired WebhookEventRepository webhookEventRepository;
+    @Autowired WalletRepository walletRepository;
 
     // 포트원 외부 API mock — 실제 네트워크 호출 차단
     @MockitoBean
@@ -117,14 +106,6 @@ class CashOrderWebhookTest {
         // Wallet 정리
         walletRepository.findByUserId(USER_ID)
                 .ifPresent(walletRepository::delete);
-
-        // 1번 호출의 부모 트랜잭션이 아직 커밋 안 된 상태에서 2번 호출이 시작됨. payments 초기화
-        // payments 정리
-        paymentRepository.deleteAll(
-            paymentRepository.findAll().stream()
-                .filter(p -> p.getOrderNumber().equals(ORDER_NUMBER))
-                .toList()
-        );
     }
 
     @Test

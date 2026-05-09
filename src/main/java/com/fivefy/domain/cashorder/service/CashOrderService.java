@@ -206,6 +206,23 @@ public class CashOrderService {
 
 
         // 웹훅 이벤트 저장 — 멱등성 이중 방어
+                // 1차 방어: webhook_events 테이블 INSERT
+                //   - unique(webhook_event_id, payment_id) 위반 시 데이터무결성위반(DataIntegrityViolationException) 발생
+                //   - 포트원이 동일 웹훅을 동시에 재전송해도 DB 레벨에서 원자적으로 차단
+                // 2차 방어: cash_orders.webhook_id unique (CashOrder.success() 시점)
+            //        try {
+            //            webhookEventRepository.save(
+            //                    WebhookEvent.create(webhookId, request.data().paymentId())
+            //            );
+            //        } catch (DataIntegrityViolationException e) {
+            //            // webhook_events unique 위반 : 중복 수신 — 이미 처리된 웹훅이므로 즉시 종료
+            //            log.warn("[Webhook] 중복 수신 무시합니다 webhookId={}", webhookId);
+            //            return;
+            //        } catch (CannotAcquireLockException e) {
+            //            // 데드락 또는 락 타임아웃 — 동시 요청 중 패배한 트랜잭션
+            //            log.warn("[Webhook] 동시 요청 충돌 스킵 webhookId={}", webhookId);
+            //            return;
+            //        }
         // webhook_events INSERT — REQUIRES_NEW 트랜잭션으로 즉시 커밋
         // 1차 방어: unique(webhook_event_id, payment_id) 위반 시 false 반환
         // 2차 방어: cash_orders.webhook_id unique (CashOrder.success() 시점)
