@@ -15,9 +15,13 @@ import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 @Table(
     name = "webhook_events",
     uniqueConstraints = {
+       @UniqueConstraint(
+            name = "uc_webhook_events_webhook_event_id",
+            columnNames = {"webhook_event_id"}
+        ),
         @UniqueConstraint(
-            name = "uc_webhook_events_event_payment",
-            columnNames = {"webhook_event_id", "payment_id"}
+            name = "uc_webhook_events_payment_id",
+            columnNames = {"payment_id"}
         )
     }
 )

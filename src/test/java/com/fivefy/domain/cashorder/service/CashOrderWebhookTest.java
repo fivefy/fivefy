@@ -219,12 +219,18 @@ class CashOrderWebhookTest {
         // then: 포인트가 1000P를 초과하지 않아야 함 (중복 충전 없음)
         // 데드락으로 전부 롤백될 수 있어서 0도 허용 — 포트원이 재전송하면 결국 처리됨
         Wallet wallet = walletRepository.findByUserId(USER_ID).orElseThrow();
-        assertThat(wallet.getBalance()).isLessThanOrEqualTo(1000L);
+        // 1000P 이하면 통과
+        // assertThat(wallet.getBalance()).isLessThanOrEqualTo(1000L);
+        // 정확히 1000P 이어야 통과
+        assertThat(wallet.getBalance()).isEqualTo(1000L);
 
         // then: webhook_events는 1건 이하 (중복 INSERT 없음)
         long count = webhookEventRepository.findAll().stream()
                 .filter(e -> e.getWebhookEventId().equals(webhookId))
                 .count();
-        assertThat(count).isLessThanOrEqualTo(1);
+        // 1건 이하여도 통과(0건이여도)
+        // assertThat(count).isLessThanOrEqualTo(1);
+        // 정확히 1건이어야 통과(중복 무시)
+        assertThat(count).isEqualTo(1);
     }
 }

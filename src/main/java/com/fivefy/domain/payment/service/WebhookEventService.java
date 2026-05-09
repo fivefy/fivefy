@@ -26,11 +26,12 @@ public class WebhookEventService {
      *
      * @return true  : 최초 수신 (처리 계속)
      * @return false : 중복 수신 (처리 스킵)
+     *
+     * test에서 발생한 문제 해결하느라 추가한 속성 제거
+     *             propagation = Propagation.REQUIRES_NEW, :
+     *             isolation = Isolation.READ_COMMITTED
      */
-    @Transactional(
-            propagation = Propagation.REQUIRES_NEW,
-            isolation = Isolation.READ_COMMITTED
-    )
+    @Transactional
     public boolean saveIfNotDuplicate(String webhookEventId, String paymentId) {
         // 순차 중복 방어: 이미 존재하면 즉시 false 반환
         if (webhookEventRepository.existsByWebhookEventIdAndPaymentId(webhookEventId, paymentId)) {
@@ -47,11 +48,13 @@ public class WebhookEventService {
             log.warn("[WebhookEvent] DataIntegrityViolationException 잡힘 — false 반환");
 
             return false; // 중복 수신
-        } catch (Exception e) {
-            // 어떤 예외가 오는지 확인용
-            log.warn("[WebhookEvent] 예상 밖 예외 잡힘 — type={}, message={}", e.getClass().getName(), e.getMessage());
-
-            return false;
         }
+        // 재시도하면 해결될 문제를 예외처리하면 그게 더 문제가 될 수 있다.
+//        catch (Exception e) {
+//            // 어떤 예외가 오는지 확인용
+//            log.warn("[WebhookEvent] 예상 밖 예외 잡힘 — type={}, message={}", e.getClass().getName(), e.getMessage());
+//
+//            return false;
+//        }
     }
 }
