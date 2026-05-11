@@ -1,6 +1,7 @@
 package com.fivefy.domain.payment.entity;
 
 import com.fivefy.common.entity.BaseEntity;
+import com.fivefy.domain.cashorder.entity.CashOrder;
 import com.fivefy.domain.payment.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -22,7 +23,7 @@ public class Payment extends BaseEntity {
     private Long id;
 
     @Column(nullable = false)
-    private Long userId;
+    private Long cashOrderId;
 
     // 음수값 처리는 나중에
     @Column(nullable = false)
@@ -50,7 +51,7 @@ public class Payment extends BaseEntity {
     /**
      * 결제 기록
      * processWebhook()에서 금액 검증 통과 후 호출
-     * @param userId            : 유저 ID
+     * @param cashOrder         : CashOrder 엔티티 — cashOrderId 추출
      * @param amount            : 금액(원화 기준 : Long 통일)
      *        status            : 상태(결제 요청(기본), 보류, 승인, 결제 완료, 실패, 취소, 환불)
      *        refundReason      : 환불사유 (글자 500 제한), 결제면 null
@@ -61,15 +62,15 @@ public class Payment extends BaseEntity {
      *        refundedAt        : 환불 시각 : 결제면 null
      * @return
      */
-    public static Payment create(Long userId, Long amount, String orderNumber, String pgTransactionId, String webhookId) {
-        validateNonNull(userId, "orderId");
+    public static Payment create(CashOrder cashOrder, Long amount, String orderNumber, String pgTransactionId, String webhookId) {
+        validateNonNull(cashOrder, "cashOrder");
         validateNonNull(amount, "amount");
         validateNonNull(orderNumber, "orderNumber");
         validateNonNull(pgTransactionId, "pgTransactionId");
         validateNonNull(webhookId, "webhookId");
 
         Payment payment = new Payment();
-            payment.userId = userId;
+            payment.cashOrderId = cashOrder.getId();
             payment.amount = amount;
             payment.orderNumber = orderNumber;
             payment.status = PaymentStatus.REQUESTED;

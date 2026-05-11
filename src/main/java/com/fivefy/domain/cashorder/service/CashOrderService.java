@@ -251,7 +251,7 @@ public class CashOrderService {
          * webhookId : (=idempotencyKey, 멱등키) 포트원이 준 웹훅 고유 ID
          */
         Payment payment = Payment.create(
-                cashOrder.getUserId(),
+                cashOrder,                  // CashOrder 전달 — cashOrderId 내부에서 추출
                 cashOrder.getCashAmount(),
                 cashOrder.getOrderNumber(),
                 pgPaymentId,
