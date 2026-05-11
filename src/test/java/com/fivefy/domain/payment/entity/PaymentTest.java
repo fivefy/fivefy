@@ -1,6 +1,8 @@
 package com.fivefy.domain.payment.entity;
 
 import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.cashorder.entity.CashOrder;
+import com.fivefy.domain.cashorder.enums.CashProductType;
 import com.fivefy.domain.payment.enums.PaymentStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,7 +20,8 @@ class PaymentTest {
     @Test
     @DisplayName("Payment 생성 시 초기 상태는 REQUESTED이다")
     void create_초기상태_REQUESTED() {
-        Payment payment = Payment.create(1L, 1000L, "ORD-12345678", "pg-tx-001", "webhook-001");
+        CashOrder cashOrder = CashOrder.create(1L, CashProductType.PRODUCT_1, "ORD-12345678"); // 실제 create 시그니처에 맞게
+        Payment payment = Payment.create(cashOrder, "pg-tx-001", "webhook-001");
 
         assertThat(payment.getStatus()).isEqualTo(PaymentStatus.REQUESTED);
         assertThat(payment.getPaidAt()).isNull();
@@ -33,7 +36,9 @@ class PaymentTest {
     @Test
     @DisplayName("complete() 호출 시 COMPLETED로 전이되고 paidAt이 기록된다")
     void complete_REQUESTED에서_COMPLETED로() {
-        Payment payment = Payment.create(1L, 1000L, "ORD-12345678", "pg-tx-001", "webhook-001");
+        // CashOrder Mock 객체 생성 후 전달
+        CashOrder cashOrder = CashOrder.create(1L, CashProductType.PRODUCT_1, "ORD-12345678"); // 실제 create 시그니처에 맞게
+        Payment payment = Payment.create(cashOrder, "pg-tx-001", "webhook-001");
 
         payment.complete();
 
@@ -49,7 +54,8 @@ class PaymentTest {
     @Test
     @DisplayName("COMPLETED 상태에서 refund() 호출 시 REFUNDED로 전이되고 refundedAt이 기록된다")
     void refund_COMPLETED에서_REFUNDED로() {
-        Payment payment = Payment.create(1L, 1000L, "ORD-12345678", "pg-tx-001", "webhook-001");
+        CashOrder cashOrder = CashOrder.create(1L, CashProductType.PRODUCT_1, "ORD-12345678"); // 실제 create 시그니처에 맞게
+        Payment payment = Payment.create(cashOrder, "pg-tx-001", "webhook-001");
         payment.complete();
 
         payment.refund("단순 변심");
@@ -62,7 +68,8 @@ class PaymentTest {
     @Test
     @DisplayName("REFUNDED 상태에서 refund() 재호출 시 예외가 발생한다")
     void refund_REFUNDED에서_재호출_예외() {
-        Payment payment = Payment.create(1L, 1000L, "ORD-12345678", "pg-tx-001", "webhook-001");
+        CashOrder cashOrder = CashOrder.create(1L, CashProductType.PRODUCT_1, "ORD-12345678"); // 실제 create 시그니처에 맞게
+        Payment payment = Payment.create(cashOrder, "pg-tx-001", "webhook-001");
         payment.complete();
         payment.refund("첫 번째 환불");
 
@@ -73,7 +80,8 @@ class PaymentTest {
     @Test
     @DisplayName("refund() 호출 시 reason이 null이면 예외가 발생한다")
     void refund_reason이_null이면_예외() {
-        Payment payment = Payment.create(1L, 1000L, "ORD-12345678", "pg-tx-001", "webhook-001");
+        CashOrder cashOrder = CashOrder.create(1L, CashProductType.PRODUCT_1, "ORD-12345678"); // 실제 create 시그니처에 맞게
+        Payment payment = Payment.create(cashOrder, "pg-tx-001", "webhook-001");
         payment.complete();
 
         assertThatThrownBy(() -> payment.refund(null))
@@ -83,7 +91,8 @@ class PaymentTest {
     @Test
     @DisplayName("COMPLETED 상태에서 complete() 재호출 시 예외 없이 멱등 처리된다")
     void complete_COMPLETED에서_재호출_멱등() {
-        Payment payment = Payment.create(1L, 1000L, "ORD-12345678", "pg-tx-001", "webhook-001");
+        CashOrder cashOrder = CashOrder.create(1L, CashProductType.PRODUCT_1, "ORD-12345678"); // 실제 create 시그니처에 맞게
+        Payment payment = Payment.create(cashOrder, "pg-tx-001", "webhook-001");
         payment.complete();
 
         // assertThatCode는 예외가 없어야 통과하는 케이스
