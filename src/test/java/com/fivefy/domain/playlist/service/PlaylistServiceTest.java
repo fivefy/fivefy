@@ -34,6 +34,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
@@ -66,7 +67,7 @@ class PlaylistServiceTest {
             // subscriptionRepository.existsByPointOrderIdInAndStatusIn() stub으로 교체
             given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
                     anyList(),
-                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+                    eq(List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE))  // ← eq() 사용
             )).willReturn(true);
 
             Playlist playlist = Playlist.create(userId, request.title(), request.description());
@@ -105,7 +106,7 @@ class PlaylistServiceTest {
 
             given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
                     anyList(),
-                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+                    eq(List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE))  // ← eq() 사용
             )).willReturn(true);
 
             given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
@@ -135,7 +136,7 @@ class PlaylistServiceTest {
             // 수정 후: willReturn(false) ← 구독이 없다는 뜻 → 예외 발생
             given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
                     anyList(),
-                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+                    eq(List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE))  // ← eq() 사용
             )).willReturn(true);
 
             // when & then
@@ -161,7 +162,7 @@ class PlaylistServiceTest {
                     ));
             given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
                     anyList(),
-                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+                    eq(List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE))  // ← eq() 사용
             )).willReturn(true);
 
             given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
@@ -191,7 +192,7 @@ class PlaylistServiceTest {
                     ));
             given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
                     anyList(),
-                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+                    eq(List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE))  // ← eq() 사용
             )).willReturn(true);
 
             given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
@@ -222,7 +223,7 @@ class PlaylistServiceTest {
                     ));
             given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
                     anyList(),
-                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+                    eq(List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE))  // ← eq() 사용
             )).willReturn(true);
 
             given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
@@ -255,7 +256,7 @@ class PlaylistServiceTest {
                     ));
             given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
                     anyList(),
-                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+                    eq(List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE))  // ← eq() 사용
             )).willReturn(true);
 
             given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
@@ -289,7 +290,7 @@ class PlaylistServiceTest {
                     ));
             given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
                     anyList(),
-                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+                    eq(List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE))  // ← eq() 사용
             )).willReturn(true);
 
             given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
@@ -321,7 +322,7 @@ class PlaylistServiceTest {
                     ));
             given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
                     anyList(),
-                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+                    eq(List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE))  // ← eq() 사용
             )).willReturn(true);
 
             given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
@@ -354,7 +355,7 @@ class PlaylistServiceTest {
                     ));
             given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
                     anyList(),
-                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+                    eq(List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE))  // ← eq() 사용
             )).willReturn(true);
 
             given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
@@ -607,7 +608,7 @@ class PlaylistServiceTest {
                     ));
             given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
                     anyList(),
-                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+                    eq(List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE))  // ← eq() 사용
             )).willReturn(true);
 
             given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
