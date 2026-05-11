@@ -22,8 +22,11 @@ import com.fivefy.domain.cashorder.enums.CashOrderStatus;
 import com.fivefy.domain.cashorder.enums.CashProductType;
 import com.fivefy.domain.cashorder.repository.CashOrderRepository;
 import com.fivefy.domain.payment.entity.Payment;
+import com.fivefy.domain.payment.entity.WebhookEvent;
 import com.fivefy.domain.payment.enums.PaymentErrorCode;
 import com.fivefy.domain.payment.repository.PaymentRepository;
+import com.fivefy.domain.payment.repository.WebhookEventRepository;
+import com.fivefy.domain.payment.service.WebhookEventService;
 import com.fivefy.domain.wallet.entity.PointHistory;
 import com.fivefy.domain.wallet.entity.Wallet;
 import com.fivefy.domain.wallet.enums.PointHistoryType;
@@ -33,9 +36,11 @@ import com.fivefy.domain.wallet.repository.PointHistoryRepository;
 import com.fivefy.domain.wallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
+import org.springframework.dao.CannotAcquireLockException;
 
 import java.util.UUID;
 
@@ -54,6 +59,8 @@ public class CashOrderService {
     private final CashOrderPersistenceService cashOrderPersistenceService;   // DB 저장 분리
     private final BillingKeyPersistenceService billingKeyPersistenceService;
     private final BillingAttemptPersistenceService billingAttemptPersistenceService;
+    // private final WebhookEventRepository webhookEventRepository;    // 웹훅 이벤트 테이블
+    private final WebhookEventService webhookEventService;
 
     /**
      * 포인트 충전 주문
@@ -153,15 +160,18 @@ public class CashOrderService {
      *
      * rawBody 파싱 → 웹훅 타입 확인 (Transaction.Paid만 처리)
      * 시그니처 + 타임스탬프 검증 (위변조 / 리플레이 방지)
-     * webhookId 중복 체크 (멱등성 — 포트원은 웹훅을 재전송할 수 있음)
+     * webhook_events INSERT (멱등성 — DB 레벨 중복 차단)
+     *      1차 방어: webhook_events unique(webhook_event_id, payment_id)
+     *      2차 방어: cash_orders.webhook_id unique
      *
      * 포트원 단건 조회 → 금액 검증
      * CashOrder.success(webhookId) + Payment 생성
      * wallet.chargeBalance() + PointHistory(CHARGE) 기록
-     * @param webhookId
-     * @param webhookSignature
-     * @param webhookTimestamp
-     * @param rawBody
+     *
+     * @param webhookId         포트원이 부여한 웹훅 고유 ID (멱등키)
+     * @param webhookSignature  위변조 방지 HMAC-SHA256 서명
+     * @param webhookTimestamp  리플레이 공격 방지용 전송 시각 (Unix초)
+     * @param rawBody           웹훅 원본 body (서명 검증에 원본 필요)
      */
     @Transactional
     public void processWebhook(
@@ -194,14 +204,19 @@ public class CashOrderService {
         // 시그니처 + 타임스탬프 검증 (위변조 / 리플레이 방지)
         portoneWebhookVerifier.verify(webhookId, webhookTimestamp, rawBody, webhookSignature);
 
-        // webhook-id 중복 체크 (멱등성 보장, 이미 처리된 웹훅이면 즉시 종료)
-        if (cashOrderRepository.existsByWebhookId(webhookId)) {
+
+        // 웹훅 이벤트 저장 — 멱등성 이중 방어
+        // webhook_events INSERT — REQUIRES_NEW 트랜잭션으로 즉시 커밋
+        // 1차 방어: unique(webhook_event_id, payment_id) 위반 시 false 반환
+        // 2차 방어: cash_orders.webhook_id unique (CashOrder.success() 시점)
+        if (!webhookEventService.saveIfNotDuplicate(webhookId, request.data().paymentId())) {
             log.warn("[Webhook] 중복 수신 무시합니다 webhookId={}", webhookId);
             return;
         }
 
         // 포트원 단건 조회
-        String pgPaymentId = request.data().paymentId();  // ORD-xxxxxx : 포트원이 부여한 결제 ID (= orderNumber)
+        // ORD-xxxxxx : 포트원이 부여한 결제 ID = pgPaymentId = orderNumber
+        String pgPaymentId = request.data().paymentId();
         log.info("[Webhook] 결제 검증 시작합니다 webhookId={}, pgPaymentId={}", webhookId, pgPaymentId);    // 웹훅 ID와 결제 ID
 
         // 읽기 전용 조회                    실제 결제 데이터 확인
@@ -213,29 +228,34 @@ public class CashOrderService {
                 );
 
 
-        // 상태(결제 대기) : PENDING이 아니면 이미 처리된 주문 → 무시
+        // 상태(결제 대기) : PENDING이 아니면 이미 처리된 주문 → 무시 : (2차 방어 통과 시 여기서 최종 차단)
         if (cashOrder.getStatus() != CashOrderStatus.PENDING) {
-            log.warn("[Webhook] 이미 처리된 주문입니다 orderNumber={}, status={}", cashOrder.getOrderNumber(), cashOrder.getStatus());
+            log.warn("[Webhook] 이미 처리된 주문입니다 orderNumber={}, status={}",
+                    cashOrder.getOrderNumber(), cashOrder.getStatus());
             return;
         }
 
-        // 금액 검증
-        // PortonePaymentResponse에서 결제 대금을 totalAmount으로 두고, 포인트 구매에서 결제 대금을 CashAmount로 둔다.
+        // 금액 검증 — 포트원 실제 결제금액 vs CashOrder 주문금액 불일치 시 예외
+        // PortonePaymentResponse에서 결제 대금을 totalAmount으로 두고, 포인트 구매(CashOrder)에서 결제 대금을 CashAmount로 둔다.
         if (!pgPayment.totalAmount().equals(cashOrder.getCashAmount())) {
             log.error("[Webhook] 결제 금액이 일치하지 않습니다 orderNumber={}", cashOrder.getOrderNumber());
             throw new BusinessException(CashOrderErrorCode.ERR_CASH_ORDER_AMOUNT_MISMATCH);
         }
 
-        // CashOrder PENDING → SUCCESS, webhookId 저장
+        // CashOrder PENDING → SUCCESS, webhookId 저장 (2차 방어 — unique 위반 시 예외)
         cashOrder.success(webhookId);
 
-        // Payment 기록
+        /**
+         * Payment 기록 생성
+         * pgTransactionId : 포트원 결제 ID(환불 시 필요)
+         * webhookId : (=idempotencyKey, 멱등키) 포트원이 준 웹훅 고유 ID
+         */
         Payment payment = Payment.create(
                 cashOrder.getUserId(),
                 cashOrder.getCashAmount(),
                 cashOrder.getOrderNumber(),
-                pgPaymentId,   // pgTransactionId — 포트원 결제 ID(환불 시 필요)
-                webhookId      // webhookId (=idempotencyKey, 멱등키) — 포트원이 준 웹훅 고유 ID
+                pgPaymentId,
+                webhookId
         );
         payment.complete();
         paymentRepository.save(payment);
