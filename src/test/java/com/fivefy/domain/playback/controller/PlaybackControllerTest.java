@@ -64,7 +64,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                     0,
                     LocalDateTime.now(),
                     LocalDateTime.now(),
-                    null
+                    null,
+                    "https://example.com/audio.mp3"
             );
 
             given(playbackService.play(any(), any(PlaybackPlayRequest.class)))
@@ -103,7 +104,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                                     fieldWithPath("data.playedDuration").type(NUMBER).description("누적 재생 시간(초)"),
                                     fieldWithPath("data.startedAt").type(STRING).description("재생 시작 시각"),
                                     fieldWithPath("data.lastPlayedAt").type(STRING).description("마지막 재생 시각"),
-                                    fieldWithPath("data.endedAt").type(NULL).description("재생 종료 시각")
+                                    fieldWithPath("data.endedAt").type(NULL).description("재생 종료 시각"),
+                                    fieldWithPath("data.audioUrl").type(STRING).description("오디오 파일 URL")
                             )
                     ));
         }
@@ -262,7 +264,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                     30,
                     LocalDateTime.now(),
                     LocalDateTime.now(),
-                    null
+                    null,
+                    "https://example.com/audio.mp3"
             );
 
             given(playbackService.pause(any(), any(PlaybackPauseRequest.class)))
@@ -295,7 +298,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                                     fieldWithPath("data.playedDuration").type(NUMBER).description("누적 재생 시간(초)"),
                                     fieldWithPath("data.startedAt").type(STRING).description("재생 시작 시각"),
                                     fieldWithPath("data.lastPlayedAt").type(STRING).description("마지막 재생 시각"),
-                                    fieldWithPath("data.endedAt").type(NULL).description("재생 종료 시각")
+                                    fieldWithPath("data.endedAt").type(NULL).description("재생 종료 시각"),
+                                    fieldWithPath("data.audioUrl").type(STRING).description("오디오 파일 URL")
                             )
                     ));
         }
@@ -401,7 +405,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                     0,
                     LocalDateTime.now(),
                     LocalDateTime.now(),
-                    null
+                    null,
+                    "https://example.com/audio.mp3"
             );
 
             given(playbackService.skip(any(), any(PlaybackSkipRequest.class)))
@@ -436,7 +441,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                                     fieldWithPath("data.playedDuration").type(NUMBER).description("누적 재생 시간(초)"),
                                     fieldWithPath("data.startedAt").type(STRING).description("재생 시작 시각"),
                                     fieldWithPath("data.lastPlayedAt").type(STRING).description("마지막 재생 시각"),
-                                    fieldWithPath("data.endedAt").type(NULL).description("재생 종료 시각")
+                                    fieldWithPath("data.endedAt").type(NULL).description("재생 종료 시각"),
+                                    fieldWithPath("data.audioUrl").type(STRING).description("오디오 파일 URL")
                             )
                     ));
         }
@@ -598,7 +604,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                     40,
                     LocalDateTime.now(),
                     LocalDateTime.now(),
-                    LocalDateTime.now()
+                    LocalDateTime.now(),
+                    null
             );
 
             given(playbackService.stop(any(), any(PlaybackStopRequest.class)))
@@ -631,7 +638,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                                     fieldWithPath("data.playedDuration").type(NUMBER).description("누적 재생 시간(초)"),
                                     fieldWithPath("data.startedAt").type(STRING).description("재생 시작 시각"),
                                     fieldWithPath("data.lastPlayedAt").type(STRING).description("마지막 재생 시각"),
-                                    fieldWithPath("data.endedAt").type(STRING).description("재생 종료 시각")
+                                    fieldWithPath("data.endedAt").type(STRING).description("재생 종료 시각"),
+                                    fieldWithPath("data.audioUrl").type(NULL).description("오디오 파일 URL")
                             )
                     ));
         }
@@ -736,7 +744,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                     25,
                     LocalDateTime.now(),
                     LocalDateTime.now(),
-                    LocalDateTime.now()
+                    LocalDateTime.now(),
+                    null
             );
             PlaybackResponse response2 = new PlaybackResponse(
                     1L,
@@ -749,7 +758,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                     180,
                     LocalDateTime.now(),
                     LocalDateTime.now(),
-                    LocalDateTime.now()
+                    LocalDateTime.now(),
+                    null
             );
 
             given(playbackService.getPlaybackHistory(any()))
@@ -781,7 +791,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                                     fieldWithPath("data[].playedDuration").type(NUMBER).description("누적 재생 시간(초)"),
                                     fieldWithPath("data[].startedAt").type(STRING).description("재생 시작 시각"),
                                     fieldWithPath("data[].lastPlayedAt").type(STRING).description("마지막 재생 시각"),
-                                    fieldWithPath("data[].endedAt").type(STRING).description("재생 종료 시각")
+                                    fieldWithPath("data[].endedAt").type(STRING).description("재생 종료 시각"),
+                                    fieldWithPath("data[].audioUrl").type(NULL).description("오디오 파일 URL")
                             )
                     ));
         }
