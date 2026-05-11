@@ -137,7 +137,7 @@ class PlaylistServiceTest {
             given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
                     anyList(),
                     eq(List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE))  // ← eq() 사용
-            )).willReturn(true);
+            )).willReturn(false);
 
             // when & then
             assertThatThrownBy(() -> playlistService.createPlaylist(userId, request))
