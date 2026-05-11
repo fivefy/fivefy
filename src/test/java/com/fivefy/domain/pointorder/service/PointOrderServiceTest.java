@@ -48,10 +48,14 @@ class PointOrderServiceTest {
 
     @BeforeEach
     void setUp() {
-        // JdbcTemplate으로 직접 SQL 실행 — 트랜잭션 불필요
-        jdbcTemplate.update("DELETE FROM subscriptions WHERE user_id = ?", USER_ID);
+        // subscriptions는 user_id 컬럼이 없으므로 point_orders를 통해 삭제
+        jdbcTemplate.update(
+            "DELETE FROM subscriptions WHERE point_order_id IN " +
+            "(SELECT id FROM point_orders WHERE user_id = ?)", USER_ID);
         jdbcTemplate.update("DELETE FROM point_orders WHERE user_id = ?", USER_ID);
-        jdbcTemplate.update("DELETE FROM point_histories WHERE wallet_id IN (SELECT id FROM wallets WHERE user_id = ?)", USER_ID);
+        jdbcTemplate.update(
+            "DELETE FROM point_histories WHERE wallet_id IN " +
+            "(SELECT id FROM wallets WHERE user_id = ?)", USER_ID);
         jdbcTemplate.update("DELETE FROM wallets WHERE user_id = ?", USER_ID);
         // 기존 지갑 삭제 후 새로 생성
         Wallet wallet = Wallet.create(USER_ID);
@@ -62,9 +66,13 @@ class PointOrderServiceTest {
     // 테스트 정리 코드
     @AfterEach
     void tearDown() {
-        jdbcTemplate.update("DELETE FROM subscriptions WHERE user_id = ?", USER_ID);
+        jdbcTemplate.update(
+            "DELETE FROM subscriptions WHERE point_order_id IN " +
+            "(SELECT id FROM point_orders WHERE user_id = ?)", USER_ID);
         jdbcTemplate.update("DELETE FROM point_orders WHERE user_id = ?", USER_ID);
-        jdbcTemplate.update("DELETE FROM point_histories WHERE wallet_id IN (SELECT id FROM wallets WHERE user_id = ?)", USER_ID);
+        jdbcTemplate.update(
+            "DELETE FROM point_histories WHERE wallet_id IN " +
+            "(SELECT id FROM wallets WHERE user_id = ?)", USER_ID);
         jdbcTemplate.update("DELETE FROM wallets WHERE user_id = ?", USER_ID);
     }
 

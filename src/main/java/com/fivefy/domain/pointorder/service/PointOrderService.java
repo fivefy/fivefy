@@ -78,11 +78,18 @@ public class PointOrderService {
 
         // 2. RECURRING/RECURRING_AUTO 중복 가입 방지 (ACTIVE만 체크)
         if (planType == SubscriptionPlanType.RECURRING || planType == SubscriptionPlanType.RECURRING_AUTO) {
+            // userId → pointOrderIds 변환 후 구독 목록 조회
+            List<Long> pointOrderIds = pointOrderRepository.findAllByUserId(userId)
+                    .stream()
+                    .map(PointOrder::getId)
+                    .toList();
+
             boolean alreadyActive = subscriptionRepository
-                    .findAllByUserId(userId).stream()
+                    .findAllByPointOrderIdIn(pointOrderIds).stream()
                     .anyMatch(s -> (s.getPlanType() == SubscriptionPlanType.RECURRING
                                         || s.getPlanType() == SubscriptionPlanType.RECURRING_AUTO)
                             && s.getStatus() == SubscriptionStatus.ACTIVE);
+
             if (alreadyActive) {
                 throw new BusinessException(PointOrderErrorCode.ERR_SUBSCRIPTION_ALREADY_ACTIVE);
             }
@@ -117,7 +124,7 @@ public class PointOrderService {
 
         // 6. 구독 생성 → 즉시 ACTIVE
         Subscription subscription = Subscription.create(
-                userId, pointOrder.getId(), planType, now
+                pointOrder.getId(), planType, now
         );
         subscriptionRepository.save(subscription);
 
@@ -138,11 +145,13 @@ public class PointOrderService {
      * RecurringPaymentScheduler에서 호출 (매월 09:00)
      * 매월 50P 차감 → nextBillingDate, expiryDate +1개월
      * 잔액 부족 시 구독 만료
+     *
+     * @param subscription 갱신 대상 구독
+     * @param userId       PointOrder.getUserId()로 추출한 유저 ID
      */
-    @RedissonLock(key = "'wallet:' + #subscription.userId")
+    @RedissonLock(key = "'wallet:' + #userId")
     @Transactional
-    public void processRecurringPayment(Subscription subscription) {
-        Long userId = subscription.getUserId();
+    public void processRecurringPayment(Subscription subscription, Long userId) {  // userId 파라미터 추가
         Long price = SubscriptionPlanType.RECURRING.getPrice(); // 50P
 
         Wallet wallet = walletRepository.findByUserId(userId)

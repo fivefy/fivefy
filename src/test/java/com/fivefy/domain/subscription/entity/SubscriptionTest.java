@@ -22,7 +22,8 @@ class SubscriptionTest {
     @Test
     @DisplayName("구독 생성 시 초기 상태는 ACTIVE이다")
     void create_초기상태_ACTIVE() {
-        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.RECURRING, NOW);
+        // userID 삭제됐으니, 인수 하나 줄어듦
+        Subscription subscription = Subscription.create(1L, SubscriptionPlanType.RECURRING, NOW);
 
         assertThat(subscription.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
     }
@@ -30,7 +31,7 @@ class SubscriptionTest {
     @Test
     @DisplayName("RECURRING 구독 생성 시 nextBillingDate가 1개월 후로 설정된다")
     void create_RECURRING_nextBillingDate_1개월후() {
-        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.RECURRING_AUTO, NOW);
+        Subscription subscription = Subscription.create(1L, SubscriptionPlanType.RECURRING_AUTO, NOW);
 
         assertThat(subscription.getNextBillingDate()).isNotNull();
         assertThat(subscription.getNextBillingDate()).isAfter(NOW);
@@ -39,7 +40,7 @@ class SubscriptionTest {
     @Test
     @DisplayName("FREE 구독 생성 시 nextBillingDate는 null이다")
     void create_FREE_nextBillingDate_null() {
-        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.FREE, NOW);
+        Subscription subscription = Subscription.create(1L, SubscriptionPlanType.FREE, NOW);
 
         assertThat(subscription.getNextBillingDate()).isNull();
     }
@@ -51,7 +52,7 @@ class SubscriptionTest {
     @Test
     @DisplayName("ACTIVE 상태에서 cancel() 호출 시 CANCELED로 전이되고 nextBillingDate가 null이 된다")
     void cancel_ACTIVE에서_CANCELED로() {
-        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.RECURRING_AUTO, NOW);
+        Subscription subscription = Subscription.create(1L, SubscriptionPlanType.RECURRING_AUTO, NOW);
 
         subscription.cancel();
 
@@ -62,7 +63,7 @@ class SubscriptionTest {
     @Test
     @DisplayName("FREE 구독은 cancel() 호출 시 예외가 발생한다")
     void cancel_FREE_예외() {
-        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.FREE, NOW);
+        Subscription subscription = Subscription.create(1L, SubscriptionPlanType.FREE, NOW);
 
         assertThatThrownBy(() -> subscription.cancel())
                 .isInstanceOf(BusinessException.class);
@@ -71,7 +72,7 @@ class SubscriptionTest {
     @Test
     @DisplayName("CANCELED 상태에서 cancel() 재호출 시 예외가 발생한다")
     void cancel_CANCELED에서_재호출_예외() {
-        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.RECURRING, NOW);
+        Subscription subscription = Subscription.create(1L, SubscriptionPlanType.RECURRING, NOW);
         subscription.cancel();
 
         assertThatThrownBy(() -> subscription.cancel())
@@ -81,7 +82,7 @@ class SubscriptionTest {
     @Test
     @DisplayName("EXPIRE 상태에서 cancel() 호출 시 예외가 발생한다")
     void cancel_EXPIRE에서_호출_예외() {
-        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.RECURRING, NOW);
+        Subscription subscription = Subscription.create(1L, SubscriptionPlanType.RECURRING, NOW);
         subscription.expire();
 
         assertThatThrownBy(() -> subscription.cancel())
@@ -91,7 +92,7 @@ class SubscriptionTest {
     @Test
     @DisplayName("RECURRING 구독 생성 시 nextBillingDate는 null이다")
     void create_RECURRING_nextBillingDate_null() {
-        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.RECURRING, NOW);
+        Subscription subscription = Subscription.create(1L,  SubscriptionPlanType.RECURRING, NOW);
 
         assertThat(subscription.getNextBillingDate()).isNull();
     }
@@ -104,7 +105,7 @@ class SubscriptionTest {
     @Test
     @DisplayName("expire() 호출 시 EXPIRE로 전이되고 nextBillingDate가 null이 된다")
     void expire_EXPIRE로_전이() {
-        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.RECURRING, NOW);
+        Subscription subscription = Subscription.create(1L, SubscriptionPlanType.RECURRING, NOW);
 
         subscription.expire();
 
@@ -115,7 +116,7 @@ class SubscriptionTest {
     @Test
     @DisplayName("CANCELED 상태에서 expire() 호출 시 EXPIRE로 전이된다 — 취소 후 만료일 지나면 만료 처리")
     void expire_CANCELED에서_EXPIRE로() {
-        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.RECURRING, NOW);
+        Subscription subscription = Subscription.create(1L, SubscriptionPlanType.RECURRING, NOW);
         subscription.cancel();
 
         subscription.expire();
@@ -126,7 +127,7 @@ class SubscriptionTest {
     @Test
     @DisplayName("EXPIRE 상태에서 expire() 재호출 시 예외가 발생한다 — 만료 재호출 차단")
     void expire_EXPIRE에서_재호출_예외() {
-        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.RECURRING, NOW);
+        Subscription subscription = Subscription.create(1L,  SubscriptionPlanType.RECURRING, NOW);
         subscription.expire();
 
         assertThatThrownBy(() -> subscription.expire())
@@ -140,7 +141,7 @@ class SubscriptionTest {
     @Test
     @DisplayName("RECURRING 구독에서 renew() 호출 시 expiryDate와 nextBillingDate가 1개월 연장된다")
     void renew_날짜_1개월_연장() {
-        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.RECURRING_AUTO, NOW);
+        Subscription subscription = Subscription.create(1L,  SubscriptionPlanType.RECURRING_AUTO, NOW);
         LocalDateTime beforeExpiry = subscription.getExpiryDate();
         LocalDateTime beforeBilling = subscription.getNextBillingDate();
 
@@ -154,7 +155,7 @@ class SubscriptionTest {
     @Test
     @DisplayName("FREE 구독에서 renew() 호출 시 예외가 발생한다")
     void renew_FREE_예외() {
-        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.FREE, NOW);
+        Subscription subscription = Subscription.create(1L,  SubscriptionPlanType.FREE, NOW);
 
         assertThatThrownBy(() -> subscription.renew())
                 .isInstanceOf(BusinessException.class);
@@ -163,7 +164,7 @@ class SubscriptionTest {
     @Test
     @DisplayName("취소된 구독(nextBillingDate=null)에서 renew() 호출 시 예외가 발생한다")
     void renew_취소된구독_예외() {
-        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.RECURRING, NOW);
+        Subscription subscription = Subscription.create(1L,  SubscriptionPlanType.RECURRING, NOW);
         subscription.cancel();
 
         assertThatThrownBy(() -> subscription.renew())
@@ -177,7 +178,7 @@ class SubscriptionTest {
     @Test
     @DisplayName("ACTIVE 상태이고 만료일이 지나지 않았으면 isActive()는 true다")
     void isActive_true() {
-        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.RECURRING, NOW);
+        Subscription subscription = Subscription.create(1L, SubscriptionPlanType.RECURRING, NOW);
 
         assertThat(subscription.isActive()).isTrue();
     }
@@ -185,7 +186,7 @@ class SubscriptionTest {
     @Test
     @DisplayName("CANCELED 상태이면 isActive()는 false다")
     void isActive_CANCELED_false() {
-        Subscription subscription = Subscription.create(1L, 1L, SubscriptionPlanType.RECURRING, NOW);
+        Subscription subscription = Subscription.create(1L, SubscriptionPlanType.RECURRING, NOW);
         subscription.cancel();
 
         assertThat(subscription.isActive()).isFalse();

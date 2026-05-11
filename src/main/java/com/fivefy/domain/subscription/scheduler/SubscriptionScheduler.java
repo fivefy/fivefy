@@ -1,5 +1,7 @@
 package com.fivefy.domain.subscription.scheduler;
 
+import com.fivefy.domain.pointorder.entity.PointOrder;
+import com.fivefy.domain.pointorder.repository.PointOrderRepository;
 import com.fivefy.domain.pointorder.service.PointOrderService;
 import com.fivefy.domain.subscription.entity.Subscription;
 import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
@@ -14,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -23,6 +27,7 @@ public class SubscriptionScheduler {
     private final SubscriptionRepository subscriptionRepository;
     private final PointOrderService pointOrderService;
     private final SubscriptionService subscriptionService;
+    private final PointOrderRepository pointOrderRepository;
 
     /**
      * 정기 구독 결제
@@ -44,16 +49,35 @@ public class SubscriptionScheduler {
 
         log.info("[정기결제 스케줄러] 대상 구독 수: {}", targets.size());
 
+        // PointOrder 일괄 조회로 N+1 방지
+        List<Long> pointOrderIds = targets.stream()
+                .map(Subscription::getPointOrderId)
+                .distinct()
+                .toList();
+        Map<Long, Long> pointOrderToUserId = pointOrderRepository.findAllById(pointOrderIds)
+                .stream()
+                .collect(Collectors.toMap(PointOrder::getId, PointOrder::getUserId));
+
         int successCount = 0;
         int failCount = 0;
 
         for (Subscription subscription : targets) {
+            // PointOrder를 루프 전에 일괄 조회 : PointOrder 일괄 조회로 N+1 방지
+            Long userId = pointOrderToUserId.get(subscription.getPointOrderId());
+
+            if (userId == null) {
+                log.error("[정기결제 스케줄러] PointOrder 조회 실패 — subscriptionId={}",
+                        subscription.getId());
+                failCount++;
+                continue;
+            }
+
             try {
-                pointOrderService.processRecurringPayment(subscription);
+                pointOrderService.processRecurringPayment(subscription, userId);  // userId 함께 전달
                 successCount++;
             } catch (Exception e) {
                 log.error("[정기결제 스케줄러] 결제 실패 — subscriptionId={}, userId={}, 사유={}",
-                        subscription.getId(), subscription.getUserId(), e.getMessage());
+                        subscription.getId(), userId, e.getMessage());
                 failCount++;
             }
         }
@@ -94,8 +118,8 @@ public class SubscriptionScheduler {
                 subscriptionService.expireOne(subscription.getId()); // 건별 트랜잭션
                 // subscriptionRepository.save(subscription);
 
-                log.info("[만료 스케줄러] 만료 처리 — subscriptionId={}, userId={}",
-                        subscription.getId(), subscription.getUserId());
+                log.info("[만료 스케줄러] 만료 처리 — subscriptionId={}",
+                        subscription.getId());
             } catch (Exception e) {
                 log.error("[만료 스케줄러] 실패 — subscriptionId={}, 사유={}",
                         subscription.getId(), e.getMessage());

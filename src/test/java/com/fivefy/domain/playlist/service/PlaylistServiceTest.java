@@ -9,8 +9,11 @@ import com.fivefy.domain.playlist.dto.response.PlaylistResponse;
 import com.fivefy.domain.playlist.entity.Playlist;
 import com.fivefy.domain.playlist.enums.PlaylistErrorCode;
 import com.fivefy.domain.playlist.repository.PlaylistRepository;
+import com.fivefy.domain.pointorder.repository.PointOrderRepository;
+import com.fivefy.domain.pointorder.entity.PointOrder;
 import com.fivefy.domain.subscription.enums.SubscriptionStatus;
 import com.fivefy.domain.subscription.repository.SubscriptionRepository;
+import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -31,6 +34,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
@@ -42,6 +46,7 @@ class PlaylistServiceTest {
 
     @Mock private PlaylistRepository playlistRepository;
     @Mock private SubscriptionRepository subscriptionRepository;
+    @Mock private PointOrderRepository pointOrderRepository;
 
     @Nested
     @DisplayName("플레이리스트 생성")
@@ -54,9 +59,15 @@ class PlaylistServiceTest {
             Long userId = 1L;
             PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
 
-            given(subscriptionRepository.existsByUserIdAndStatusIn(
-                    userId,
-                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            given(pointOrderRepository.findAllByUserId(userId))
+                    .willReturn(List.of(
+                            PointOrder.create(userId, SubscriptionPlanType.FREE, "SUB-TEST01")
+                    ));
+
+            // subscriptionRepository.existsByPointOrderIdInAndStatusIn() stub으로 교체
+            given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
+                    anyList(),
+                    eq(List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE))  // ← eq() 사용
             )).willReturn(true);
 
             Playlist playlist = Playlist.create(userId, request.title(), request.description());
@@ -87,9 +98,15 @@ class PlaylistServiceTest {
             Long userId = 1L;
             PlaylistCreateRequest request = new PlaylistCreateRequest("중복 제목", "설명");
 
-            given(subscriptionRepository.existsByUserIdAndStatusIn(
-                    userId,
-                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            List<Long> pointOrderIds = List.of(1L, 2L); // 테스트용 임의 ID
+            given(pointOrderRepository.findAllByUserId(userId))
+                    .willReturn(List.of(
+                            PointOrder.create(userId, SubscriptionPlanType.FREE, "SUB-TEST01")
+                    ));
+
+            given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
+                    anyList(),
+                    eq(List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE))  // ← eq() 사용
             )).willReturn(true);
 
             given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
@@ -110,9 +127,16 @@ class PlaylistServiceTest {
             Long userId = 1L;
             PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
 
-            given(subscriptionRepository.existsByUserIdAndStatusIn(
-                    userId,
-                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            given(pointOrderRepository.findAllByUserId(userId))
+                    .willReturn(List.of(
+                            PointOrder.create(userId, SubscriptionPlanType.FREE, "SUB-TEST01")
+                    ));
+
+            // 수정 전: willReturn(true)  ← 구독이 있다는 뜻 → 예외 발생 안 함
+            // 수정 후: willReturn(false) ← 구독이 없다는 뜻 → 예외 발생
+            given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
+                    anyList(),
+                    eq(List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE))  // ← eq() 사용
             )).willReturn(false);
 
             // when & then
@@ -132,9 +156,13 @@ class PlaylistServiceTest {
             Long userId = 1L;
             PlaylistCreateRequest request = new PlaylistCreateRequest("중복 제목", "설명");
 
-            given(subscriptionRepository.existsByUserIdAndStatusIn(
-                    userId,
-                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            given(pointOrderRepository.findAllByUserId(userId))
+                    .willReturn(List.of(
+                            PointOrder.create(userId, SubscriptionPlanType.FREE, "SUB-TEST01")
+                    ));
+            given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
+                    anyList(),
+                    eq(List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE))  // ← eq() 사용
             )).willReturn(true);
 
             given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
@@ -158,9 +186,13 @@ class PlaylistServiceTest {
             Long userId = 1L;
             PlaylistCreateRequest request = new PlaylistCreateRequest("정상 제목", "설명");
 
-            given(subscriptionRepository.existsByUserIdAndStatusIn(
-                    userId,
-                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            given(pointOrderRepository.findAllByUserId(userId))
+                    .willReturn(List.of(
+                            PointOrder.create(userId, SubscriptionPlanType.FREE, "SUB-TEST01")
+                    ));
+            given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
+                    anyList(),
+                    eq(List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE))  // ← eq() 사용
             )).willReturn(true);
 
             given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
@@ -185,9 +217,13 @@ class PlaylistServiceTest {
             Long userId = 1L;
             PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
 
-            given(subscriptionRepository.existsByUserIdAndStatusIn(
-                    userId,
-                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            given(pointOrderRepository.findAllByUserId(userId))
+                    .willReturn(List.of(
+                            PointOrder.create(userId, SubscriptionPlanType.FREE, "SUB-TEST01")
+                    ));
+            given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
+                    anyList(),
+                    eq(List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE))  // ← eq() 사용
             )).willReturn(true);
 
             given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
@@ -214,9 +250,13 @@ class PlaylistServiceTest {
             Long userId = 1L;
             PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
 
-            given(subscriptionRepository.existsByUserIdAndStatusIn(
-                    userId,
-                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            given(pointOrderRepository.findAllByUserId(userId))
+                    .willReturn(List.of(
+                            PointOrder.create(userId, SubscriptionPlanType.FREE, "SUB-TEST01")
+                    ));
+            given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
+                    anyList(),
+                    eq(List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE))  // ← eq() 사용
             )).willReturn(true);
 
             given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
@@ -244,9 +284,13 @@ class PlaylistServiceTest {
             Long userId = 1L;
             PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
 
-            given(subscriptionRepository.existsByUserIdAndStatusIn(
-                    userId,
-                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            given(pointOrderRepository.findAllByUserId(userId))
+                    .willReturn(List.of(
+                            PointOrder.create(userId, SubscriptionPlanType.FREE, "SUB-TEST01")
+                    ));
+            given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
+                    anyList(),
+                    eq(List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE))  // ← eq() 사용
             )).willReturn(true);
 
             given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
@@ -272,9 +316,13 @@ class PlaylistServiceTest {
             Long userId = 1L;
             PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
 
-            given(subscriptionRepository.existsByUserIdAndStatusIn(
-                    userId,
-                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            given(pointOrderRepository.findAllByUserId(userId))
+                    .willReturn(List.of(
+                            PointOrder.create(userId, SubscriptionPlanType.FREE, "SUB-TEST01")
+                    ));
+            given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
+                    anyList(),
+                    eq(List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE))  // ← eq() 사용
             )).willReturn(true);
 
             given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
@@ -301,9 +349,13 @@ class PlaylistServiceTest {
             Long userId = 1L;
             PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
 
-            given(subscriptionRepository.existsByUserIdAndStatusIn(
-                    userId,
-                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            given(pointOrderRepository.findAllByUserId(userId))
+                    .willReturn(List.of(
+                            PointOrder.create(userId, SubscriptionPlanType.FREE, "SUB-TEST01")
+                    ));
+            given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
+                    anyList(),
+                    eq(List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE))  // ← eq() 사용
             )).willReturn(true);
 
             given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))
@@ -550,9 +602,13 @@ class PlaylistServiceTest {
             Long userId = 1L;
             PlaylistCreateRequest request = new PlaylistCreateRequest("내 플레이리스트", "설명");
 
-            given(subscriptionRepository.existsByUserIdAndStatusIn(
-                    userId,
-                    List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+            given(pointOrderRepository.findAllByUserId(userId))
+                    .willReturn(List.of(
+                            PointOrder.create(userId, SubscriptionPlanType.FREE, "SUB-TEST01")
+                    ));
+            given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
+                    anyList(),
+                    eq(List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE))  // ← eq() 사용
             )).willReturn(true);
 
             given(playlistRepository.existsByUserIdAndTitleAndDeletedFalse(userId, request.title()))

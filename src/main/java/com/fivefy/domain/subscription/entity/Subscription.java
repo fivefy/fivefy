@@ -26,9 +26,6 @@ public class Subscription extends BaseEntity {
     private Long id;
 
     @Column(nullable = false)
-    private Long userId;
-
-    @Column(nullable = false)
     private Long pointOrderId;
 
     @Enumerated(EnumType.STRING)
@@ -48,7 +45,6 @@ public class Subscription extends BaseEntity {
     /**
      * 구독하기
      * 구독 즉시 ACTIVE, expiryDate/nextBillingDate 바로 세팅
-     * @param userId             : 사용자 식별자
      * @param pointOrderId       : 포인트 주문 ID
      * @param planType           : 월, 년, 무료
      *        SubscriptionStatus : 체험, 활성, 만료, 취소
@@ -58,18 +54,15 @@ public class Subscription extends BaseEntity {
      * @return
      */
     public static Subscription create(
-            Long userId,
             Long pointOrderId,
             SubscriptionPlanType planType,
             LocalDateTime startDate
     ) {
-        validateNonNull(userId, "userId");
         validateNonNull(pointOrderId, "pointOrderId");
         validateNonNull(planType, "planType");
         validateNonNull(startDate, "startDate");
 
         Subscription subscription = new Subscription();
-            subscription.userId = userId;
             subscription.pointOrderId = pointOrderId;
             subscription.planType = planType;
             subscription.status = SubscriptionStatus.ACTIVE;   // 바로 활성화

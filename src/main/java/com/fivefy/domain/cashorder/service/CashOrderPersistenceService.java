@@ -105,9 +105,8 @@ public class CashOrderPersistenceService {
 
         // Payment 기록 : 2026-04-22 : 실제 PG 거래 ID pgIxId 수정
         Payment payment = Payment.create(
-                userId,
-                productType.getCashAmount(),
-                orderNumber,
+                // cashOrder는 이미 위에서 save() 완료 → getId() != null 보장
+                cashOrder,                          // CashOrder 전달 : cashOrderId 내부에서 추출
                 pgResponse.payment().pgTxId(),      // 포트원 결제 ID paymentId() -> 실제 PG 거래 ID는 pgTxId. PortoneBillingPaymentResponse 참고하기
                 orderNumber                         // 멱등키 (orderNumber 재사용)
         );

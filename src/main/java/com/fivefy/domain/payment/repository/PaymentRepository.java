@@ -11,8 +11,9 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     // webhook, 중복 방지
     boolean existsByPgTransactionId(String pgTransactionId);
 
-    // 유저 결제기록
-    List<Payment> findAllByUserId(Long userId);
+    // 유저 결제기록 : UserId -> CashOrder을 통해서 추출
+    // List<Payment> findAllByUserId(Long userId);
+    List<Payment> findAllByCashOrderIdIn(List<Long> cashOrderIds);
 
     // 환불 시 Payment 조회용
     Optional<Payment> findByPgTransactionId(String pgTransactionId);

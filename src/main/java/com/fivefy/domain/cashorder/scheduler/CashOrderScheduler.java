@@ -2,6 +2,8 @@ package com.fivefy.domain.cashorder.scheduler;
 
 import com.fivefy.domain.billingkey.repository.BillingKeyRepository;
 import com.fivefy.domain.cashorder.service.CashOrderService;
+import com.fivefy.domain.pointorder.entity.PointOrder;
+import com.fivefy.domain.pointorder.repository.PointOrderRepository;
 import com.fivefy.domain.subscription.entity.Subscription;
 import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
 import com.fivefy.domain.subscription.enums.SubscriptionStatus;
@@ -13,6 +15,8 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -22,6 +26,7 @@ public class CashOrderScheduler {
     private final SubscriptionRepository subscriptionRepository;
     private final BillingKeyRepository billingKeyRepository;
     private final CashOrderService cashOrderService;
+    private final PointOrderRepository pointOrderRepository;
 
     /**
      * 정기 포인트 자동 충전 (빌링키 카드 청구)
@@ -43,21 +48,41 @@ public class CashOrderScheduler {
 
         log.info("[정기충전 스케줄러] 대상 구독 수: {}", targets.size());
 
+
+        // PointOrder 일괄 조회로 N+1 방지
+        List<Long> pointOrderIds = targets.stream()
+               .map(Subscription::getPointOrderId)
+               .distinct()
+               .toList();
+        Map<Long, Long> pointOrderToUserId = pointOrderRepository.findAllById(pointOrderIds)
+               .stream()
+               .collect(Collectors.toMap(PointOrder::getId, PointOrder::getUserId));
+
         int successCount = 0;
         int failCount = 0;
 
         for (Subscription subscription : targets) {
+            // PointOrder를 일괄 조회로 개선 필요
+            Long userId = pointOrderToUserId.get(subscription.getPointOrderId());
+
+            if (userId == null) {
+                log.error("[정기충전 스케줄러] PointOrder 조회 실패 — subscriptionId={}",
+                        subscription.getId());
+                failCount++;
+                continue;
+            }
+
             try {
-                billingKeyRepository.findByUserIdAndActiveTrue(subscription.getUserId())
+                billingKeyRepository.findByUserIdAndActiveTrue(userId)
                         .ifPresentOrElse(
                                 billingKey -> cashOrderService.processRecurringCharge(billingKey),
                                 () -> log.warn("[정기충전 스케줄러] 빌링키 없음 — userId={}",
-                                        subscription.getUserId())
+                                        userId)
                         );
                 successCount++;
             } catch (Exception e) {
-                log.error("[정기충전 스케줄러] 실패 — userId={}, 사유={}",
-                        subscription.getUserId(), e.getMessage());
+                log.error("[정기충전 스케줄러] 실패 — userId={}, subscriptionId={}, 사유={}",
+                                    userId, subscription.getId(), e.getMessage());
                 failCount++;
             }
         }

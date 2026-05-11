@@ -128,7 +128,6 @@ public class TestDefaultUserInitializer implements ApplicationRunner {
             nextBillingDate = expiryDate;
         }
         subscriptionRepository.save(Subscription.create(
-                user.getId(),
                 null,        // pointOrderId — 더미데이터는 null
                 subscriptionPlanType,
                 now

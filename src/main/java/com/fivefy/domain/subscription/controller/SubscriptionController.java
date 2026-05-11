@@ -2,6 +2,8 @@ package com.fivefy.domain.subscription.controller;
 
 
 import com.fivefy.common.exception.BusinessException;
+import com.fivefy.domain.pointorder.entity.PointOrder;
+import com.fivefy.domain.pointorder.repository.PointOrderRepository;
 import com.fivefy.domain.pointorder.service.PointOrderService;
 import com.fivefy.domain.subscription.dto.SubscriptionResponse;
 import com.fivefy.domain.subscription.entity.Subscription;
@@ -26,6 +28,7 @@ public class SubscriptionController {
     private final SubscriptionService subscriptionService;
     private final PointOrderService pointOrderService;
     private final SubscriptionRepository subscriptionRepository;
+    private final PointOrderRepository pointOrderRepository;
 
 
     /**
@@ -64,17 +67,10 @@ public class SubscriptionController {
     public ResponseEntity<String> testRecurring(
             @AuthenticationPrincipal Long userId
     ) {
-        Subscription subscription = subscriptionRepository
-                .findByUserIdAndPlanTypeAndStatus(
-                        userId,
-                        SubscriptionPlanType.RECURRING_AUTO,
-                        SubscriptionStatus.ACTIVE
-                )
-                .orElseThrow(() -> new BusinessException(
-                        SubscriptionErrorCode.ERR_SUBSCRIPTION_RECURRING_NOT_FOUND
-                ));
+        // 기능 Service로 옮김
+        Subscription subscription = subscriptionService.findActiveRecurringAutoSubscription(userId);
 
-        pointOrderService.processRecurringPayment(subscription);
+        pointOrderService.processRecurringPayment(subscription, userId);
 
         return ResponseEntity.ok("구독 포인트 차감 완료 — 구독 상태와 지갑을 조회해서 확인하세요.");
     }
@@ -89,11 +85,15 @@ public class SubscriptionController {
     public ResponseEntity<SubscriptionResponse> testSkipMonth(
             @AuthenticationPrincipal Long userId
     ) {
+        List<Long> pointOrderIds = pointOrderRepository.findAllByUserId(userId)
+                .stream().map(PointOrder::getId).toList();
+
         Subscription sub = subscriptionRepository
-                .findByUserIdAndPlanTypeAndStatus(
-                        userId,
-                        SubscriptionPlanType.RECURRING,
-                        SubscriptionStatus.ACTIVE)
+                .findAllByPointOrderIdIn(pointOrderIds)
+                .stream()
+                .filter(s -> s.getPlanType() == SubscriptionPlanType.RECURRING
+                          && s.getStatus() == SubscriptionStatus.ACTIVE)
+                .findFirst()
                 .orElseThrow(() -> new BusinessException(
                         SubscriptionErrorCode.ERR_SUBSCRIPTION_RECURRING_NOT_FOUND
                 ));
