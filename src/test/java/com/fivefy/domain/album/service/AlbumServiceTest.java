@@ -102,6 +102,7 @@ class AlbumServiceTest {
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -201,6 +202,7 @@ class AlbumServiceTest {
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -235,6 +237,7 @@ class AlbumServiceTest {
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
+                    1L,
                     2L,
                     "아이유",
                     ArtistType.SOLO,
@@ -268,6 +271,7 @@ class AlbumServiceTest {
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -302,6 +306,7 @@ class AlbumServiceTest {
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -335,6 +340,7 @@ class AlbumServiceTest {
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -370,6 +376,7 @@ class AlbumServiceTest {
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -407,6 +414,7 @@ class AlbumServiceTest {
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -734,6 +742,7 @@ class AlbumServiceTest {
             ReflectionTestUtils.setField(application, "id", applicationId);
 
             Album savedAlbum = Album.create(
+                    1L,
                     application.getArtistId(),
                     application.getTitle(),
                     application.getDescription(),
@@ -743,7 +752,7 @@ class AlbumServiceTest {
             ReflectionTestUtils.setField(savedAlbum, "id", 1000L);
 
             when(albumApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.of(application));
-            when(albumRepository.save(any(Album.class))).thenReturn(savedAlbum);
+            when(albumRepository.saveAndFlush(any(Album.class))).thenReturn(savedAlbum);
 
             AlbumApplicationApproveResponse response =
                     albumService.approveAlbumApplication(adminId, applicationId);
@@ -772,6 +781,7 @@ class AlbumServiceTest {
             ReflectionTestUtils.setField(application, "id", applicationId);
 
             Album savedAlbum = Album.create(
+                    1L,
                     application.getArtistId(),
                     application.getTitle(),
                     application.getDescription(),
@@ -781,7 +791,7 @@ class AlbumServiceTest {
             ReflectionTestUtils.setField(savedAlbum, "id", 1000L);
 
             when(albumApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.of(application));
-            when(albumRepository.save(any(Album.class))).thenReturn(savedAlbum);
+            when(albumRepository.saveAndFlush(any(Album.class))).thenReturn(savedAlbum);
 
             AlbumApplicationApproveResponse response =
                     albumService.approveAlbumApplication(adminId, applicationId);
@@ -824,6 +834,32 @@ class AlbumServiceTest {
             application.approve(adminId);
 
             when(albumApplicationRepository.findByIdForUpdate(applicationId)).thenReturn(Optional.of(application));
+
+            assertThatThrownBy(() -> albumService.approveAlbumApplication(adminId, applicationId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_PROCESSED.getMessage());
+        }
+
+        @Test
+        @DisplayName("승인 결과 앨범 저장 중 unique 충돌이 발생하면 승인 실패")
+        void approveAlbumApplication_fail_whenAlbumSaveConflict() {
+            Long adminId = 1L;
+            Long applicationId = 10L;
+
+            AlbumApplication application = AlbumApplication.create(
+                    2L,
+                    100L,
+                    "Palette",
+                    "정규 앨범",
+                    "https://example.com/album.jpg",
+                    0
+            );
+            ReflectionTestUtils.setField(application, "id", applicationId);
+
+            when(albumApplicationRepository.findByIdForUpdate(applicationId))
+                    .thenReturn(Optional.of(application));
+            when(albumRepository.saveAndFlush(any(Album.class)))
+                    .thenThrow(new DataIntegrityViolationException("duplicate album application id"));
 
             assertThatThrownBy(() -> albumService.approveAlbumApplication(adminId, applicationId))
                     .isInstanceOf(BusinessException.class)
@@ -912,6 +948,7 @@ class AlbumServiceTest {
             Long albumId = 1L;
 
             Album album = Album.create(
+                    1L,
                     10L,
                     "Palette",
                     "정규 앨범",
@@ -974,6 +1011,7 @@ class AlbumServiceTest {
             Long albumId = 1L;
 
             Album album = Album.create(
+                    1L,
                     10L,
                     "Palette",
                     "정규 앨범",
@@ -996,6 +1034,7 @@ class AlbumServiceTest {
             Long albumId = 1L;
 
             Album album = Album.create(
+                    1L,
                     10L,
                     "Palette",
                     "정규 앨범",
@@ -1019,6 +1058,7 @@ class AlbumServiceTest {
             Long artistId = 10L;
 
             Album album = Album.create(
+                    1L,
                     artistId,
                     "Palette",
                     "정규 앨범",
@@ -1029,6 +1069,7 @@ class AlbumServiceTest {
             ReflectionTestUtils.setField(album, "id", albumId);
 
             Artist artist = Artist.create(
+                    1L,
                     1L,
                     "아이유",
                     ArtistType.SOLO,
@@ -1052,6 +1093,7 @@ class AlbumServiceTest {
             Long albumId = 1L;
 
             Album album = Album.create(
+                    1L,
                     10L,
                     "Palette",
                     "정규 앨범",
@@ -1089,6 +1131,7 @@ class AlbumServiceTest {
 
             Artist artist = Artist.create(
                     1L,
+                    1L,
                     "아이유",
                     ArtistType.SOLO,
                     "가수",
@@ -1097,6 +1140,7 @@ class AlbumServiceTest {
             ReflectionTestUtils.setField(artist, "id", artistId);
 
             Album album1 = Album.create(
+                    1L,
                     artistId,
                     "Palette",
                     "정규 앨범",
@@ -1109,6 +1153,7 @@ class AlbumServiceTest {
             ReflectionTestUtils.setField(album1, "publishedAt", LocalDateTime.of(2026, 5, 1, 18, 0, 0));
 
             Album album2 = Album.create(
+                    1L,
                     artistId,
                     "Love poem",
                     "미니 앨범",
@@ -1140,6 +1185,7 @@ class AlbumServiceTest {
             Long artistId = 10L;
 
             Artist artist = Artist.create(
+                    1L,
                     1L,
                     "아이유",
                     ArtistType.SOLO,
@@ -1176,6 +1222,7 @@ class AlbumServiceTest {
             Long artistId = 10L;
 
             Artist artist = Artist.create(
+                    1L,
                     1L,
                     "아이유",
                     ArtistType.SOLO,

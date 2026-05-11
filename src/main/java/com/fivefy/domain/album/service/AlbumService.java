@@ -139,7 +139,7 @@ public class AlbumService {
         application.approve(adminId);
 
         // 승인된 신청 기반 앨범 생성
-        Album savedAlbum = albumRepository.save(createAlbum(application));
+        Album savedAlbum = saveAlbum(createAlbum(application));
 
         return AlbumApplicationApproveResponse.from(application, savedAlbum.getId());
     }
@@ -329,6 +329,7 @@ public class AlbumService {
                 calculateScheduledPublishAt(application.getPublishDelayDays());
 
         Album album = Album.create(
+                application.getId(),
                 application.getArtistId(),
                 application.getTitle(),
                 application.getDescription(),
@@ -360,6 +361,17 @@ public class AlbumService {
         } catch (DataIntegrityViolationException e) {
             throw new BusinessException(
                     AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_EXISTS
+            );
+        }
+    }
+
+    // 앨범 저장
+    private Album saveAlbum(Album album) {
+        try {
+            return albumRepository.saveAndFlush(album);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(
+                    AlbumApplicationErrorCode.ERR_ALBUM_APPLICATION_ALREADY_PROCESSED
             );
         }
     }

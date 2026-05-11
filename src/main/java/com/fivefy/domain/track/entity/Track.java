@@ -37,6 +37,9 @@ public class Track extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "track_application_id", unique = true)
+    private Long trackApplicationId;
+
     @Column(name = "owner_user_id", nullable = false)
     private Long ownerUserId;
 
@@ -95,6 +98,7 @@ public class Track extends BaseEntity {
      * 자유 창작 트랙 생성
      */
     public static Track createFreeCreation(
+            Long trackApplicationId,
             Long ownerUserId,
             String title,
             String lyrics,
@@ -112,6 +116,7 @@ public class Track extends BaseEntity {
 
         Track track = new Track();
 
+        track.trackApplicationId = trackApplicationId;
         track.ownerUserId = ownerUserId;
         track.trackType = TrackType.FREE_CREATION;
         track.title = title;
@@ -130,6 +135,7 @@ public class Track extends BaseEntity {
      * 정식 발매 트랙 생성
      */
     public static Track createOfficialRelease(
+            Long trackApplicationId,
             Long ownerUserId,
             Long artistId,
             Long albumId,
@@ -156,6 +162,7 @@ public class Track extends BaseEntity {
 
         Track track = new Track();
 
+        track.trackApplicationId = trackApplicationId;
         track.ownerUserId = ownerUserId;
         track.trackType = TrackType.OFFICIAL_RELEASE;
         track.artistId = artistId;

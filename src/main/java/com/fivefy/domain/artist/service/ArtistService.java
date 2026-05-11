@@ -120,7 +120,7 @@ public class ArtistService {
         application.approve(adminId);
 
         // 승인된 신청 기반 아티스트 생성
-        Artist savedArtist = artistRepository.save(createArtist(application));
+        Artist savedArtist = saveArtist(createArtist(application));
 
         return ArtistApplicationApproveResponse.from(application, savedArtist.getId());
     }
@@ -323,6 +323,7 @@ public class ArtistService {
     // 승인된 신청 기반 아티스트 생성
     private Artist createArtist(ArtistApplication application) {
         return Artist.create(
+                application.getId(),
                 application.getRequesterUserId(),
                 application.getRequestedName(),
                 application.getArtistType(),
@@ -338,6 +339,17 @@ public class ArtistService {
         } catch (DataIntegrityViolationException e) {
             throw new BusinessException(
                     ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_EXISTS
+            );
+        }
+    }
+
+    // 아티스트 저장
+    private Artist saveArtist(Artist artist) {
+        try {
+            return artistRepository.saveAndFlush(artist);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(
+                    ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_PROCESSED
             );
         }
     }

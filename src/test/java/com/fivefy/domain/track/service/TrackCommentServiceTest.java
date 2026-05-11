@@ -320,6 +320,7 @@ class TrackCommentServiceTest {
             when(track.getAlbumId()).thenReturn(albumId);
 
             Album album = Album.create(
+                    1L,
                     artistId,
                     "Palette",
                     "정규 앨범",
@@ -735,6 +736,7 @@ class TrackCommentServiceTest {
     // 공개된 앨범 조회 mock 구성
     private void stubPublishedAlbum(Long albumId, Long artistId) {
         Album album = Album.create(
+                1L,
                 artistId,
                 "Palette",
                 "정규 앨범",
@@ -750,6 +752,7 @@ class TrackCommentServiceTest {
     // 삭제되지 않은 아티스트 조회 mock 구성
     private void stubNotDeletedArtist(Long artistId) {
         Artist artist = Artist.create(
+                1L,
                 1L,
                 "아이유",
                 ArtistType.SOLO,

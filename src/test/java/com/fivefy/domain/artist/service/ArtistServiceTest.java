@@ -600,6 +600,7 @@ class ArtistServiceTest {
             ReflectionTestUtils.setField(application, "id", applicationId);
 
             Artist savedArtist = Artist.create(
+                    1L,
                     application.getRequesterUserId(),
                     application.getRequestedName(),
                     application.getArtistType(),
@@ -610,7 +611,7 @@ class ArtistServiceTest {
 
             when(artistApplicationRepository.findByIdForUpdate(applicationId))
                     .thenReturn(Optional.of(application));
-            when(artistRepository.save(any(Artist.class)))
+            when(artistRepository.saveAndFlush(any(Artist.class)))
                     .thenReturn(savedArtist);
 
             ArtistApplicationApproveResponse response =
@@ -656,6 +657,31 @@ class ArtistServiceTest {
 
             when(artistApplicationRepository.findByIdForUpdate(applicationId))
                     .thenReturn(Optional.of(application));
+
+            assertThatThrownBy(() -> artistService.approveArtistApplication(adminId, applicationId))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(ArtistApplicationErrorCode.ERR_ARTIST_APPLICATION_ALREADY_PROCESSED.getMessage());
+        }
+
+        @Test
+        @DisplayName("승인 결과 아티스트 저장 중 unique 충돌이 발생하면 승인 실패")
+        void approveArtistApplication_fail_whenArtistSaveConflict() {
+            Long adminId = 1L;
+            Long applicationId = 10L;
+
+            ArtistApplication application = ArtistApplication.create(
+                    2L,
+                    "아이유",
+                    ArtistType.SOLO,
+                    "가수",
+                    "https://example.com/profile.jpg"
+            );
+            ReflectionTestUtils.setField(application, "id", applicationId);
+
+            when(artistApplicationRepository.findByIdForUpdate(applicationId))
+                    .thenReturn(Optional.of(application));
+            when(artistRepository.saveAndFlush(any(Artist.class)))
+                    .thenThrow(new DataIntegrityViolationException("duplicate artist application id"));
 
             assertThatThrownBy(() -> artistService.approveArtistApplication(adminId, applicationId))
                     .isInstanceOf(BusinessException.class)
@@ -759,6 +785,7 @@ class ArtistServiceTest {
                     .thenReturn(java.util.Optional.of(user));
 
             Artist firstArtist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -766,6 +793,7 @@ class ArtistServiceTest {
                     "https://example.com/iu.jpg"
             );
             Artist secondArtist = Artist.create(
+                    1L,
                     userId,
                     "아이유 밴드",
                     ArtistType.COLLABORATION,
@@ -849,6 +877,7 @@ class ArtistServiceTest {
 
             Artist artist = Artist.create(
                     1L,
+                    1L,
                     "아이유",
                     ArtistType.SOLO,
                     "가수",
@@ -898,6 +927,7 @@ class ArtistServiceTest {
 
             Artist artist = Artist.create(
                     1L,
+                    1L,
                     "아이유",
                     ArtistType.SOLO,
                     "가수",
@@ -936,6 +966,7 @@ class ArtistServiceTest {
             );
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -980,6 +1011,7 @@ class ArtistServiceTest {
             );
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -1014,6 +1046,7 @@ class ArtistServiceTest {
             );
 
             Artist artist = Artist.create(
+                    1L,
                     10L,
                     "아이유",
                     ArtistType.SOLO,
@@ -1046,6 +1079,7 @@ class ArtistServiceTest {
             );
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -1113,6 +1147,7 @@ class ArtistServiceTest {
             Long artistId = 1L;
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -1150,6 +1185,7 @@ class ArtistServiceTest {
             Long artistId = 1L;
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -1178,6 +1214,7 @@ class ArtistServiceTest {
             Long artistId = 1L;
 
             Artist artist = Artist.create(
+                    1L,
                     10L,
                     "아이유",
                     ArtistType.SOLO,
@@ -1207,6 +1244,7 @@ class ArtistServiceTest {
             Long artistId = 1L;
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -1266,6 +1304,7 @@ class ArtistServiceTest {
             Long artistId = 1L;
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -1293,6 +1332,7 @@ class ArtistServiceTest {
             Long artistId = 1L;
 
             Artist artist = Artist.create(
+                    1L,
                     10L,
                     "아이유",
                     ArtistType.SOLO,
@@ -1326,6 +1366,7 @@ class ArtistServiceTest {
             Long artistId = 1L;
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -1376,6 +1417,7 @@ class ArtistServiceTest {
             Long artistId = 1L;
 
             Artist artist = Artist.create(
+                    1L,
                     userId,
                     "아이유",
                     ArtistType.SOLO,
@@ -1402,6 +1444,7 @@ class ArtistServiceTest {
             Long artistId = 1L;
 
             Artist artist = Artist.create(
+                    1L,
                     10L,
                     "아이유",
                     ArtistType.SOLO,

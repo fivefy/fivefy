@@ -2,12 +2,9 @@ package com.fivefy.domain.track.controller;
 
 import com.fivefy.common.config.security.JwtUtil;
 import com.fivefy.common.docs.RestDocsSupport;
-import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.dto.response.SliceResponse;
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.common.filter.LastActiveAtFilter;
-import com.fivefy.domain.artist.enums.ArtistErrorCode;
-import com.fivefy.domain.track.dto.response.ArtistFreeCreationTrackResponse;
 import com.fivefy.domain.track.dto.response.PublicTrackListResponse;
 import com.fivefy.domain.track.dto.response.TrackCommentResponse;
 import com.fivefy.domain.track.dto.response.TrackDetailResponse;
@@ -18,7 +15,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.SliceImpl;
@@ -30,7 +26,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.JsonFieldType.*;
@@ -222,109 +217,6 @@ class TrackControllerTest extends RestDocsSupport {
         }
     }
 
-    @Nested
-    @WithMockUser
-    @DisplayName("아티스트별 자유 창작 트랙 목록 조회 API")
-    class GetArtistFreeCreations {
-
-        @Test
-        @DisplayName("아티스트별 자유 창작 트랙 목록 조회 성공")
-        void getArtistFreeCreations_success() throws Exception {
-            Long artistId = 10L;
-
-            ArtistFreeCreationTrackResponse content = new ArtistFreeCreationTrackResponse(
-                    3001L,
-                    "밤편지 AI 버전",
-                    210L,
-                    LocalDateTime.of(2026, 5, 2, 12, 0, 0)
-            );
-
-            PageResponse<ArtistFreeCreationTrackResponse> response = PageResponse.from(
-                    new PageImpl<>(List.of(content), PageRequest.of(0, 20), 1)
-            );
-
-            given(trackService.getArtistFreeCreations(eq(artistId), any(Pageable.class)))
-                    .willReturn(response);
-
-            mockMvc.perform(get("/api/artists/{artistId}/free-creations", artistId)
-                            .param("page", "0")
-                            .param("size", "20")
-                            .param("sort", "publishedAt,desc"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.success").value(true))
-                    .andExpect(jsonPath("$.message").value("아티스트별 자유 창작 트랙 목록 조회 성공"))
-                    .andExpect(jsonPath("$.data.content[0].trackId").value(3001L))
-                    .andExpect(jsonPath("$.data.content[0].title").value("밤편지 AI 버전"))
-                    .andExpect(jsonPath("$.data.page").value(0))
-                    .andExpect(jsonPath("$.data.size").value(20))
-                    .andExpect(jsonPath("$.data.totalElements").value(1))
-                    .andExpect(jsonPath("$.data.totalPages").value(1))
-                    .andDo(document("artists-free-creations-get",
-                            pathParameters(
-                                    parameterWithName("artistId").description("아티스트 ID")
-                            ),
-                            queryParameters(
-                                    parameterWithName("page").optional().description("페이지 번호"),
-                                    parameterWithName("size").optional().description("페이지 크기"),
-                                    parameterWithName("sort").optional().description("정렬 조건")
-                            ),
-                            responseFields(
-                                    baseSuccessResponseFields()
-                            ).and(
-                                    artistFreeCreationTrackResponseFields()
-                            ).and(
-                                    pageResponseFields()
-                            )
-                    ));
-        }
-
-        @Test
-        @DisplayName("아티스트별 자유 창작 트랙 목록 조회 시 존재하지 않는 아티스트이면 404 반환")
-        void getArtistFreeCreations_fail_notFound() throws Exception {
-            Long artistId = 999L;
-
-            given(trackService.getArtistFreeCreations(eq(artistId), any(Pageable.class)))
-                    .willThrow(new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND));
-
-            mockMvc.perform(get("/api/artists/{artistId}/free-creations", artistId))
-                    .andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.message").value(
-                            ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage()
-                    ))
-                    .andDo(document("artists-free-creations-get-not-found",
-                            pathParameters(
-                                    parameterWithName("artistId").description("아티스트 ID")
-                            ),
-                            responseFields(
-                                    baseErrorResponseFields()
-                            )
-                    ));
-        }
-
-        @Test
-        @DisplayName("아티스트별 자유 창작 트랙 목록 조회 시 삭제된 아티스트이면 404 반환")
-        void getArtistFreeCreations_fail_deletedArtist() throws Exception {
-            Long artistId = 10L;
-
-            given(trackService.getArtistFreeCreations(eq(artistId), any(Pageable.class)))
-                    .willThrow(new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND));
-
-            mockMvc.perform(get("/api/artists/{artistId}/free-creations", artistId))
-                    .andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.message").value(
-                            ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage()
-                    ))
-                    .andDo(document("artists-free-creations-get-deleted-artist",
-                            pathParameters(
-                                    parameterWithName("artistId").description("아티스트 ID")
-                            ),
-                            responseFields(
-                                    baseErrorResponseFields()
-                            )
-                    ));
-        }
-    }
-
     private FieldDescriptor[] baseSuccessResponseFields() {
         return new FieldDescriptor[]{
                 fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
@@ -397,16 +289,6 @@ class TrackControllerTest extends RestDocsSupport {
                 fieldWithPath("data.content[].albumTitle").type(STRING).description("앨범 제목").optional(),
                 fieldWithPath("data.content[].durationSec").type(NUMBER).description("재생 시간(초)"),
                 fieldWithPath("data.content[].playCount").type(NUMBER).description("재생 횟수"),
-                fieldWithPath("data.content[].publishedAt").type(STRING).description("공개 시각")
-        };
-    }
-
-    private FieldDescriptor[] artistFreeCreationTrackResponseFields() {
-        return new FieldDescriptor[]{
-                fieldWithPath("data.content").type(ARRAY).description("자유 창작 트랙 목록"),
-                fieldWithPath("data.content[].trackId").type(NUMBER).description("트랙 ID"),
-                fieldWithPath("data.content[].title").type(STRING).description("트랙 제목"),
-                fieldWithPath("data.content[].durationSec").type(NUMBER).description("재생 시간(초)"),
                 fieldWithPath("data.content[].publishedAt").type(STRING).description("공개 시각")
         };
     }

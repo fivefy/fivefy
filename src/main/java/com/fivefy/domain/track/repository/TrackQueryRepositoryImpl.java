@@ -98,43 +98,6 @@ public class TrackQueryRepositoryImpl implements TrackQueryRepository {
     }
 
     /**
-     * 아티스트별 자유 창작 트랙 목록 조회
-     */
-    @Override
-    public Page<Track> searchArtistFreeCreations(Long ownerUserId, Pageable pageable) {
-
-        // 해당 유저가 등록한 공개 자유 창작 트랙만 조회
-        List<Track> content = queryFactory
-                .selectFrom(track)
-                .where(
-                        track.ownerUserId.eq(ownerUserId),
-                        track.trackType.eq(TrackType.FREE_CREATION),
-                        track.status.eq(TrackStatus.PUBLISHED),
-                        track.deletedAt.isNull()
-                )
-                // 최신 공개순 정렬
-                .orderBy(track.publishedAt.desc())
-                // 페이지네이션 적용
-                .offset(pageable.getOffset())
-                .limit(pageable.getPageSize())
-                .fetch();
-
-        // 전체 개수 조회
-        Long total = queryFactory
-                .select(track.count())
-                .from(track)
-                .where(
-                        track.ownerUserId.eq(ownerUserId),
-                        track.trackType.eq(TrackType.FREE_CREATION),
-                        track.status.eq(TrackStatus.PUBLISHED),
-                        track.deletedAt.isNull()
-                )
-                .fetchOne();
-
-        return new PageImpl<>(content, pageable, total == null ? 0 : total);
-    }
-
-    /**
      * 앨범 수록곡 목록 조회
      */
     @Override
