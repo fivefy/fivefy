@@ -16,9 +16,14 @@ public record PlaybackResponse(
         Integer playedDuration,
         LocalDateTime startedAt,
         LocalDateTime lastPlayedAt,
-        LocalDateTime endedAt
+        LocalDateTime endedAt,
+        String audioUrl
 ) {
     public static PlaybackResponse from(Playback playback) {
+        return from(playback, null);
+    }
+
+    public static PlaybackResponse from(Playback playback, String audioUrl) {
         return new PlaybackResponse(
                 playback.getId(),
                 playback.getPlaylistId(),
@@ -30,7 +35,8 @@ public record PlaybackResponse(
                 playback.getPlayedDuration(),
                 playback.getStartedAt(),
                 playback.getLastPlayedAt(),
-                playback.getEndedAt()
+                playback.getEndedAt(),
+                audioUrl
         );
     }
 }
