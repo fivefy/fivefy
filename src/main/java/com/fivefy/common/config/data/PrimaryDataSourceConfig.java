@@ -27,7 +27,7 @@ import java.util.Map;
         entityManagerFactoryRef = "primaryEntityManagerFactory",
         transactionManagerRef = "primaryTransactionManager"
 )
-public class    PrimaryDataSourceConfig {
+public class PrimaryDataSourceConfig {
 
     @Primary
     @Bean
