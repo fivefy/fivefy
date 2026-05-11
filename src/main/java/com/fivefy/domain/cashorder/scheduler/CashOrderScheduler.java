@@ -15,6 +15,8 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -46,14 +48,22 @@ public class CashOrderScheduler {
 
         log.info("[정기충전 스케줄러] 대상 구독 수: {}", targets.size());
 
+
+        // PointOrder 일괄 조회로 N+1 방지
+        List<Long> pointOrderIds = targets.stream()
+               .map(Subscription::getPointOrderId)
+               .distinct()
+               .toList();
+        Map<Long, Long> pointOrderToUserId = pointOrderRepository.findAllById(pointOrderIds)
+               .stream()
+               .collect(Collectors.toMap(PointOrder::getId, PointOrder::getUserId));
+
         int successCount = 0;
         int failCount = 0;
 
         for (Subscription subscription : targets) {
-            // PointOrder를 통해 userId 역추적
-            Long userId = pointOrderRepository.findById(subscription.getPointOrderId())
-                    .map(PointOrder::getUserId)
-                    .orElse(null);
+            // PointOrder를 일괄 조회로 개선 필요
+            Long userId = pointOrderToUserId.get(subscription.getPointOrderId());
 
             if (userId == null) {
                 log.error("[정기충전 스케줄러] PointOrder 조회 실패 — subscriptionId={}",

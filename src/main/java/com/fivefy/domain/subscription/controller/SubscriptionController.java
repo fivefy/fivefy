@@ -67,17 +67,8 @@ public class SubscriptionController {
     public ResponseEntity<String> testRecurring(
             @AuthenticationPrincipal Long userId
     ) {
-        List<Long> pointOrderIds = pointOrderRepository.findAllByUserId(userId)
-                .stream().map(PointOrder::getId).toList();
-
-        Subscription subscription = subscriptionRepository
-                .findAllByPointOrderIdIn(pointOrderIds)
-                .stream()
-                .filter(s -> s.getPlanType() == SubscriptionPlanType.RECURRING_AUTO
-                          && s.getStatus() == SubscriptionStatus.ACTIVE)
-                .findFirst()
-                .orElseThrow(() -> new BusinessException(
-                        SubscriptionErrorCode.ERR_SUBSCRIPTION_RECURRING_NOT_FOUND));
+        // 기능 Service로 옮김
+        Subscription subscription = subscriptionService.findActiveRecurringAutoSubscription(userId);
 
         pointOrderService.processRecurringPayment(subscription, userId);
 

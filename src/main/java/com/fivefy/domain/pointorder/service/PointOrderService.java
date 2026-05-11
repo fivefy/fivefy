@@ -149,7 +149,7 @@ public class PointOrderService {
      * @param subscription 갱신 대상 구독
      * @param userId       PointOrder.getUserId()로 추출한 유저 ID
      */
-    @RedissonLock(key = "'wallet:' + #subscription.userId")
+    @RedissonLock(key = "'wallet:' + #userId")
     @Transactional
     public void processRecurringPayment(Subscription subscription, Long userId) {  // userId 파라미터 추가
         Long price = SubscriptionPlanType.RECURRING.getPrice(); // 50P

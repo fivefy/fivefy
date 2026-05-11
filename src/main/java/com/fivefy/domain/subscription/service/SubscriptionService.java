@@ -154,4 +154,21 @@ public class SubscriptionService {
                 .orElseThrow(() -> new BusinessException(
                         SubscriptionErrorCode.ERR_SUBSCRIPTION_NOT_FOUND));
     }
+
+    /**
+     * SubscriptionController의 기능 옮김
+     *
+     * @param userId
+     * @return
+     */
+    public Subscription findActiveRecurringAutoSubscription(Long userId) {
+        List<Long> pointOrderIds = getPointOrderIds(userId);
+        return subscriptionRepository.findAllByPointOrderIdIn(pointOrderIds)
+                .stream()
+                .filter(s -> s.getPlanType() == SubscriptionPlanType.RECURRING_AUTO
+                          && s.getStatus() == SubscriptionStatus.ACTIVE)
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(
+                        SubscriptionErrorCode.ERR_SUBSCRIPTION_RECURRING_NOT_FOUND));
+    }
 }
