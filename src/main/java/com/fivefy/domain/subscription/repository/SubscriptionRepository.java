@@ -3,7 +3,9 @@ package com.fivefy.domain.subscription.repository;
 import com.fivefy.domain.subscription.entity.Subscription;
 import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
 import com.fivefy.domain.subscription.enums.SubscriptionStatus;
+import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -14,9 +16,20 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
     // 내 구독 조회
     List<Subscription> findAllByUserId(Long userId);
 
-    // 사용자 구독 상태가 체험(FREE) 또는 ACTIVE인지 확인하기 위한 존재 여부 조회
-    boolean existsByUserIdAndStatusIn(Long userId, List<SubscriptionStatus> statuses);
+    // pointOrderId 목록으로 구독 전체 조회 (내 구독 목록)
+    List<Subscription> findAllByPointOrderIdIn(List<Long> pointOrderIds);
 
+    // 구독 상태 확인 — pointOrderId 목록 + 상태 필터
+    @Query("""
+        SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END
+        FROM Subscription s
+        WHERE s.pointOrderId IN :pointOrderIds
+          AND s.status IN :statuses
+        """)
+    boolean existsByPointOrderIdInAndStatusIn(
+            @Param("pointOrderIds") List<Long> pointOrderIds,
+            @Param("statuses") List<SubscriptionStatus> statuses
+    );
     // 테스트 정리 코드
     void deleteAllByUserId(Long userId);
 

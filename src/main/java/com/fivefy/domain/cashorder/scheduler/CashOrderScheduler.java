@@ -2,6 +2,8 @@ package com.fivefy.domain.cashorder.scheduler;
 
 import com.fivefy.domain.billingkey.repository.BillingKeyRepository;
 import com.fivefy.domain.cashorder.service.CashOrderService;
+import com.fivefy.domain.pointorder.entity.PointOrder;
+import com.fivefy.domain.pointorder.repository.PointOrderRepository;
 import com.fivefy.domain.subscription.entity.Subscription;
 import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
 import com.fivefy.domain.subscription.enums.SubscriptionStatus;
@@ -22,6 +24,7 @@ public class CashOrderScheduler {
     private final SubscriptionRepository subscriptionRepository;
     private final BillingKeyRepository billingKeyRepository;
     private final CashOrderService cashOrderService;
+    private final PointOrderRepository pointOrderRepository;
 
     /**
      * 정기 포인트 자동 충전 (빌링키 카드 청구)
@@ -47,17 +50,29 @@ public class CashOrderScheduler {
         int failCount = 0;
 
         for (Subscription subscription : targets) {
+            // PointOrder를 통해 userId 역추적
+            Long userId = pointOrderRepository.findById(subscription.getPointOrderId())
+                    .map(PointOrder::getUserId)
+                    .orElse(null);
+
+            if (userId == null) {
+                log.error("[정기충전 스케줄러] PointOrder 조회 실패 — subscriptionId={}",
+                        subscription.getId());
+                failCount++;
+                continue;
+            }
+
             try {
-                billingKeyRepository.findByUserIdAndActiveTrue(subscription.getUserId())
+                billingKeyRepository.findByUserIdAndActiveTrue(userId)
                         .ifPresentOrElse(
                                 billingKey -> cashOrderService.processRecurringCharge(billingKey),
                                 () -> log.warn("[정기충전 스케줄러] 빌링키 없음 — userId={}",
-                                        subscription.getUserId())
+                                        userId)
                         );
                 successCount++;
             } catch (Exception e) {
-                log.error("[정기충전 스케줄러] 실패 — userId={}, 사유={}",
-                        subscription.getUserId(), e.getMessage());
+                log.error("[정기충전 스케줄러] 실패 — userId={}, subscriptionId={}, 사유={}",
+                                    userId, subscription.getId(), e.getMessage());
                 failCount++;
             }
         }

@@ -9,6 +9,8 @@ import com.fivefy.domain.playlist.dto.response.PlaylistResponse;
 import com.fivefy.domain.playlist.entity.Playlist;
 import com.fivefy.domain.playlist.enums.PlaylistErrorCode;
 import com.fivefy.domain.playlist.repository.PlaylistRepository;
+import com.fivefy.domain.pointorder.entity.PointOrder;
+import com.fivefy.domain.pointorder.repository.PointOrderRepository;
 import com.fivefy.domain.subscription.enums.SubscriptionStatus;
 import com.fivefy.domain.subscription.repository.SubscriptionRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +31,7 @@ public class PlaylistService {
 
     private final PlaylistRepository playlistRepository;
     private final SubscriptionRepository subscriptionRepository;
+    private final PointOrderRepository pointOrderRepository;
 
     @Transactional
     public PlaylistResponse createPlaylist(Long userId, PlaylistCreateRequest request) {
@@ -122,10 +125,14 @@ public class PlaylistService {
 
     private void validateSubscription(Long userId) {
         // 사용자 구독 상태 조회
+        List<Long> pointOrderIds = pointOrderRepository.findAllByUserId(userId)
+                .stream()
+                .map(PointOrder::getId)
+                .toList();
+
         // FREE(체험), ACTIVE(유료) 상태인 경우 유효한 구독으로 판단
-        boolean hasValidSubscription = subscriptionRepository.existsByUserIdAndStatusIn(
-                userId,
-                List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
+        boolean hasValidSubscription = subscriptionRepository.existsByPointOrderIdInAndStatusIn(
+                pointOrderIds, List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)
         );
 
         // 유효한 구독이 없으면 플레이리스트 생성 불가
