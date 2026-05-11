@@ -13,9 +13,6 @@ import java.util.Optional;
 
 public interface SubscriptionRepository extends JpaRepository<Subscription, Long> {
 
-    // 내 구독 조회
-    List<Subscription> findAllByUserId(Long userId);
-
     // pointOrderId 목록으로 구독 전체 조회 (내 구독 목록)
     List<Subscription> findAllByPointOrderIdIn(List<Long> pointOrderIds);
 
@@ -30,8 +27,6 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
             @Param("pointOrderIds") List<Long> pointOrderIds,
             @Param("statuses") List<SubscriptionStatus> statuses
     );
-    // 테스트 정리 코드
-    void deleteAllByUserId(Long userId);
 
     // 정기 구독 자동 결제 스케줄러용 — 결제일이 된 RECURRING 구독 조회
     List<Subscription> findAllByPlanTypeAndStatusAndNextBillingDateBefore(
@@ -46,13 +41,5 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
             // SubscriptionStatus status,
             List<SubscriptionStatus> statuses,
             LocalDateTime now
-    );
-
-
-    // [테스트 전용] 구독 포인트 차감 수동 실행(단건 조회, 취소용)
-    Optional<Subscription> findByUserIdAndPlanTypeAndStatus(
-            Long userId,
-            SubscriptionPlanType planType,
-            SubscriptionStatus status
     );
 }

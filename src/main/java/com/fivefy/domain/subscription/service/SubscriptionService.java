@@ -56,12 +56,22 @@ public class SubscriptionService {
      */
     @Transactional
     public void cancel(Long userId) {
+        // pointOrderId 목록 조회
+        List<Long> pointOrderIds = pointOrderRepository.findAllByUserId(userId)
+                .stream()
+                .map(PointOrder::getId)
+                .toList();
+
+        // planType + status 필터는 stream으로 처리
         Subscription subscription = subscriptionRepository
-                .findByUserIdAndPlanTypeAndStatus(
-                        userId,
-                        SubscriptionPlanType.RECURRING,
-                        SubscriptionStatus.ACTIVE)
-                .orElseThrow(() -> new BusinessException(SubscriptionErrorCode.ERR_SUBSCRIPTION_NOT_FOUND));
+                .findAllByPointOrderIdIn(pointOrderIds)
+                .stream()
+                .filter(s -> s.getPlanType() == SubscriptionPlanType.RECURRING_AUTO
+                        && s.getStatus() == SubscriptionStatus.ACTIVE)
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(
+                        SubscriptionErrorCode.ERR_SUBSCRIPTION_RECURRING_NOT_FOUND
+                ));
 
         subscription.cancel();
 

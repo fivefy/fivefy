@@ -79,7 +79,7 @@ public class SubscriptionController {
                 .orElseThrow(() -> new BusinessException(
                         SubscriptionErrorCode.ERR_SUBSCRIPTION_RECURRING_NOT_FOUND));
 
-        pointOrderService.processRecurringPayment(subscription);
+        pointOrderService.processRecurringPayment(subscription, userId);
 
         return ResponseEntity.ok("구독 포인트 차감 완료 — 구독 상태와 지갑을 조회해서 확인하세요.");
     }

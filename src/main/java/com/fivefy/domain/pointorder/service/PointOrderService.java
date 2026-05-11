@@ -78,11 +78,18 @@ public class PointOrderService {
 
         // 2. RECURRING/RECURRING_AUTO 중복 가입 방지 (ACTIVE만 체크)
         if (planType == SubscriptionPlanType.RECURRING || planType == SubscriptionPlanType.RECURRING_AUTO) {
+            // userId → pointOrderIds 변환 후 구독 목록 조회
+            List<Long> pointOrderIds = pointOrderRepository.findAllByUserId(userId)
+                    .stream()
+                    .map(PointOrder::getId)
+                    .toList();
+
             boolean alreadyActive = subscriptionRepository
-                    .findAllByUserId(userId).stream()
+                    .findAllByPointOrderIdIn(pointOrderIds).stream()
                     .anyMatch(s -> (s.getPlanType() == SubscriptionPlanType.RECURRING
                                         || s.getPlanType() == SubscriptionPlanType.RECURRING_AUTO)
                             && s.getStatus() == SubscriptionStatus.ACTIVE);
+
             if (alreadyActive) {
                 throw new BusinessException(PointOrderErrorCode.ERR_SUBSCRIPTION_ALREADY_ACTIVE);
             }

@@ -2,17 +2,12 @@ package com.fivefy.domain.billingkey.controller;
 
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.billingkey.enums.BillingKeyErrorCode;
-import com.fivefy.domain.subscription.enums.SubscriptionErrorCode;
-import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
-import com.fivefy.domain.subscription.enums.SubscriptionStatus;
-import com.fivefy.domain.subscription.entity.Subscription;
 import com.fivefy.domain.billingkey.dto.BillingKeyRegisterRequest;
 import com.fivefy.domain.billingkey.dto.BillingKeyResponse;
 import com.fivefy.domain.billingkey.entity.BillingKey;
 import com.fivefy.domain.billingkey.repository.BillingKeyRepository;
 import com.fivefy.domain.billingkey.service.BillingKeyService;
 import com.fivefy.domain.cashorder.service.CashOrderService;
-import com.fivefy.domain.subscription.repository.SubscriptionRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +22,6 @@ public class BillingKeyController {
     private final BillingKeyService billingKeyService;
     private final BillingKeyRepository billingKeyRepository;
     private final CashOrderService cashOrderService;
-    private final SubscriptionRepository subscriptionRepository;
 
     /**
      * 카드(빌링키) 등록
