@@ -252,8 +252,6 @@ public class CashOrderService {
          */
         Payment payment = Payment.create(
                 cashOrder,                  // CashOrder 전달 — cashOrderId 내부에서 추출
-                cashOrder.getCashAmount(),
-                cashOrder.getOrderNumber(),
                 pgPaymentId,
                 webhookId
         );
