@@ -131,6 +131,8 @@ class PlaylistServiceTest {
                             PointOrder.create(userId, SubscriptionPlanType.FREE, "SUB-TEST01")
                     ));
 
+            // 수정 전: willReturn(true)  ← 구독이 있다는 뜻 → 예외 발생 안 함
+            // 수정 후: willReturn(false) ← 구독이 없다는 뜻 → 예외 발생
             given(subscriptionRepository.existsByPointOrderIdInAndStatusIn(
                     anyList(),
                     List.of(SubscriptionStatus.FREE, SubscriptionStatus.ACTIVE)

@@ -16,6 +16,9 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
     // pointOrderId 목록으로 구독 전체 조회 (내 구독 목록)
     List<Subscription> findAllByPointOrderIdIn(List<Long> pointOrderIds);
 
+    // pointOrderId 단건으로 구독 조회
+    Optional<Subscription> findByPointOrderId(Long pointOrderId);
+
     // 구독 상태 확인 — pointOrderId 목록 + 상태 필터
     @Query("""
         SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END
@@ -26,6 +29,19 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
     boolean existsByPointOrderIdInAndStatusIn(
             @Param("pointOrderIds") List<Long> pointOrderIds,
             @Param("statuses") List<SubscriptionStatus> statuses
+    );
+
+    // pointOrderId 목록 + planType + 상태로 구독 단건 조회
+    @Query("""
+        SELECT s FROM Subscription s
+        WHERE s.pointOrderId IN :pointOrderIds
+          AND s.planType = :planType
+          AND s.status = :status
+        """)
+    Optional<Subscription> findByPointOrderIdInAndPlanTypeAndStatus(
+            @Param("pointOrderIds") List<Long> pointOrderIds,
+            @Param("planType") SubscriptionPlanType planType,
+            @Param("status") SubscriptionStatus status
     );
 
     // 정기 구독 자동 결제 스케줄러용 — 결제일이 된 RECURRING 구독 조회
@@ -42,4 +58,7 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
             List<SubscriptionStatus> statuses,
             LocalDateTime now
     );
+
+    // 테스트 정리용
+    void deleteAllByPointOrderIdIn(List<Long> pointOrderIds);
 }

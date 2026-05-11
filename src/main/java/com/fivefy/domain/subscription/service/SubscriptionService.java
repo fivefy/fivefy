@@ -36,8 +36,13 @@ public class SubscriptionService {
      */
     @Transactional(readOnly = true)
     public List<SubscriptionResponse> getMySubscriptions(Long userId) {
-        List<Long> pointOrderIds = getPointOrderIds(userId);
+        // 1. userId로 PointOrder 목록 조회
+        List<Long> pointOrderIds = pointOrderRepository.findAllByUserId(userId)
+                .stream()
+                .map(PointOrder::getId)
+                .toList();
 
+        // 2. pointOrderId 목록으로 구독 조회
         return subscriptionRepository.findAllByPointOrderIdIn(pointOrderIds)
                 .stream()
                 .map(SubscriptionResponse::from)
@@ -56,22 +61,20 @@ public class SubscriptionService {
      */
     @Transactional
     public void cancel(Long userId) {
-        // pointOrderId 목록 조회
+        // 1. userId로 PointOrder 목록 조회
         List<Long> pointOrderIds = pointOrderRepository.findAllByUserId(userId)
                 .stream()
                 .map(PointOrder::getId)
                 .toList();
 
-        // planType + status 필터는 stream으로 처리
+        // 2. pointOrderId 목록으로 RECURRING + ACTIVE 구독 조회
         Subscription subscription = subscriptionRepository
-                .findAllByPointOrderIdIn(pointOrderIds)
-                .stream()
-                .filter(s -> s.getPlanType() == SubscriptionPlanType.RECURRING_AUTO
-                        && s.getStatus() == SubscriptionStatus.ACTIVE)
-                .findFirst()
+                .findByPointOrderIdInAndPlanTypeAndStatus(
+                        pointOrderIds,
+                        SubscriptionPlanType.RECURRING,
+                        SubscriptionStatus.ACTIVE)
                 .orElseThrow(() -> new BusinessException(
-                        SubscriptionErrorCode.ERR_SUBSCRIPTION_RECURRING_NOT_FOUND
-                ));
+                        SubscriptionErrorCode.ERR_SUBSCRIPTION_NOT_FOUND));
 
         subscription.cancel();
 

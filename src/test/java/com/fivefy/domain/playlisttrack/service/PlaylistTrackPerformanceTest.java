@@ -26,6 +26,7 @@ import java.util.concurrent.Executors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+// 동시성 테스트라 돌리고 싶으면 주석처리
 @Disabled("성능/동시성 관찰용 테스트 - CI 자동 실행 제외")
 @SpringBootTest
 @ActiveProfiles("test")

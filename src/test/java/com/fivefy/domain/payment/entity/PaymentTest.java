@@ -4,14 +4,27 @@ import com.fivefy.common.exception.BusinessException;
 import com.fivefy.domain.cashorder.entity.CashOrder;
 import com.fivefy.domain.cashorder.enums.CashProductType;
 import com.fivefy.domain.payment.enums.PaymentStatus;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatCode;
 
 class PaymentTest {
+
+    // 모든 테스트에서 공통으로 사용할 CashOrder
+    private CashOrder cashOrder;
+
+    @BeforeEach
+    void setUp() {
+        // CashOrder.create()로 생성하면 @Id(id)가 null
+        // → ReflectionTestUtils로 id를 강제 주입
+        cashOrder = CashOrder.create(1L, CashProductType.PRODUCT_1, "ORD-12345678");
+        ReflectionTestUtils.setField(cashOrder, "id", 1L);
+    }
 
     // ─────────────────────────────────────────
     // create() — 초기 상태 검증
@@ -30,7 +43,7 @@ class PaymentTest {
 
     // ─────────────────────────────────────────
     // complete() — 결제 완료(REQUESTED)    → COMPLETED
-    //              승인(COMPLETED)        → COMPLETED    : 재호출
+    //              승인(COMPLETED)        → COMPLETED(멱등)    : 재호출
     // ─────────────────────────────────────────
 
     @Test
