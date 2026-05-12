@@ -13,7 +13,7 @@ public interface TrackApplicationQueryRepository {
     boolean existsPendingFreeCreationApplication(
             Long requesterUserId,
             String title,
-            String audioUrl
+            String audioKey
     );
 
     boolean existsPendingOfficialReleaseApplication(

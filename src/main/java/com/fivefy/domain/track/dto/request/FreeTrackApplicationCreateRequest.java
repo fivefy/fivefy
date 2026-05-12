@@ -20,9 +20,9 @@ public record FreeTrackApplicationCreateRequest(
         @Size(max = 100, message = "장르는 100자 이하여야 합니다")
         String genre,
 
-        @NotBlank(message = "오디오 URL은 필수입니다")
-        @Size(max = 255, message = "오디오 URL은 255자 이하여야 합니다")
-        String audioUrl,
+        @NotBlank(message = "오디오 Key는 필수입니다")
+        @Size(max = 255, message = "오디오 Key는 255자 이하여야 합니다")
+        String audioKey,
 
         @NotNull(message = "재생 시간은 필수입니다")
         @Positive(message = "재생 시간은 1초 이상이어야 합니다")

@@ -68,7 +68,7 @@ public class TrackService {
         findUser(userId);
 
         // 자유 창작 PENDING 중복 신청 검증
-        validateDuplicateFreeCreationApplication(userId, request.title(), request.audioUrl());
+        validateDuplicateFreeCreationApplication(userId, request.title(), request.audioKey());
 
         // 등록 신청 생성 및 저장
         TrackApplication savedApplication = saveTrackApplication(
@@ -81,7 +81,7 @@ public class TrackService {
                         request.title(),
                         request.lyrics(),
                         request.genre(),
-                        request.audioUrl(),
+                        request.audioKey(),
                         request.durationSec(),
                         null,
                         null
@@ -140,7 +140,7 @@ public class TrackService {
                         request.title(),
                         request.lyrics(),
                         request.genre(),
-                        request.audioUrl(),
+                        request.audioKey(),
                         request.durationSec(),
                         request.featuredArtistText(),
                         request.publishDelayDays()
@@ -436,12 +436,12 @@ public class TrackService {
     private void validateDuplicateFreeCreationApplication(
             Long requesterUserId,
             String title,
-            String audioUrl
+            String audioKey
     ) {
         if (trackApplicationRepository.existsPendingFreeCreationApplication(
                 requesterUserId,
                 title,
-                audioUrl
+                audioKey
         )) {
             throw new BusinessException(
                     TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS
@@ -517,7 +517,7 @@ public class TrackService {
                     application.getTitle(),
                     application.getLyrics(),
                     application.getGenre(),
-                    application.getAudioUrl(),
+                    application.getAudioKey(),
                     application.getDurationSec()
             );
         }
@@ -534,7 +534,7 @@ public class TrackService {
                 application.getTitle(),
                 application.getLyrics(),
                 application.getGenre(),
-                application.getAudioUrl(),
+                application.getAudioKey(),
                 application.getDurationSec(),
                 application.getFeaturedArtistText(),
                 scheduledPublishAt

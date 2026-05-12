@@ -65,8 +65,8 @@ public class Track extends BaseEntity {
     @Column(name = "genre", nullable = false, length = 100)
     private String genre;
 
-    @Column(name = "audio_url", nullable = false, length = 255)
-    private String audioUrl;
+    @Column(name = "audio_key", nullable = false, length = 255)
+    private String audioKey;
 
     @Column(name = "duration_sec", nullable = false)
     private Long durationSec;
@@ -103,13 +103,13 @@ public class Track extends BaseEntity {
             String title,
             String lyrics,
             String genre,
-            String audioUrl,
+            String audioKey,
             Long durationSec
     ) {
         validateNonNull(ownerUserId, "ownerUserId");
         validateNonNull(title, "title");
         validateNonNull(genre, "genre");
-        validateNonNull(audioUrl, "audioUrl");
+        validateNonNull(audioKey, "audioKey");
         validateNonNull(durationSec, "durationSec");
 
         validateDurationSec(durationSec);
@@ -122,7 +122,7 @@ public class Track extends BaseEntity {
         track.title = title;
         track.lyrics = lyrics;
         track.genre = genre;
-        track.audioUrl = audioUrl;
+        track.audioKey = audioKey;
         track.durationSec = durationSec;
         track.status = TrackStatus.PUBLISHED;
         track.publishedAt = LocalDateTime.now();
@@ -143,7 +143,7 @@ public class Track extends BaseEntity {
             String title,
             String lyrics,
             String genre,
-            String audioUrl,
+            String audioKey,
             Long durationSec,
             String featuredArtistText,
             LocalDateTime scheduledPublishAt
@@ -154,7 +154,7 @@ public class Track extends BaseEntity {
         validateNonNull(trackNumber, "trackNumber");
         validateNonNull(title, "title");
         validateNonNull(genre, "genre");
-        validateNonNull(audioUrl, "audioUrl");
+        validateNonNull(audioKey, "audioKey");
         validateNonNull(durationSec, "durationSec");
 
         validateTrackNumber(trackNumber);
@@ -171,7 +171,7 @@ public class Track extends BaseEntity {
         track.title = title;
         track.lyrics = lyrics;
         track.genre = genre;
-        track.audioUrl = audioUrl;
+        track.audioKey = audioKey;
         track.durationSec = durationSec;
         track.featuredArtistText = featuredArtistText;
         track.scheduledPublishAt = scheduledPublishAt;

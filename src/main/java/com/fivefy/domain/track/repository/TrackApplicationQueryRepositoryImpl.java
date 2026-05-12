@@ -33,7 +33,7 @@ public class TrackApplicationQueryRepositoryImpl implements TrackApplicationQuer
     public boolean existsPendingFreeCreationApplication(
             Long requesterUserId,
             String title,
-            String audioUrl
+            String audioKey
     ) {
         Integer result = queryFactory
                 .selectOne()
@@ -45,7 +45,7 @@ public class TrackApplicationQueryRepositoryImpl implements TrackApplicationQuer
                         trackApplication.albumId.isNull(),
                         trackApplication.trackNumber.isNull(),
                         trackApplication.title.eq(title),
-                        trackApplication.audioUrl.eq(audioUrl)
+                        trackApplication.audioKey.eq(audioKey)
                 )
                 .fetchFirst();
 
