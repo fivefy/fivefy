@@ -331,6 +331,125 @@ class PlaybackServiceTest {
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(PlaybackErrorCode.INVALID_PLAYBACK_STATE.getMessage());
         }
+
+        @Test
+        @DisplayName("같은 플레이리스트의 다른 곡 재생 시 예외 발생")
+        void playSamePlaylistDifferentTrack() {
+            // given
+            Long userId = 1L;
+
+            PlaybackPlayRequest request =
+                    new PlaybackPlayRequest(1L, 20L, "session-1", "device-1");
+
+            Playback currentPlayback =
+                    Playback.create(1L, 10L, userId, "session-1", "device-1");
+
+            given(playlistTrackRepository.existsByPlaylistIdAndTrackId(1L, 20L))
+                    .willReturn(true);
+
+            given(playbackRepository.findTopByUserIdAndSessionIdAndStatusOrderByIdDesc(
+                    userId,
+                    "session-1",
+                    PlaybackStatus.PLAYING
+            )).willReturn(Optional.of(currentPlayback));
+
+            // when & then
+            assertThatThrownBy(() -> playbackService.play(userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(PlaybackErrorCode.INVALID_PLAYBACK_STATE.getMessage());
+        }
+
+        @Test
+        @DisplayName("다른 플레이리스트의 같은 곡이 재생 중이면 예외 발생")
+        void playDifferentPlaylistSameTrackWhilePlaying() {
+            // given
+            Long userId = 1L;
+
+            PlaybackPlayRequest request =
+                    new PlaybackPlayRequest(2L, 10L, "session-1", "device-1");
+
+            Playback currentPlayback =
+                    Playback.create(1L, 10L, userId, "session-1", "device-1");
+
+            given(playlistTrackRepository.existsByPlaylistIdAndTrackId(2L, 10L))
+                    .willReturn(true);
+
+            given(playbackRepository.findTopByUserIdAndSessionIdAndStatusOrderByIdDesc(
+                    userId,
+                    "session-1",
+                    PlaybackStatus.PLAYING
+            )).willReturn(Optional.of(currentPlayback));
+
+            // when & then
+            assertThatThrownBy(() -> playbackService.play(userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(PlaybackErrorCode.INVALID_PLAYBACK_STATE.getMessage());
+        }
+
+        @Test
+        @DisplayName("다른 플레이리스트의 다른 곡이 이미 재생 중이면 예외 발생")
+        void playDifferentPlaylistDifferentTrackWhilePlaying() {
+            // given
+            Long userId = 1L;
+
+            PlaybackPlayRequest request =
+                    new PlaybackPlayRequest(2L, 20L, "session-1", "device-1");
+
+            Playback currentPlayback =
+                    Playback.create(1L, 10L, userId, "session-1", "device-1");
+
+            given(playlistTrackRepository.existsByPlaylistIdAndTrackId(2L, 20L))
+                    .willReturn(true);
+
+            given(playbackRepository.findTopByUserIdAndSessionIdAndStatusOrderByIdDesc(
+                    userId,
+                    "session-1",
+                    PlaybackStatus.PLAYING
+            )).willReturn(Optional.of(currentPlayback));
+
+            // when & then
+            assertThatThrownBy(() -> playbackService.play(userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(PlaybackErrorCode.INVALID_PLAYBACK_STATE.getMessage());
+        }
+
+        @Test
+        @DisplayName("기존 재생 이력이 처리할 수 없는 상태면 예외 발생")
+        void playExistingPlaybackInvalidState() {
+            // given
+            Long userId = 1L;
+
+            PlaybackPlayRequest request =
+                    new PlaybackPlayRequest(1L, 10L, "session-1", "device-1");
+
+            Playback playback = mock(Playback.class);
+
+            given(playback.isPaused()).willReturn(false);
+            given(playback.isStopped()).willReturn(false);
+            given(playback.isCompleted()).willReturn(false);
+            given(playback.isSkipped()).willReturn(false);
+
+            given(playlistTrackRepository.existsByPlaylistIdAndTrackId(1L, 10L))
+                    .willReturn(true);
+
+            given(playbackRepository.findTopByUserIdAndSessionIdAndStatusOrderByIdDesc(
+                    userId,
+                    "session-1",
+                    PlaybackStatus.PLAYING
+            )).willReturn(Optional.empty());
+
+            given(playbackRepository.findTopByUserIdAndPlaylistIdAndTrackIdAndSessionIdOrderByIdDesc(
+                    userId,
+                    1L,
+                    10L,
+                    "session-1"
+            )).willReturn(Optional.of(playback));
+
+            // when & then
+            assertThatThrownBy(() -> playbackService.play(userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(PlaybackErrorCode.INVALID_PLAYBACK_STATE.getMessage());
+        }
     }
 
     @Nested
