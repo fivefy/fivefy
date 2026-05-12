@@ -25,6 +25,7 @@ public class PlaybackService {
 
     private final PlaybackRepository playbackRepository;
     private final PlaylistTrackRepository playlistTrackRepository;
+    private final AudioUrlService audioUrlService;
 
     @Transactional
     public PlaybackResponse play(Long userId, PlaybackPlayRequest request) {
@@ -48,8 +49,9 @@ public class PlaybackService {
             }
 
             // 다른 곡이면 기존 재생 종료
-            currentPlayback.stop();
-            playbackRepository.save(currentPlayback);
+            if (currentPlayback != null) {
+                throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
+            }
         }
 
         // 기존 이력 재사용 또는 새로운 playback 생성
@@ -71,7 +73,10 @@ public class PlaybackService {
                 ));
 
         Playback savedPlayback = playbackRepository.save(playback);
-        return PlaybackResponse.from(savedPlayback);
+
+        String audioUrl = audioUrlService.createAudioUrl("example.mp3");
+
+        return PlaybackResponse.from(savedPlayback, audioUrl);
     }
 
     @Transactional
@@ -83,7 +88,7 @@ public class PlaybackService {
             throw new BusinessException(PlaybackErrorCode.CURRENT_PLAYBACK_NOT_FOUND);
         }
 
-        playback.pause();
+        playback.pause(request.playedDuration());
         return PlaybackResponse.from(playback);
     }
 
@@ -96,7 +101,7 @@ public class PlaybackService {
             throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
         }
 
-        playback.stop();
+        playback.stop(request.playedDuration());
         return PlaybackResponse.from(playback);
     }
 
@@ -121,7 +126,7 @@ public class PlaybackService {
         Long nextTrackId = resolveNextTrackId(playlistTracks, currentPlayback.getTrackId());
 
         // 현재 곡 skip 처리
-        currentPlayback.skip();
+        currentPlayback.skip(request.playedDuration());
         playbackRepository.save(currentPlayback);
 
         // 다음 곡 자동 재생
@@ -134,7 +139,10 @@ public class PlaybackService {
         );
 
         Playback savedNextPlayback = playbackRepository.save(nextPlayback);
-        return PlaybackResponse.from(savedNextPlayback);
+
+        String audioUrl = audioUrlService.createAudioUrl("example.mp3");
+
+        return PlaybackResponse.from(savedNextPlayback, audioUrl);
     }
 
     public List<PlaybackResponse> getPlaybackHistory(Long userId) {
