@@ -335,4 +335,43 @@ class PlaybackTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessage(PlaybackErrorCode.INVALID_PLAYBACK_STATE.getMessage());
     }
+
+    @Test
+    @DisplayName("재생 시간 누적 시 시간이 증가하지 않았으면 playedDuration을 증가시키지 않는다")
+    void accumulatePlayedDuration_zero_seconds() {
+        // given
+        Playback playback = Playback.create(1L, 10L, 1L, "session-1", "device-1");
+        ReflectionTestUtils.setField(playback, "lastPlayedAt", LocalDateTime.now().plusSeconds(5));
+
+        // when
+        playback.complete();
+
+        // then
+        assertThat(playback.getStatus()).isEqualTo(PlaybackStatus.COMPLETED);
+        assertThat(playback.getPlayedDuration()).isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("playedDuration이 음수이면 예외 발생")
+    void pause_invalid_playedDuration_negative() {
+        // given
+        Playback playback = Playback.create(1L, 10L, 1L, "session-1", "device-1");
+
+        // when & then
+        assertThatThrownBy(() -> playback.pause(-1))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(PlaybackErrorCode.INVALID_PLAYBACK_STATE.getMessage());
+    }
+
+    @Test
+    @DisplayName("playedDuration이 null이면 예외 발생")
+    void pause_invalid_playedDuration_null() {
+        // given
+        Playback playback = Playback.create(1L, 10L, 1L, "session-1", "device-1");
+
+        // when & then
+        assertThatThrownBy(() -> playback.pause(null))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(PlaybackErrorCode.INVALID_PLAYBACK_STATE.getMessage());
+    }
 }
