@@ -199,7 +199,7 @@ class PlaybackTest {
         ReflectionTestUtils.setField(playback, "lastPlayedAt", LocalDateTime.now().minusSeconds(5));
 
         // when
-        playback.pause();
+        playback.pause(30);
 
         // then
         assertThat(playback.getStatus()).isEqualTo(PlaybackStatus.PAUSED);
@@ -214,7 +214,7 @@ class PlaybackTest {
         ReflectionTestUtils.setField(playback, "status", PlaybackStatus.PAUSED);
 
         // when & then
-        assertThatThrownBy(playback::pause)
+        assertThatThrownBy(() -> playback.pause(30))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage(PlaybackErrorCode.INVALID_PLAYBACK_STATE.getMessage());
     }
@@ -227,7 +227,7 @@ class PlaybackTest {
         ReflectionTestUtils.setField(playback, "lastPlayedAt", LocalDateTime.now().minusSeconds(5));
 
         // when
-        playback.stop();
+        playback.stop(30);
 
         // then
         assertThat(playback.getStatus()).isEqualTo(PlaybackStatus.STOPPED);
@@ -243,7 +243,7 @@ class PlaybackTest {
         ReflectionTestUtils.setField(playback, "status", PlaybackStatus.PAUSED);
 
         // when
-        playback.stop();
+        playback.stop(30);
 
         // then
         assertThat(playback.getStatus()).isEqualTo(PlaybackStatus.STOPPED);
@@ -258,7 +258,7 @@ class PlaybackTest {
         ReflectionTestUtils.setField(playback, "status", PlaybackStatus.STOPPED);
 
         // when & then
-        assertThatThrownBy(playback::stop)
+        assertThatThrownBy(() -> playback.stop(30))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage(PlaybackErrorCode.INVALID_PLAYBACK_STATE.getMessage());
     }
@@ -271,7 +271,7 @@ class PlaybackTest {
         ReflectionTestUtils.setField(playback, "lastPlayedAt", LocalDateTime.now().minusSeconds(5));
 
         // when
-        playback.skip();
+        playback.skip(30);
 
         // then
         assertThat(playback.getStatus()).isEqualTo(PlaybackStatus.SKIPPED);
@@ -287,7 +287,7 @@ class PlaybackTest {
         ReflectionTestUtils.setField(playback, "status", PlaybackStatus.PAUSED);
 
         // when
-        playback.skip();
+        playback.skip(30);
 
         // then
         assertThat(playback.getStatus()).isEqualTo(PlaybackStatus.SKIPPED);
@@ -302,7 +302,7 @@ class PlaybackTest {
         ReflectionTestUtils.setField(playback, "status", PlaybackStatus.STOPPED);
 
         // when & then
-        assertThatThrownBy(playback::skip)
+        assertThatThrownBy(() -> playback.skip(30))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage(PlaybackErrorCode.INVALID_PLAYBACK_STATE.getMessage());
     }
