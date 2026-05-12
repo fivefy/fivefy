@@ -38,6 +38,7 @@ class PlaybackServiceTest {
 
     @Mock private PlaybackRepository playbackRepository;
     @Mock private PlaylistTrackRepository playlistTrackRepository;
+    @Mock private AudioUrlService audioUrlService;
 
     @Nested
     @DisplayName("재생 시작")
@@ -67,6 +68,8 @@ class PlaybackServiceTest {
                     userId, 1L, 10L, "session-1"
             )).willReturn(Optional.empty());
             given(playbackRepository.save(any(Playback.class))).willReturn(playback);
+            given(audioUrlService.createAudioUrl("example.mp3"))
+                    .willReturn("https://example.com/audio.mp3");
 
             // when
             PlaybackResponse result = playbackService.play(userId, request);
@@ -79,6 +82,7 @@ class PlaybackServiceTest {
             assertThat(result.sessionId()).isEqualTo("session-1");
             assertThat(result.deviceId()).isEqualTo("device-1");
             assertThat(result.status()).isEqualTo(PlaybackStatus.PLAYING);
+            assertThat(result.audioUrl()).isEqualTo("https://example.com/audio.mp3");
         }
 
         @Test
@@ -115,6 +119,8 @@ class PlaybackServiceTest {
                     userId, 1L, 10L, "session-1"
             )).willReturn(Optional.of(playback));
             given(playbackRepository.save(any(Playback.class))).willReturn(playback);
+            given(audioUrlService.createAudioUrl("example.mp3"))
+                    .willReturn("https://example.com/audio.mp3");
 
             // when
             PlaybackResponse result = playbackService.play(userId, request);
@@ -122,6 +128,7 @@ class PlaybackServiceTest {
             // then
             assertThat(result.id()).isEqualTo(1L);
             assertThat(result.status()).isEqualTo(PlaybackStatus.PLAYING);
+            assertThat(result.audioUrl()).isEqualTo("https://example.com/audio.mp3");
         }
 
         @Test
@@ -146,6 +153,8 @@ class PlaybackServiceTest {
                     userId, 1L, 10L, "session-1"
             )).willReturn(Optional.of(stoppedPlayback));
             given(playbackRepository.save(any(Playback.class))).willReturn(newPlayback);
+            given(audioUrlService.createAudioUrl("example.mp3"))
+                    .willReturn("https://example.com/audio.mp3");
 
             // when
             PlaybackResponse result = playbackService.play(userId, request);
@@ -153,6 +162,7 @@ class PlaybackServiceTest {
             // then
             assertThat(result.id()).isEqualTo(2L);
             assertThat(result.status()).isEqualTo(PlaybackStatus.PLAYING);
+            assertThat(result.audioUrl()).isEqualTo("https://example.com/audio.mp3");
         }
 
         @Test
@@ -177,6 +187,8 @@ class PlaybackServiceTest {
                     userId, 1L, 10L, "session-1"
             )).willReturn(Optional.of(completedPlayback));
             given(playbackRepository.save(any(Playback.class))).willReturn(newPlayback);
+            given(audioUrlService.createAudioUrl("example.mp3"))
+                    .willReturn("https://example.com/audio.mp3");
 
             // when
             PlaybackResponse result = playbackService.play(userId, request);
@@ -184,6 +196,7 @@ class PlaybackServiceTest {
             // then
             assertThat(result.id()).isEqualTo(2L);
             assertThat(result.status()).isEqualTo(PlaybackStatus.PLAYING);
+            assertThat(result.audioUrl()).isEqualTo("https://example.com/audio.mp3");
         }
 
         @Test
@@ -208,6 +221,8 @@ class PlaybackServiceTest {
                     userId, 1L, 10L, "session-1"
             )).willReturn(Optional.of(skippedPlayback));
             given(playbackRepository.save(any(Playback.class))).willReturn(newPlayback);
+            given(audioUrlService.createAudioUrl("example.mp3"))
+                    .willReturn("https://example.com/audio.mp3");
 
             // when
             PlaybackResponse result = playbackService.play(userId, request);
@@ -215,6 +230,7 @@ class PlaybackServiceTest {
             // then
             assertThat(result.id()).isEqualTo(2L);
             assertThat(result.status()).isEqualTo(PlaybackStatus.PLAYING);
+            assertThat(result.audioUrl()).isEqualTo("https://example.com/audio.mp3");
         }
 
         @Test
@@ -239,7 +255,7 @@ class PlaybackServiceTest {
         }
 
         @Test
-        @DisplayName("같은 세션에서 다른 곡이 재생 중이면 기존 곡 정지 후 새 곡 재생 성공")
+        @DisplayName("같은 세션에서 다른 곡이 재생 중이면 예외 발생")
         void playDifferentTrackWhilePlaying() {
             // given
             Long userId = 1L;
@@ -248,26 +264,15 @@ class PlaybackServiceTest {
             Playback currentPlayback = Playback.create(1L, 10L, userId, "session-1", "device-1");
             ReflectionTestUtils.setField(currentPlayback, "id", 1L);
 
-            Playback newPlayback = Playback.create(1L, 20L, userId, "session-1", "device-1");
-            ReflectionTestUtils.setField(newPlayback, "id", 2L);
-
             given(playlistTrackRepository.existsByPlaylistIdAndTrackId(1L, 20L)).willReturn(true);
             given(playbackRepository.findTopByUserIdAndSessionIdAndStatusOrderByIdDesc(
                     userId, "session-1", PlaybackStatus.PLAYING
             )).willReturn(Optional.of(currentPlayback));
-            given(playbackRepository.findTopByUserIdAndPlaylistIdAndTrackIdAndSessionIdOrderByIdDesc(
-                    userId, 1L, 20L, "session-1"
-            )).willReturn(Optional.empty());
-            given(playbackRepository.save(any(Playback.class))).willReturn(newPlayback);
 
-            // when
-            PlaybackResponse result = playbackService.play(userId, request);
-
-            // then
-            assertThat(currentPlayback.getStatus()).isEqualTo(PlaybackStatus.STOPPED);
-            assertThat(result.id()).isEqualTo(2L);
-            assertThat(result.trackId()).isEqualTo(20L);
-            assertThat(result.status()).isEqualTo(PlaybackStatus.PLAYING);
+            // when & then
+            assertThatThrownBy(() -> playbackService.play(userId, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(PlaybackErrorCode.INVALID_PLAYBACK_STATE.getMessage());
         }
 
         @Test
@@ -291,6 +296,8 @@ class PlaybackServiceTest {
                     userId, 1L, 10L, "session-1"
             )).willReturn(Optional.of(existingPlayingPlayback));
             given(playbackRepository.save(any(Playback.class))).willReturn(newPlayback);
+            given(audioUrlService.createAudioUrl("example.mp3"))
+                    .willReturn("https://example.com/audio.mp3");
 
             // when
             PlaybackResponse result = playbackService.play(userId, request);
@@ -298,6 +305,7 @@ class PlaybackServiceTest {
             // then
             assertThat(result.id()).isEqualTo(2L);
             assertThat(result.status()).isEqualTo(PlaybackStatus.PLAYING);
+            assertThat(result.audioUrl()).isEqualTo("https://example.com/audio.mp3");
         }
 
         @Test
@@ -309,7 +317,6 @@ class PlaybackServiceTest {
 
             Playback currentPlayback = Playback.create(1L, 10L, userId, "session-1", "device-1");
             ReflectionTestUtils.setField(currentPlayback, "id", 1L);
-            // create() 기본 상태 = PLAYING
 
             given(playlistTrackRepository.existsByPlaylistIdAndTrackId(1L, 10L)).willReturn(true);
 
@@ -335,7 +342,7 @@ class PlaybackServiceTest {
         void pauseSuccess() {
             // given
             Long userId = 1L;
-            PlaybackPauseRequest request = new PlaybackPauseRequest(1L);
+            PlaybackPauseRequest request = new PlaybackPauseRequest(1L, 30);
 
             Playback playback = Playback.create(1L, 10L, userId, "session-1", "device-1");
             ReflectionTestUtils.setField(playback, "id", 1L);
@@ -348,6 +355,7 @@ class PlaybackServiceTest {
             // then
             assertThat(result.id()).isEqualTo(1L);
             assertThat(result.status()).isEqualTo(PlaybackStatus.PAUSED);
+            assertThat(result.audioUrl()).isNull();
         }
 
         @Test
@@ -355,7 +363,7 @@ class PlaybackServiceTest {
         void pausePlaybackNotFound() {
             // given
             Long userId = 1L;
-            PlaybackPauseRequest request = new PlaybackPauseRequest(1L);
+            PlaybackPauseRequest request = new PlaybackPauseRequest(1L, 30);
 
             given(playbackRepository.findByIdAndUserId(1L, userId)).willReturn(Optional.empty());
 
@@ -370,7 +378,7 @@ class PlaybackServiceTest {
         void pauseCurrentPlaybackNotFound() {
             // given
             Long userId = 1L;
-            PlaybackPauseRequest request = new PlaybackPauseRequest(1L);
+            PlaybackPauseRequest request = new PlaybackPauseRequest(1L, 30);
 
             Playback playback = Playback.create(1L, 10L, userId, "session-1", "device-1");
             ReflectionTestUtils.setField(playback, "id", 1L);
@@ -394,7 +402,7 @@ class PlaybackServiceTest {
         void stopPlayingSuccess() {
             // given
             Long userId = 1L;
-            PlaybackStopRequest request = new PlaybackStopRequest(1L);
+            PlaybackStopRequest request = new PlaybackStopRequest(1L, 30);
 
             Playback playback = Playback.create(1L, 10L, userId, "session-1", "device-1");
             ReflectionTestUtils.setField(playback, "id", 1L);
@@ -408,6 +416,7 @@ class PlaybackServiceTest {
             assertThat(result.id()).isEqualTo(1L);
             assertThat(result.status()).isEqualTo(PlaybackStatus.STOPPED);
             assertThat(result.endedAt()).isNotNull();
+            assertThat(result.audioUrl()).isNull();
         }
 
         @Test
@@ -415,7 +424,7 @@ class PlaybackServiceTest {
         void stopPausedSuccess() {
             // given
             Long userId = 1L;
-            PlaybackStopRequest request = new PlaybackStopRequest(1L);
+            PlaybackStopRequest request = new PlaybackStopRequest(1L, 30);
 
             Playback playback = Playback.create(1L, 10L, userId, "session-1", "device-1");
             ReflectionTestUtils.setField(playback, "id", 1L);
@@ -430,6 +439,7 @@ class PlaybackServiceTest {
             assertThat(result.id()).isEqualTo(1L);
             assertThat(result.status()).isEqualTo(PlaybackStatus.STOPPED);
             assertThat(result.endedAt()).isNotNull();
+            assertThat(result.audioUrl()).isNull();
         }
 
         @Test
@@ -437,7 +447,7 @@ class PlaybackServiceTest {
         void stopPlaybackNotFound() {
             // given
             Long userId = 1L;
-            PlaybackStopRequest request = new PlaybackStopRequest(1L);
+            PlaybackStopRequest request = new PlaybackStopRequest(1L, 30);
 
             given(playbackRepository.findByIdAndUserId(1L, userId)).willReturn(Optional.empty());
 
@@ -452,7 +462,7 @@ class PlaybackServiceTest {
         void stopInvalidState() {
             // given
             Long userId = 1L;
-            PlaybackStopRequest request = new PlaybackStopRequest(1L);
+            PlaybackStopRequest request = new PlaybackStopRequest(1L, 30);
 
             Playback playback = Playback.create(1L, 10L, userId, "session-1", "device-1");
             ReflectionTestUtils.setField(playback, "id", 1L);
@@ -476,7 +486,7 @@ class PlaybackServiceTest {
         void skipSuccess() {
             // given
             Long userId = 1L;
-            PlaybackSkipRequest request = new PlaybackSkipRequest(1L);
+            PlaybackSkipRequest request = new PlaybackSkipRequest(1L, 30);
 
             Playback currentPlayback = Playback.create(1L, 10L, userId, "session-1", "device-1");
             ReflectionTestUtils.setField(currentPlayback, "id", 1L);
@@ -494,6 +504,8 @@ class PlaybackServiceTest {
             given(playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(1L))
                     .willReturn(List.of(currentTrack, nextTrack));
             given(playbackRepository.save(any(Playback.class))).willReturn(nextPlayback);
+            given(audioUrlService.createAudioUrl("example.mp3"))
+                    .willReturn("https://example.com/audio.mp3");
 
             // when
             PlaybackResponse result = playbackService.skip(userId, request);
@@ -502,6 +514,7 @@ class PlaybackServiceTest {
             assertThat(result.id()).isEqualTo(2L);
             assertThat(result.trackId()).isEqualTo(20L);
             assertThat(result.status()).isEqualTo(PlaybackStatus.PLAYING);
+            assertThat(result.audioUrl()).isEqualTo("https://example.com/audio.mp3");
         }
 
         @Test
@@ -509,7 +522,7 @@ class PlaybackServiceTest {
         void skipWrapAroundSuccess() {
             // given
             Long userId = 1L;
-            PlaybackSkipRequest request = new PlaybackSkipRequest(1L);
+            PlaybackSkipRequest request = new PlaybackSkipRequest(1L, 30);
 
             Playback currentPlayback = Playback.create(1L, 20L, userId, "session-1", "device-1");
             ReflectionTestUtils.setField(currentPlayback, "id", 1L);
@@ -527,6 +540,8 @@ class PlaybackServiceTest {
             given(playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(1L))
                     .willReturn(List.of(firstTrack, lastTrack));
             given(playbackRepository.save(any(Playback.class))).willReturn(nextPlayback);
+            given(audioUrlService.createAudioUrl("example.mp3"))
+                    .willReturn("https://example.com/audio.mp3");
 
             // when
             PlaybackResponse result = playbackService.skip(userId, request);
@@ -534,6 +549,7 @@ class PlaybackServiceTest {
             // then
             assertThat(result.trackId()).isEqualTo(10L);
             assertThat(result.status()).isEqualTo(PlaybackStatus.PLAYING);
+            assertThat(result.audioUrl()).isEqualTo("https://example.com/audio.mp3");
         }
 
         @Test
@@ -541,7 +557,7 @@ class PlaybackServiceTest {
         void skipPlaybackNotFound() {
             // given
             Long userId = 1L;
-            PlaybackSkipRequest request = new PlaybackSkipRequest(1L);
+            PlaybackSkipRequest request = new PlaybackSkipRequest(1L, 30);
 
             given(playbackRepository.findByIdAndUserId(1L, userId)).willReturn(Optional.empty());
 
@@ -556,7 +572,7 @@ class PlaybackServiceTest {
         void skipInvalidState() {
             // given
             Long userId = 1L;
-            PlaybackSkipRequest request = new PlaybackSkipRequest(1L);
+            PlaybackSkipRequest request = new PlaybackSkipRequest(1L, 30);
 
             Playback currentPlayback = Playback.create(1L, 10L, userId, "session-1", "device-1");
             ReflectionTestUtils.setField(currentPlayback, "id", 1L);
@@ -575,7 +591,7 @@ class PlaybackServiceTest {
         void skipPlaylistTrackNotFound() {
             // given
             Long userId = 1L;
-            PlaybackSkipRequest request = new PlaybackSkipRequest(1L);
+            PlaybackSkipRequest request = new PlaybackSkipRequest(1L, 30);
 
             Playback currentPlayback = Playback.create(1L, 10L, userId, "session-1", "device-1");
             ReflectionTestUtils.setField(currentPlayback, "id", 1L);
@@ -595,7 +611,7 @@ class PlaybackServiceTest {
         void skipTrackMismatch() {
             // given
             Long userId = 1L;
-            PlaybackSkipRequest request = new PlaybackSkipRequest(1L);
+            PlaybackSkipRequest request = new PlaybackSkipRequest(1L, 30);
 
             Playback currentPlayback = Playback.create(1L, 999L, userId, "session-1", "device-1");
             ReflectionTestUtils.setField(currentPlayback, "id", 1L);
@@ -621,7 +637,7 @@ class PlaybackServiceTest {
         void skipPausedSuccess() {
             // given
             Long userId = 1L;
-            PlaybackSkipRequest request = new PlaybackSkipRequest(1L);
+            PlaybackSkipRequest request = new PlaybackSkipRequest(1L, 30);
 
             Playback currentPlayback = Playback.create(1L, 10L, userId, "session-1", "device-1");
             ReflectionTestUtils.setField(currentPlayback, "id", 1L);
@@ -640,6 +656,8 @@ class PlaybackServiceTest {
             given(playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(1L))
                     .willReturn(List.of(currentTrack, nextTrack));
             given(playbackRepository.save(any(Playback.class))).willReturn(nextPlayback);
+            given(audioUrlService.createAudioUrl("example.mp3"))
+                    .willReturn("https://example.com/audio.mp3");
 
             // when
             PlaybackResponse result = playbackService.skip(userId, request);
@@ -648,6 +666,7 @@ class PlaybackServiceTest {
             assertThat(result.id()).isEqualTo(2L);
             assertThat(result.trackId()).isEqualTo(20L);
             assertThat(result.status()).isEqualTo(PlaybackStatus.PLAYING);
+            assertThat(result.audioUrl()).isEqualTo("https://example.com/audio.mp3");
         }
     }
 
@@ -679,8 +698,10 @@ class PlaybackServiceTest {
             assertThat(result).hasSize(2);
             assertThat(result.get(0).id()).isEqualTo(2L);
             assertThat(result.get(0).status()).isEqualTo(PlaybackStatus.SKIPPED);
+            assertThat(result.get(0).audioUrl()).isNull();
             assertThat(result.get(1).id()).isEqualTo(1L);
             assertThat(result.get(1).status()).isEqualTo(PlaybackStatus.COMPLETED);
+            assertThat(result.get(1).audioUrl()).isNull();
         }
     }
 }
