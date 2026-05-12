@@ -41,17 +41,9 @@ public class PlaybackService {
                 )
                 .orElse(null);
 
+        // 현재 세션에 이미 재생 중인 곡이 있으면 예외
         if (currentPlayback != null) {
-            // 동일 트랙 중복 재생 방지
-            if (currentPlayback.getPlaylistId().equals(request.playlistId())
-                    && currentPlayback.getTrackId().equals(request.trackId())) {
-                throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
-            }
-
-            // 현재 세션에 이미 재생 중인 곡이 있으면 예외
-            if (currentPlayback != null) {
-                throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
-            }
+            throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
         }
 
         // 기존 playback 재사용 또는 새 playback 생성
