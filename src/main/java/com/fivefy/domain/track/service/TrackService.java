@@ -4,6 +4,7 @@ import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.dto.response.SliceResponse;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
+import com.fivefy.common.storage.AudioStorageService;
 import com.fivefy.domain.album.entity.Album;
 import com.fivefy.domain.album.enums.AlbumErrorCode;
 import com.fivefy.domain.album.enums.AlbumStatus;
@@ -36,6 +37,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -55,6 +57,7 @@ public class TrackService {
     private final TrackCommentRepository trackCommentRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final TrackDetailCacheService trackDetailCacheService;
+    private final AudioStorageService audioStorageService;
 
     /**
      * 자유 창작 트랙 등록 신청
@@ -62,13 +65,16 @@ public class TrackService {
     @Transactional
     public TrackApplicationResponse createFreeTrackApplication(
             Long userId,
-            FreeTrackApplicationCreateRequest request
+            FreeTrackApplicationCreateRequest request,
+            MultipartFile audioFile
     ) {
         // 신청 유저 존재 확인
         findUser(userId);
 
+        String audioKey = audioStorageService.upload(audioFile);
+
         // 자유 창작 PENDING 중복 신청 검증
-        validateDuplicateFreeCreationApplication(userId, request.title(), request.audioKey());
+        validateDuplicateFreeCreationApplication(userId, request.title(), audioKey);
 
         // 등록 신청 생성 및 저장
         TrackApplication savedApplication = saveTrackApplication(
@@ -81,7 +87,7 @@ public class TrackService {
                         request.title(),
                         request.lyrics(),
                         request.genre(),
-                        request.audioKey(),
+                        audioKey,
                         request.durationSec(),
                         null,
                         null
@@ -97,7 +103,8 @@ public class TrackService {
     @Transactional
     public TrackApplicationResponse createOfficialTrackApplication(
             Long userId,
-            OfficialTrackApplicationCreateRequest request
+            OfficialTrackApplicationCreateRequest request,
+            MultipartFile audioFile
     ) {
         // 신청 유저 존재 확인
         findUser(userId);
@@ -129,6 +136,8 @@ public class TrackService {
                 request.title()
         );
 
+        String audioKey = audioStorageService.upload(audioFile);
+
         // 등록 신청 생성 및 저장
         TrackApplication savedApplication = saveTrackApplication(
                 TrackApplication.create(
@@ -140,7 +149,7 @@ public class TrackService {
                         request.title(),
                         request.lyrics(),
                         request.genre(),
-                        request.audioKey(),
+                        audioKey,
                         request.durationSec(),
                         request.featuredArtistText(),
                         request.publishDelayDays()

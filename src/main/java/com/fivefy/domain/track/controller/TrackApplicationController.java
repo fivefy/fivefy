@@ -14,9 +14,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -33,13 +35,17 @@ public class TrackApplicationController {
     /**
      * 자유 창작 트랙 등록 신청 API
      */
-    @PostMapping("/track-applications/free-creations")
+    @PostMapping(
+            value = "/track-applications/free-creations",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
     public ResponseEntity<BaseResponse<TrackApplicationResponse>> createFreeTrackApplication(
             @AuthenticationPrincipal Long userId,
-            @Valid @RequestBody FreeTrackApplicationCreateRequest request
+            @Valid @ModelAttribute FreeTrackApplicationCreateRequest request,
+            @RequestPart MultipartFile audioFile
     ) {
         TrackApplicationResponse response =
-                trackService.createFreeTrackApplication(userId, request);
+                trackService.createFreeTrackApplication(userId, request, audioFile);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 BaseResponse.success(HttpStatus.CREATED, "자유 창작 트랙 등록 신청 성공", response)
@@ -49,13 +55,17 @@ public class TrackApplicationController {
     /**
      * 정식 발매 트랙 등록 신청 API
      */
-    @PostMapping("/track-applications/official-releases")
+    @PostMapping(
+            value = "/track-applications/official-releases",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
     public ResponseEntity<BaseResponse<TrackApplicationResponse>> createOfficialTrackApplication(
             @AuthenticationPrincipal Long userId,
-            @Valid @RequestBody OfficialTrackApplicationCreateRequest request
+            @Valid @ModelAttribute OfficialTrackApplicationCreateRequest request,
+            @RequestPart MultipartFile audioFile
     ) {
         TrackApplicationResponse response =
-                trackService.createOfficialTrackApplication(userId, request);
+                trackService.createOfficialTrackApplication(userId, request, audioFile);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 BaseResponse.success(HttpStatus.CREATED, "정식 발매 트랙 등록 신청 성공", response)
