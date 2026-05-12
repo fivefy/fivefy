@@ -44,6 +44,12 @@ custom:
     postgre:
       enabled: false
 
+storage:
+  audio:
+    type: local
+    prefix: tracks/audio
+    local-root: build/test-audio-storage
+
 kafka:
   bootstrap-servers: localhost:9092,localhost:9093,localhost:9094
 
