@@ -22,8 +22,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.restdocs.payload.FieldDescriptor;
+import org.springframework.restdocs.request.RequestPartDescriptor;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.mock.web.MockMultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,6 +39,7 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.restdocs.request.RequestDocumentation.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -64,14 +67,6 @@ class TrackApplicationControllerTest extends RestDocsSupport {
         @Test
         @DisplayName("자유 창작 트랙 등록 신청 성공")
         void createFreeTrackApplication_success() throws Exception {
-            FreeTrackApplicationCreateRequest request = new FreeTrackApplicationCreateRequest(
-                    "밤편지 AI 버전",
-                    "가사",
-                    "BALLAD",
-                    "https://example.com/audio.mp3",
-                    210L
-            );
-
             TrackApplicationResponse response = new TrackApplicationResponse(
                     1L,
                     TrackType.FREE_CREATION,
@@ -82,19 +77,23 @@ class TrackApplicationControllerTest extends RestDocsSupport {
                     LocalDateTime.of(2026, 4, 19, 18, 0, 0)
             );
 
-            given(trackService.createFreeTrackApplication(any(), any(FreeTrackApplicationCreateRequest.class)))
+            given(trackService.createFreeTrackApplication(any(), any(FreeTrackApplicationCreateRequest.class), any()))
                     .willReturn(response);
 
-            mockMvc.perform(post("/api/track-applications/free-creations")
+            mockMvc.perform(multipart("/api/track-applications/free-creations")
+                            .file(audioFile())
+                            .file(freeRequestPart("밤편지 AI 버전"))
                             .with(csrf().asHeader())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+                            .contentType(MediaType.MULTIPART_FORM_DATA))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("자유 창작 트랙 등록 신청 성공"))
                     .andExpect(jsonPath("$.data.applicationId").value(1L))
                     .andDo(document("track-applications-free-creations-create",
-                            requestFields(
+                            requestParts(
+                                    freeTrackApplicationCreateRequestParts()
+                            ),
+                            requestPartFields("request",
                                     freeTrackApplicationCreateRequestFields()
                             ),
                             responseFields(
@@ -108,26 +107,19 @@ class TrackApplicationControllerTest extends RestDocsSupport {
         @Test
         @DisplayName("제목 없이 생성 요청 시 400 반환")
         void createFreeTrackApplication_fail_withoutTitle() throws Exception {
-            FreeTrackApplicationCreateRequest request = new FreeTrackApplicationCreateRequest(
-                    "",
-                    "가사",
-                    "BALLAD",
-                    "https://example.com/audio.mp3",
-                    210L
-            );
-
-            mockMvc.perform(post("/api/track-applications/free-creations")
+            mockMvc.perform(multipart("/api/track-applications/free-creations")
+                            .file(audioFile())
+                            .file(freeRequestPart(""))
                             .with(csrf().asHeader())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+                            .contentType(MediaType.MULTIPART_FORM_DATA))
                     .andExpect(status().isBadRequest())
                     .andDo(document("track-applications-free-creations-create-invalid",
-                            requestFields(
-                                    fieldWithPath("title").type(STRING).description("트랙 제목 (값 없음)"),
-                                    fieldWithPath("lyrics").type(STRING).description("가사"),
-                                    fieldWithPath("genre").type(STRING).description("장르"),
-                                    fieldWithPath("audioKey").type(STRING).description("오디오 Key"),
-                                    fieldWithPath("durationSec").type(NUMBER).description("재생 시간(초)")
+                            requestParts(
+                                    partWithName("audioFile").description("MP3 오디오 파일"),
+                                    partWithName("request").description("자유 창작 트랙 등록 신청 메타데이터")
+                            ),
+                            requestPartFields("request",
+                                    freeTrackApplicationCreateRequestFields()
                             ),
                             responseFields(
                                     baseErrorResponseFields()
@@ -140,29 +132,25 @@ class TrackApplicationControllerTest extends RestDocsSupport {
         @Test
         @DisplayName("중복 신청 시 409 반환")
         void createFreeTrackApplication_fail_whenAlreadyExists() throws Exception {
-            FreeTrackApplicationCreateRequest request = new FreeTrackApplicationCreateRequest(
-                    "밤편지 AI 버전",
-                    "가사",
-                    "BALLAD",
-                    "https://example.com/audio.mp3",
-                    210L
-            );
-
-            given(trackService.createFreeTrackApplication(any(), any(FreeTrackApplicationCreateRequest.class)))
+            given(trackService.createFreeTrackApplication(any(), any(FreeTrackApplicationCreateRequest.class), any()))
                     .willThrow(new BusinessException(
                             TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS
                     ));
 
-            mockMvc.perform(post("/api/track-applications/free-creations")
+            mockMvc.perform(multipart("/api/track-applications/free-creations")
+                            .file(audioFile())
+                            .file(freeRequestPart("밤편지 AI 버전"))
                             .with(csrf().asHeader())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+                            .contentType(MediaType.MULTIPART_FORM_DATA))
                     .andExpect(status().isConflict())
                     .andExpect(jsonPath("$.message").value(
                             TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS.getMessage()
                     ))
                     .andDo(document("track-applications-free-creations-create-duplicate",
-                            requestFields(
+                            requestParts(
+                                    freeTrackApplicationCreateRequestParts()
+                            ),
+                            requestPartFields("request",
                                     freeTrackApplicationCreateRequestFields()
                             ),
                             responseFields(
@@ -182,19 +170,6 @@ class TrackApplicationControllerTest extends RestDocsSupport {
         @Test
         @DisplayName("정식 발매 트랙 등록 신청 성공")
         void createOfficialTrackApplication_success() throws Exception {
-            OfficialTrackApplicationCreateRequest request = new OfficialTrackApplicationCreateRequest(
-                    10L,
-                    100L,
-                    1L,
-                    "밤편지",
-                    "가사",
-                    "BALLAD",
-                    "https://example.com/audio.mp3",
-                    230L,
-                    "feat. 10cm",
-                    3
-            );
-
             TrackApplicationResponse response = new TrackApplicationResponse(
                     1L,
                     TrackType.OFFICIAL_RELEASE,
@@ -205,20 +180,24 @@ class TrackApplicationControllerTest extends RestDocsSupport {
                     LocalDateTime.of(2026, 4, 19, 18, 0, 0)
             );
 
-            given(trackService.createOfficialTrackApplication(any(), any(OfficialTrackApplicationCreateRequest.class)))
+            given(trackService.createOfficialTrackApplication(any(), any(OfficialTrackApplicationCreateRequest.class), any()))
                     .willReturn(response);
 
-            mockMvc.perform(post("/api/track-applications/official-releases")
+            mockMvc.perform(multipart("/api/track-applications/official-releases")
+                            .file(audioFile())
+                            .file(officialRequestPart("밤편지"))
                             .with(csrf().asHeader())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+                            .contentType(MediaType.MULTIPART_FORM_DATA))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("정식 발매 트랙 등록 신청 성공"))
                     .andExpect(jsonPath("$.data.applicationId").value(1L))
                     .andExpect(jsonPath("$.data.trackType").value("OFFICIAL_RELEASE"))
                     .andDo(document("track-applications-official-releases-create",
-                            requestFields(
+                            requestParts(
+                                    officialTrackApplicationCreateRequestParts()
+                            ),
+                            requestPartFields("request",
                                     officialTrackApplicationCreateRequestFields()
                             ),
                             responseFields(
@@ -232,36 +211,19 @@ class TrackApplicationControllerTest extends RestDocsSupport {
         @Test
         @DisplayName("제목 없이 생성 요청 시 400 반환")
         void createOfficialTrackApplication_fail_withoutTitle() throws Exception {
-            OfficialTrackApplicationCreateRequest request = new OfficialTrackApplicationCreateRequest(
-                    10L,
-                    100L,
-                    1L,
-                    "",
-                    "가사",
-                    "BALLAD",
-                    "https://example.com/audio.mp3",
-                    230L,
-                    "feat. 10cm",
-                    3
-            );
-
-            mockMvc.perform(post("/api/track-applications/official-releases")
+            mockMvc.perform(multipart("/api/track-applications/official-releases")
+                            .file(audioFile())
+                            .file(officialRequestPart(""))
                             .with(csrf().asHeader())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+                            .contentType(MediaType.MULTIPART_FORM_DATA))
                     .andExpect(status().isBadRequest())
                     .andDo(document("track-applications-official-releases-create-invalid",
-                            requestFields(
-                                    fieldWithPath("artistId").type(NUMBER).description("아티스트 ID"),
-                                    fieldWithPath("albumId").type(NUMBER).description("앨범 ID"),
-                                    fieldWithPath("trackNumber").type(NUMBER).description("트랙 번호"),
-                                    fieldWithPath("title").type(STRING).description("트랙 제목 (값 없음)"),
-                                    fieldWithPath("lyrics").type(STRING).description("가사"),
-                                    fieldWithPath("genre").type(STRING).description("장르"),
-                                    fieldWithPath("audioKey").type(STRING).description("오디오 Key"),
-                                    fieldWithPath("durationSec").type(NUMBER).description("재생 시간(초)"),
-                                    fieldWithPath("featuredArtistText").type(STRING).description("피처링 아티스트 정보"),
-                                    fieldWithPath("publishDelayDays").type(NUMBER).description("공개 예약 일수 (0~7)")
+                            requestParts(
+                                    partWithName("audioFile").description("MP3 오디오 파일"),
+                                    partWithName("request").description("정식 발매 트랙 등록 신청 메타데이터")
+                            ),
+                            requestPartFields("request",
+                                    officialTrackApplicationCreateRequestFields()
                             ),
                             responseFields(
                                     baseErrorResponseFields()
@@ -274,34 +236,25 @@ class TrackApplicationControllerTest extends RestDocsSupport {
         @Test
         @DisplayName("중복 신청 시 409 반환")
         void createOfficialTrackApplication_fail_whenAlreadyExists() throws Exception {
-            OfficialTrackApplicationCreateRequest request = new OfficialTrackApplicationCreateRequest(
-                    10L,
-                    100L,
-                    1L,
-                    "밤편지",
-                    "가사",
-                    "BALLAD",
-                    "https://example.com/audio.mp3",
-                    230L,
-                    "feat. 10cm",
-                    3
-            );
-
-            given(trackService.createOfficialTrackApplication(any(), any(OfficialTrackApplicationCreateRequest.class)))
+            given(trackService.createOfficialTrackApplication(any(), any(OfficialTrackApplicationCreateRequest.class), any()))
                     .willThrow(new BusinessException(
                             TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS
                     ));
 
-            mockMvc.perform(post("/api/track-applications/official-releases")
+            mockMvc.perform(multipart("/api/track-applications/official-releases")
+                            .file(audioFile())
+                            .file(officialRequestPart("밤편지"))
                             .with(csrf().asHeader())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+                            .contentType(MediaType.MULTIPART_FORM_DATA))
                     .andExpect(status().isConflict())
                     .andExpect(jsonPath("$.message").value(
                             TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS.getMessage()
                     ))
                     .andDo(document("track-applications-official-releases-create-duplicate",
-                            requestFields(
+                            requestParts(
+                                    officialTrackApplicationCreateRequestParts()
+                            ),
+                            requestPartFields("request",
                                     officialTrackApplicationCreateRequestFields()
                             ),
                             responseFields(
@@ -821,13 +774,72 @@ class TrackApplicationControllerTest extends RestDocsSupport {
         };
     }
 
+    private MockMultipartFile audioFile() {
+        return new MockMultipartFile(
+                "audioFile",
+                "sample.mp3",
+                "audio/mpeg",
+                "audio".getBytes()
+        );
+    }
+
+    private MockMultipartFile freeRequestPart(String title) throws Exception {
+        FreeTrackApplicationCreateRequest request = new FreeTrackApplicationCreateRequest(
+                title,
+                "가사",
+                "BALLAD",
+                210L
+        );
+
+        return new MockMultipartFile(
+                "request",
+                "",
+                MediaType.APPLICATION_JSON_VALUE,
+                objectMapper.writeValueAsBytes(request)
+        );
+    }
+
+    private MockMultipartFile officialRequestPart(String title) throws Exception {
+        OfficialTrackApplicationCreateRequest request = new OfficialTrackApplicationCreateRequest(
+                10L,
+                100L,
+                1L,
+                title,
+                "가사",
+                "BALLAD",
+                230L,
+                "feat. 10cm",
+                3
+        );
+
+        return new MockMultipartFile(
+                "request",
+                "",
+                MediaType.APPLICATION_JSON_VALUE,
+                objectMapper.writeValueAsBytes(request)
+        );
+    }
+
+    private RequestPartDescriptor[] freeTrackApplicationCreateRequestParts() {
+        return new RequestPartDescriptor[]{
+                partWithName("audioFile").description("MP3 오디오 파일"),
+                partWithName("request").description("자유 창작 트랙 등록 신청 메타데이터")
+        };
+    }
+
     private FieldDescriptor[] freeTrackApplicationCreateRequestFields() {
         return new FieldDescriptor[]{
                 fieldWithPath("title").type(STRING).description("트랙 제목"),
                 fieldWithPath("lyrics").type(STRING).description("가사"),
                 fieldWithPath("genre").type(STRING).description("장르"),
-                fieldWithPath("audioKey").type(STRING).description("오디오 Key"),
                 fieldWithPath("durationSec").type(NUMBER).description("재생 시간(초)")
+        };
+    }
+
+    private RequestPartDescriptor[] officialTrackApplicationCreateRequestParts() {
+        return new RequestPartDescriptor[]{
+                partWithName("audioFile").description("MP3 오디오 파일"),
+                partWithName("request").description("정식 발매 트랙 등록 신청 메타데이터")
         };
     }
 
@@ -839,7 +851,6 @@ class TrackApplicationControllerTest extends RestDocsSupport {
                 fieldWithPath("title").type(STRING).description("트랙 제목"),
                 fieldWithPath("lyrics").type(STRING).description("가사"),
                 fieldWithPath("genre").type(STRING).description("장르"),
-                fieldWithPath("audioKey").type(STRING).description("오디오 Key"),
                 fieldWithPath("durationSec").type(NUMBER).description("재생 시간(초)"),
                 fieldWithPath("featuredArtistText").type(STRING).description("피처링 아티스트 정보"),
                 fieldWithPath("publishDelayDays").type(NUMBER).description("공개 예약 일수 (0~7)")

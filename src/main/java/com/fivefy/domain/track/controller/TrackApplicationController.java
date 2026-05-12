@@ -41,8 +41,8 @@ public class TrackApplicationController {
     )
     public ResponseEntity<BaseResponse<TrackApplicationResponse>> createFreeTrackApplication(
             @AuthenticationPrincipal Long userId,
-            @Valid @ModelAttribute FreeTrackApplicationCreateRequest request,
-            @RequestPart MultipartFile audioFile
+            @Valid @RequestPart("request") FreeTrackApplicationCreateRequest request,
+            @RequestPart("audioFile") MultipartFile audioFile
     ) {
         TrackApplicationResponse response =
                 trackService.createFreeTrackApplication(userId, request, audioFile);
@@ -61,8 +61,8 @@ public class TrackApplicationController {
     )
     public ResponseEntity<BaseResponse<TrackApplicationResponse>> createOfficialTrackApplication(
             @AuthenticationPrincipal Long userId,
-            @Valid @ModelAttribute OfficialTrackApplicationCreateRequest request,
-            @RequestPart MultipartFile audioFile
+            @Valid @RequestPart("request") OfficialTrackApplicationCreateRequest request,
+            @RequestPart("audioFile") MultipartFile audioFile
     ) {
         TrackApplicationResponse response =
                 trackService.createOfficialTrackApplication(userId, request, audioFile);
