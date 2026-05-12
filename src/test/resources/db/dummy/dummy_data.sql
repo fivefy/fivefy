@@ -190,10 +190,10 @@ INSERT INTO track_release_requests
  genre, audio_key, duration_sec, featured_artist_text, scheduled_publish_at,
  status, reviewed_by_admin_id, reviewed_at, rejection_reason, created_at, updated_at)
 VALUES
-(1, 6, 'OFFICIAL_RELEASE', 1, 1, 1, 'Moonlight Drive', NULL, 'ELECTRONIC', 'https://audio.music.com/req/1.mp3', 234, NULL, NULL, 'APPROVED', 1, '2024-07-26 10:00:00', NULL, '2024-07-25 12:00:00', '2024-07-26 10:00:00'),
-(2, 6, 'OFFICIAL_RELEASE', 1, 1, 2, 'Starfall',        NULL, 'ELECTRONIC', 'https://audio.music.com/req/2.mp3', 198, NULL, NULL, 'APPROVED', 1, '2024-07-26 10:00:00', NULL, '2024-07-25 12:00:00', '2024-07-26 10:00:00'),
-(3, 7, 'OFFICIAL_RELEASE', 2, 3, 1, 'Ocean Soul',      NULL, 'RNB',        'https://audio.music.com/req/3.mp3', 245, NULL, NULL, 'APPROVED', 2, '2024-08-11 10:00:00', NULL, '2024-08-10 12:00:00', '2024-08-11 10:00:00'),
-(4, 6, 'OFFICIAL_RELEASE', 1, 8, 1, 'Aurora Borealis', NULL, 'ELECTRONIC', 'https://audio.music.com/req/4.mp3', 280, NULL, '2025-03-01 00:00:00', 'PENDING', NULL, NULL, NULL, '2025-01-16 10:00:00', '2025-01-16 10:00:00');
+(1, 6, 'OFFICIAL_RELEASE', 1, 1, 1, 'Moonlight Drive', NULL, 'ELECTRONIC', 'tracks/audio/request-1.mp3', 234, NULL, NULL, 'APPROVED', 1, '2024-07-26 10:00:00', NULL, '2024-07-25 12:00:00', '2024-07-26 10:00:00'),
+(2, 6, 'OFFICIAL_RELEASE', 1, 1, 2, 'Starfall',        NULL, 'ELECTRONIC', 'tracks/audio/request-2.mp3', 198, NULL, NULL, 'APPROVED', 1, '2024-07-26 10:00:00', NULL, '2024-07-25 12:00:00', '2024-07-26 10:00:00'),
+(3, 7, 'OFFICIAL_RELEASE', 2, 3, 1, 'Ocean Soul',      NULL, 'RNB',        'tracks/audio/request-3.mp3', 245, NULL, NULL, 'APPROVED', 2, '2024-08-11 10:00:00', NULL, '2024-08-10 12:00:00', '2024-08-11 10:00:00'),
+(4, 6, 'OFFICIAL_RELEASE', 1, 8, 1, 'Aurora Borealis', NULL, 'ELECTRONIC', 'tracks/audio/request-4.mp3', 280, NULL, '2025-03-01 00:00:00', 'PENDING', NULL, NULL, NULL, '2025-01-16 10:00:00', '2025-01-16 10:00:00');
 
 -- ================================================================
 -- 7. tracks (53개)
@@ -206,67 +206,67 @@ INSERT INTO tracks
  audio_key, duration_sec, featured_artist_text, status, scheduled_publish_at, published_at,
  play_count, created_at, updated_at, deleted_at)
 VALUES
-(1,  6, 'OFFICIAL_RELEASE', 1, 1, 1, 'Moonlight Drive',    '달빛 아래 달려가는 꿈속에서', 'ELECTRONIC', 'https://audio.music.com/1.mp3',  234, NULL, 'PUBLISHED', NULL, '2024-08-01 00:00:00', 15420, '2024-07-26 10:00:00', NOW(), NULL),
-(2,  6, 'OFFICIAL_RELEASE', 1, 1, 2, 'Starfall',           '별이 지는 밤 우리의 이야기',  'ELECTRONIC', 'https://audio.music.com/2.mp3',  198, NULL, 'PUBLISHED', NULL, '2024-08-01 00:00:00', 12300, '2024-07-26 10:00:00', NOW(), NULL),
-(3,  6, 'OFFICIAL_RELEASE', 1, 1, 3, 'Dream Sequence',     NULL,                          'ELECTRONIC', 'https://audio.music.com/3.mp3',  256, NULL, 'PUBLISHED', NULL, '2024-08-01 00:00:00', 9800,  '2024-07-26 10:00:00', NOW(), NULL),
-(4,  6, 'OFFICIAL_RELEASE', 1, 1, 4, 'Neon Pulse',         NULL,                          'ELECTRONIC', 'https://audio.music.com/4.mp3',  245, NULL, 'PUBLISHED', NULL, '2024-08-01 00:00:00', 8200,  '2024-07-26 10:00:00', NOW(), NULL),
-(5,  6, 'OFFICIAL_RELEASE', 1, 1, 5, 'Void Walker',        NULL,                          'ELECTRONIC', 'https://audio.music.com/5.mp3',  220, NULL, 'PUBLISHED', NULL, '2024-08-01 00:00:00', 7100,  '2024-07-26 10:00:00', NOW(), NULL),
-(6,  6, 'OFFICIAL_RELEASE', 1, 1, 6, 'Celestial',          '하늘 위, 별들의 합창',         'ELECTRONIC', 'https://audio.music.com/6.mp3',  287, NULL, 'PUBLISHED', NULL, '2024-08-01 00:00:00', 11500, '2024-07-26 10:00:00', NOW(), NULL),
+(1,  6, 'OFFICIAL_RELEASE', 1, 1, 1, 'Moonlight Drive',    '달빛 아래 달려가는 꿈속에서', 'ELECTRONIC', 'tracks/audio/1.mp3',  234, NULL, 'PUBLISHED', NULL, '2024-08-01 00:00:00', 15420, '2024-07-26 10:00:00', NOW(), NULL),
+(2,  6, 'OFFICIAL_RELEASE', 1, 1, 2, 'Starfall',           '별이 지는 밤 우리의 이야기',  'ELECTRONIC', 'tracks/audio/2.mp3',  198, NULL, 'PUBLISHED', NULL, '2024-08-01 00:00:00', 12300, '2024-07-26 10:00:00', NOW(), NULL),
+(3,  6, 'OFFICIAL_RELEASE', 1, 1, 3, 'Dream Sequence',     NULL,                          'ELECTRONIC', 'tracks/audio/3.mp3',  256, NULL, 'PUBLISHED', NULL, '2024-08-01 00:00:00', 9800,  '2024-07-26 10:00:00', NOW(), NULL),
+(4,  6, 'OFFICIAL_RELEASE', 1, 1, 4, 'Neon Pulse',         NULL,                          'ELECTRONIC', 'tracks/audio/4.mp3',  245, NULL, 'PUBLISHED', NULL, '2024-08-01 00:00:00', 8200,  '2024-07-26 10:00:00', NOW(), NULL),
+(5,  6, 'OFFICIAL_RELEASE', 1, 1, 5, 'Void Walker',        NULL,                          'ELECTRONIC', 'tracks/audio/5.mp3',  220, NULL, 'PUBLISHED', NULL, '2024-08-01 00:00:00', 7100,  '2024-07-26 10:00:00', NOW(), NULL),
+(6,  6, 'OFFICIAL_RELEASE', 1, 1, 6, 'Celestial',          '하늘 위, 별들의 합창',         'ELECTRONIC', 'tracks/audio/6.mp3',  287, NULL, 'PUBLISHED', NULL, '2024-08-01 00:00:00', 11500, '2024-07-26 10:00:00', NOW(), NULL),
 -- 앨범 2 (루나 - Neon Echoes) 5트랙
-(7,  6, 'OFFICIAL_RELEASE', 1, 2, 1, 'City Light',         NULL, 'ELECTRONIC', 'https://audio.music.com/7.mp3',  232, NULL, 'PUBLISHED', NULL, '2024-11-01 00:00:00', 13400, '2024-10-25 10:00:00', NOW(), NULL),
-(8,  6, 'OFFICIAL_RELEASE', 1, 2, 2, 'Neon Rain',          NULL, 'ELECTRONIC', 'https://audio.music.com/8.mp3',  245, NULL, 'PUBLISHED', NULL, '2024-11-01 00:00:00', 10200, '2024-10-25 10:00:00', NOW(), NULL),
-(9,  6, 'OFFICIAL_RELEASE', 1, 2, 3, 'Echo Chamber',       NULL, 'ELECTRONIC', 'https://audio.music.com/9.mp3',  258, NULL, 'PUBLISHED', NULL, '2024-11-01 00:00:00', 8900,  '2024-10-25 10:00:00', NOW(), NULL),
-(10, 6, 'OFFICIAL_RELEASE', 1, 2, 4, 'Signal Lost',        NULL, 'ELECTRONIC', 'https://audio.music.com/10.mp3', 215, NULL, 'PUBLISHED', NULL, '2024-11-01 00:00:00', 7600,  '2024-10-25 10:00:00', NOW(), NULL),
-(11, 6, 'OFFICIAL_RELEASE', 1, 2, 5, 'Final Transmission', NULL, 'ELECTRONIC', 'https://audio.music.com/11.mp3', 270, NULL, 'PUBLISHED', NULL, '2024-11-01 00:00:00', 9300,  '2024-10-25 10:00:00', NOW(), NULL),
+(7,  6, 'OFFICIAL_RELEASE', 1, 2, 1, 'City Light',         NULL, 'ELECTRONIC', 'tracks/audio/7.mp3',  232, NULL, 'PUBLISHED', NULL, '2024-11-01 00:00:00', 13400, '2024-10-25 10:00:00', NOW(), NULL),
+(8,  6, 'OFFICIAL_RELEASE', 1, 2, 2, 'Neon Rain',          NULL, 'ELECTRONIC', 'tracks/audio/8.mp3',  245, NULL, 'PUBLISHED', NULL, '2024-11-01 00:00:00', 10200, '2024-10-25 10:00:00', NOW(), NULL),
+(9,  6, 'OFFICIAL_RELEASE', 1, 2, 3, 'Echo Chamber',       NULL, 'ELECTRONIC', 'tracks/audio/9.mp3',  258, NULL, 'PUBLISHED', NULL, '2024-11-01 00:00:00', 8900,  '2024-10-25 10:00:00', NOW(), NULL),
+(10, 6, 'OFFICIAL_RELEASE', 1, 2, 4, 'Signal Lost',        NULL, 'ELECTRONIC', 'tracks/audio/10.mp3', 215, NULL, 'PUBLISHED', NULL, '2024-11-01 00:00:00', 7600,  '2024-10-25 10:00:00', NOW(), NULL),
+(11, 6, 'OFFICIAL_RELEASE', 1, 2, 5, 'Final Transmission', NULL, 'ELECTRONIC', 'tracks/audio/11.mp3', 270, NULL, 'PUBLISHED', NULL, '2024-11-01 00:00:00', 9300,  '2024-10-25 10:00:00', NOW(), NULL),
 -- 앨범 3 (노바 - Soul Waves) 6트랙
-(12, 7, 'OFFICIAL_RELEASE', 2, 3, 1, 'Ocean Soul',         '바다의 깊이만큼 깊은 마음', 'RNB', 'https://audio.music.com/12.mp3', 245, NULL, 'PUBLISHED', NULL, '2024-08-15 00:00:00', 18200, '2024-08-10 10:00:00', NOW(), NULL),
-(13, 7, 'OFFICIAL_RELEASE', 2, 3, 2, 'Midnight Rain',      '한밤의 빗소리가 나를 감싸', 'RNB', 'https://audio.music.com/13.mp3', 220, NULL, 'PUBLISHED', NULL, '2024-08-15 00:00:00', 14600, '2024-08-10 10:00:00', NOW(), NULL),
-(14, 7, 'OFFICIAL_RELEASE', 2, 3, 3, 'Velvet Whisper',     NULL, 'RNB', 'https://audio.music.com/14.mp3', 262, NULL, 'PUBLISHED', NULL, '2024-08-15 00:00:00', 11300, '2024-08-10 10:00:00', NOW(), NULL),
-(15, 7, 'OFFICIAL_RELEASE', 2, 3, 4, 'Golden Hours',       NULL, 'RNB', 'https://audio.music.com/15.mp3', 248, NULL, 'PUBLISHED', NULL, '2024-08-15 00:00:00', 9800,  '2024-08-10 10:00:00', NOW(), NULL),
-(16, 7, 'OFFICIAL_RELEASE', 2, 3, 5, 'Rhythm of You',      '당신의 리듬에 맞춰 춤을',   'RNB', 'https://audio.music.com/16.mp3', 256, NULL, 'PUBLISHED', NULL, '2024-08-15 00:00:00', 13400, '2024-08-10 10:00:00', NOW(), NULL),
-(17, 7, 'OFFICIAL_RELEASE', 2, 3, 6, 'Fade to Blue',       NULL, 'RNB', 'https://audio.music.com/17.mp3', 269, NULL, 'PUBLISHED', NULL, '2024-08-15 00:00:00', 8700,  '2024-08-10 10:00:00', NOW(), NULL),
+(12, 7, 'OFFICIAL_RELEASE', 2, 3, 1, 'Ocean Soul',         '바다의 깊이만큼 깊은 마음', 'RNB', 'tracks/audio/12.mp3', 245, NULL, 'PUBLISHED', NULL, '2024-08-15 00:00:00', 18200, '2024-08-10 10:00:00', NOW(), NULL),
+(13, 7, 'OFFICIAL_RELEASE', 2, 3, 2, 'Midnight Rain',      '한밤의 빗소리가 나를 감싸', 'RNB', 'tracks/audio/13.mp3', 220, NULL, 'PUBLISHED', NULL, '2024-08-15 00:00:00', 14600, '2024-08-10 10:00:00', NOW(), NULL),
+(14, 7, 'OFFICIAL_RELEASE', 2, 3, 3, 'Velvet Whisper',     NULL, 'RNB', 'tracks/audio/14.mp3', 262, NULL, 'PUBLISHED', NULL, '2024-08-15 00:00:00', 11300, '2024-08-10 10:00:00', NOW(), NULL),
+(15, 7, 'OFFICIAL_RELEASE', 2, 3, 4, 'Golden Hours',       NULL, 'RNB', 'tracks/audio/15.mp3', 248, NULL, 'PUBLISHED', NULL, '2024-08-15 00:00:00', 9800,  '2024-08-10 10:00:00', NOW(), NULL),
+(16, 7, 'OFFICIAL_RELEASE', 2, 3, 5, 'Rhythm of You',      '당신의 리듬에 맞춰 춤을',   'RNB', 'tracks/audio/16.mp3', 256, NULL, 'PUBLISHED', NULL, '2024-08-15 00:00:00', 13400, '2024-08-10 10:00:00', NOW(), NULL),
+(17, 7, 'OFFICIAL_RELEASE', 2, 3, 6, 'Fade to Blue',       NULL, 'RNB', 'tracks/audio/17.mp3', 269, NULL, 'PUBLISHED', NULL, '2024-08-15 00:00:00', 8700,  '2024-08-10 10:00:00', NOW(), NULL),
 -- 앨범 4 (노바 - Warm Silence) 5트랙
-(18, 7, 'OFFICIAL_RELEASE', 2, 4, 1, 'Still Water',  NULL, 'RNB', 'https://audio.music.com/18.mp3', 240, NULL, 'PUBLISHED', NULL, '2025-01-01 00:00:00', 5600, '2024-12-25 10:00:00', NOW(), NULL),
-(19, 7, 'OFFICIAL_RELEASE', 2, 4, 2, 'Morning Dew',  NULL, 'RNB', 'https://audio.music.com/19.mp3', 255, NULL, 'PUBLISHED', NULL, '2025-01-01 00:00:00', 4800, '2024-12-25 10:00:00', NOW(), NULL),
-(20, 7, 'OFFICIAL_RELEASE', 2, 4, 3, 'Gentle Storm', NULL, 'RNB', 'https://audio.music.com/20.mp3', 268, NULL, 'PUBLISHED', NULL, '2025-01-01 00:00:00', 4200, '2024-12-25 10:00:00', NOW(), NULL),
-(21, 7, 'OFFICIAL_RELEASE', 2, 4, 4, 'Soft Thunder', NULL, 'RNB', 'https://audio.music.com/21.mp3', 242, NULL, 'PUBLISHED', NULL, '2025-01-01 00:00:00', 3900, '2024-12-25 10:00:00', NOW(), NULL),
-(22, 7, 'OFFICIAL_RELEASE', 2, 4, 5, 'Lullaby',      NULL, 'RNB', 'https://audio.music.com/22.mp3', 255, NULL, 'PUBLISHED', NULL, '2025-01-01 00:00:00', 5100, '2024-12-25 10:00:00', NOW(), NULL),
+(18, 7, 'OFFICIAL_RELEASE', 2, 4, 1, 'Still Water',  NULL, 'RNB', 'tracks/audio/18.mp3', 240, NULL, 'PUBLISHED', NULL, '2025-01-01 00:00:00', 5600, '2024-12-25 10:00:00', NOW(), NULL),
+(19, 7, 'OFFICIAL_RELEASE', 2, 4, 2, 'Morning Dew',  NULL, 'RNB', 'tracks/audio/19.mp3', 255, NULL, 'PUBLISHED', NULL, '2025-01-01 00:00:00', 4800, '2024-12-25 10:00:00', NOW(), NULL),
+(20, 7, 'OFFICIAL_RELEASE', 2, 4, 3, 'Gentle Storm', NULL, 'RNB', 'tracks/audio/20.mp3', 268, NULL, 'PUBLISHED', NULL, '2025-01-01 00:00:00', 4200, '2024-12-25 10:00:00', NOW(), NULL),
+(21, 7, 'OFFICIAL_RELEASE', 2, 4, 4, 'Soft Thunder', NULL, 'RNB', 'tracks/audio/21.mp3', 242, NULL, 'PUBLISHED', NULL, '2025-01-01 00:00:00', 3900, '2024-12-25 10:00:00', NOW(), NULL),
+(22, 7, 'OFFICIAL_RELEASE', 2, 4, 5, 'Lullaby',      NULL, 'RNB', 'tracks/audio/22.mp3', 255, NULL, 'PUBLISHED', NULL, '2025-01-01 00:00:00', 5100, '2024-12-25 10:00:00', NOW(), NULL),
 -- 앨범 5 (에코 - Forest Tales) 6트랙
-(23, 8, 'OFFICIAL_RELEASE', 3, 5, 1, 'Pine Road',    NULL, 'FOLK', 'https://audio.music.com/23.mp3', 218, NULL, 'PUBLISHED', NULL, '2024-09-01 00:00:00', 7200, '2024-08-25 10:00:00', NOW(), NULL),
-(24, 8, 'OFFICIAL_RELEASE', 3, 5, 2, 'Maple Song',   '단풍잎이 떨어지는 계절', 'FOLK', 'https://audio.music.com/24.mp3', 232, NULL, 'PUBLISHED', NULL, '2024-09-01 00:00:00', 6800, '2024-08-25 10:00:00', NOW(), NULL),
-(25, 8, 'OFFICIAL_RELEASE', 3, 5, 3, 'River Echo',   NULL, 'FOLK', 'https://audio.music.com/25.mp3', 245, NULL, 'PUBLISHED', NULL, '2024-09-01 00:00:00', 5600, '2024-08-25 10:00:00', NOW(), NULL),
-(26, 8, 'OFFICIAL_RELEASE', 3, 5, 4, 'Stone Valley', NULL, 'FOLK', 'https://audio.music.com/26.mp3', 228, NULL, 'PUBLISHED', NULL, '2024-09-01 00:00:00', 4900, '2024-08-25 10:00:00', NOW(), NULL),
-(27, 8, 'OFFICIAL_RELEASE', 3, 5, 5, 'Birch Forest', '자작나무 숲을 걷는 기억', 'FOLK', 'https://audio.music.com/27.mp3', 236, NULL, 'PUBLISHED', NULL, '2024-09-01 00:00:00', 5300, '2024-08-25 10:00:00', NOW(), NULL),
-(28, 8, 'OFFICIAL_RELEASE', 3, 5, 6, 'Mountain Dusk',NULL, 'FOLK', 'https://audio.music.com/28.mp3', 221, NULL, 'PUBLISHED', NULL, '2024-09-01 00:00:00', 4700, '2024-08-25 10:00:00', NOW(), NULL),
+(23, 8, 'OFFICIAL_RELEASE', 3, 5, 1, 'Pine Road',    NULL, 'FOLK', 'tracks/audio/23.mp3', 218, NULL, 'PUBLISHED', NULL, '2024-09-01 00:00:00', 7200, '2024-08-25 10:00:00', NOW(), NULL),
+(24, 8, 'OFFICIAL_RELEASE', 3, 5, 2, 'Maple Song',   '단풍잎이 떨어지는 계절', 'FOLK', 'tracks/audio/24.mp3', 232, NULL, 'PUBLISHED', NULL, '2024-09-01 00:00:00', 6800, '2024-08-25 10:00:00', NOW(), NULL),
+(25, 8, 'OFFICIAL_RELEASE', 3, 5, 3, 'River Echo',   NULL, 'FOLK', 'tracks/audio/25.mp3', 245, NULL, 'PUBLISHED', NULL, '2024-09-01 00:00:00', 5600, '2024-08-25 10:00:00', NOW(), NULL),
+(26, 8, 'OFFICIAL_RELEASE', 3, 5, 4, 'Stone Valley', NULL, 'FOLK', 'tracks/audio/26.mp3', 228, NULL, 'PUBLISHED', NULL, '2024-09-01 00:00:00', 4900, '2024-08-25 10:00:00', NOW(), NULL),
+(27, 8, 'OFFICIAL_RELEASE', 3, 5, 5, 'Birch Forest', '자작나무 숲을 걷는 기억', 'FOLK', 'tracks/audio/27.mp3', 236, NULL, 'PUBLISHED', NULL, '2024-09-01 00:00:00', 5300, '2024-08-25 10:00:00', NOW(), NULL),
+(28, 8, 'OFFICIAL_RELEASE', 3, 5, 6, 'Mountain Dusk',NULL, 'FOLK', 'tracks/audio/28.mp3', 221, NULL, 'PUBLISHED', NULL, '2024-09-01 00:00:00', 4700, '2024-08-25 10:00:00', NOW(), NULL),
 -- 앨범 6 (던 - City Bars) 6트랙
-(29, 9, 'OFFICIAL_RELEASE', 4, 6, 1, 'Seoul Night',       NULL, 'HIPHOP', 'https://audio.music.com/29.mp3', 198, NULL, 'PUBLISHED', NULL, '2024-09-15 00:00:00', 9400,  '2024-09-10 10:00:00', NOW(), NULL),
-(30, 9, 'OFFICIAL_RELEASE', 4, 6, 2, 'Concrete Jungle',   NULL, 'HIPHOP', 'https://audio.music.com/30.mp3', 215, NULL, 'PUBLISHED', NULL, '2024-09-15 00:00:00', 8200,  '2024-09-10 10:00:00', NOW(), NULL),
-(31, 9, 'OFFICIAL_RELEASE', 4, 6, 3, 'Flow State',        NULL, 'HIPHOP', 'https://audio.music.com/31.mp3', 224, NULL, 'PUBLISHED', NULL, '2024-09-15 00:00:00', 7600,  '2024-09-10 10:00:00', NOW(), NULL),
-(32, 9, 'OFFICIAL_RELEASE', 4, 6, 4, 'Late Night Drive',  NULL, 'HIPHOP', 'https://audio.music.com/32.mp3', 232, NULL, 'PUBLISHED', NULL, '2024-09-15 00:00:00', 6900,  '2024-09-10 10:00:00', NOW(), NULL),
-(33, 9, 'OFFICIAL_RELEASE', 4, 6, 5, 'Street Philosophy', NULL, 'HIPHOP', 'https://audio.music.com/33.mp3', 245, NULL, 'PUBLISHED', NULL, '2024-09-15 00:00:00', 8100,  '2024-09-10 10:00:00', NOW(), NULL),
-(34, 9, 'OFFICIAL_RELEASE', 4, 6, 6, 'Outro: Dawn',       NULL, 'HIPHOP', 'https://audio.music.com/34.mp3', 206, NULL, 'PUBLISHED', NULL, '2024-09-15 00:00:00', 5800,  '2024-09-10 10:00:00', NOW(), NULL),
+(29, 9, 'OFFICIAL_RELEASE', 4, 6, 1, 'Seoul Night',       NULL, 'HIPHOP', 'tracks/audio/29.mp3', 198, NULL, 'PUBLISHED', NULL, '2024-09-15 00:00:00', 9400,  '2024-09-10 10:00:00', NOW(), NULL),
+(30, 9, 'OFFICIAL_RELEASE', 4, 6, 2, 'Concrete Jungle',   NULL, 'HIPHOP', 'tracks/audio/30.mp3', 215, NULL, 'PUBLISHED', NULL, '2024-09-15 00:00:00', 8200,  '2024-09-10 10:00:00', NOW(), NULL),
+(31, 9, 'OFFICIAL_RELEASE', 4, 6, 3, 'Flow State',        NULL, 'HIPHOP', 'tracks/audio/31.mp3', 224, NULL, 'PUBLISHED', NULL, '2024-09-15 00:00:00', 7600,  '2024-09-10 10:00:00', NOW(), NULL),
+(32, 9, 'OFFICIAL_RELEASE', 4, 6, 4, 'Late Night Drive',  NULL, 'HIPHOP', 'tracks/audio/32.mp3', 232, NULL, 'PUBLISHED', NULL, '2024-09-15 00:00:00', 6900,  '2024-09-10 10:00:00', NOW(), NULL),
+(33, 9, 'OFFICIAL_RELEASE', 4, 6, 5, 'Street Philosophy', NULL, 'HIPHOP', 'tracks/audio/33.mp3', 245, NULL, 'PUBLISHED', NULL, '2024-09-15 00:00:00', 8100,  '2024-09-10 10:00:00', NOW(), NULL),
+(34, 9, 'OFFICIAL_RELEASE', 4, 6, 6, 'Outro: Dawn',       NULL, 'HIPHOP', 'tracks/audio/34.mp3', 206, NULL, 'PUBLISHED', NULL, '2024-09-15 00:00:00', 5800,  '2024-09-10 10:00:00', NOW(), NULL),
 -- 앨범 7 (펄스 - Energy Field) 6트랙
-(35, 10,'OFFICIAL_RELEASE', 5, 7, 1, 'Drop Zone',         NULL, 'EDM', 'https://audio.music.com/35.mp3', 198, NULL, 'PUBLISHED', NULL, '2024-10-01 00:00:00', 11200, '2024-09-25 10:00:00', NOW(), NULL),
-(36, 10,'OFFICIAL_RELEASE', 5, 7, 2, 'Bass Rush',         NULL, 'EDM', 'https://audio.music.com/36.mp3', 215, NULL, 'PUBLISHED', NULL, '2024-10-01 00:00:00', 9800,  '2024-09-25 10:00:00', NOW(), NULL),
-(37, 10,'OFFICIAL_RELEASE', 5, 7, 3, 'Voltage',           NULL, 'EDM', 'https://audio.music.com/37.mp3', 245, NULL, 'PUBLISHED', NULL, '2024-10-01 00:00:00', 8600,  '2024-09-25 10:00:00', NOW(), NULL),
-(38, 10,'OFFICIAL_RELEASE', 5, 7, 4, 'Overdrive',         NULL, 'EDM', 'https://audio.music.com/38.mp3', 256, NULL, 'PUBLISHED', NULL, '2024-10-01 00:00:00', 7400,  '2024-09-25 10:00:00', NOW(), NULL),
-(39, 10,'OFFICIAL_RELEASE', 5, 7, 5, 'Circuit Breaker',   NULL, 'EDM', 'https://audio.music.com/39.mp3', 232, NULL, 'PUBLISHED', NULL, '2024-10-01 00:00:00', 9100,  '2024-09-25 10:00:00', NOW(), NULL),
-(40, 10,'OFFICIAL_RELEASE', 5, 7, 6, 'Power Down',        NULL, 'EDM', 'https://audio.music.com/40.mp3', 294, NULL, 'PUBLISHED', NULL, '2024-10-01 00:00:00', 6300,  '2024-09-25 10:00:00', NOW(), NULL),
+(35, 10,'OFFICIAL_RELEASE', 5, 7, 1, 'Drop Zone',         NULL, 'EDM', 'tracks/audio/35.mp3', 198, NULL, 'PUBLISHED', NULL, '2024-10-01 00:00:00', 11200, '2024-09-25 10:00:00', NOW(), NULL),
+(36, 10,'OFFICIAL_RELEASE', 5, 7, 2, 'Bass Rush',         NULL, 'EDM', 'tracks/audio/36.mp3', 215, NULL, 'PUBLISHED', NULL, '2024-10-01 00:00:00', 9800,  '2024-09-25 10:00:00', NOW(), NULL),
+(37, 10,'OFFICIAL_RELEASE', 5, 7, 3, 'Voltage',           NULL, 'EDM', 'tracks/audio/37.mp3', 245, NULL, 'PUBLISHED', NULL, '2024-10-01 00:00:00', 8600,  '2024-09-25 10:00:00', NOW(), NULL),
+(38, 10,'OFFICIAL_RELEASE', 5, 7, 4, 'Overdrive',         NULL, 'EDM', 'tracks/audio/38.mp3', 256, NULL, 'PUBLISHED', NULL, '2024-10-01 00:00:00', 7400,  '2024-09-25 10:00:00', NOW(), NULL),
+(39, 10,'OFFICIAL_RELEASE', 5, 7, 5, 'Circuit Breaker',   NULL, 'EDM', 'tracks/audio/39.mp3', 232, NULL, 'PUBLISHED', NULL, '2024-10-01 00:00:00', 9100,  '2024-09-25 10:00:00', NOW(), NULL),
+(40, 10,'OFFICIAL_RELEASE', 5, 7, 6, 'Power Down',        NULL, 'EDM', 'tracks/audio/40.mp3', 294, NULL, 'PUBLISHED', NULL, '2024-10-01 00:00:00', 6300,  '2024-09-25 10:00:00', NOW(), NULL),
 -- FREE_CREATION 트랙 10개
-(41, 20,'FREE_CREATION', NULL, NULL, NULL, '봄날의 기억',    '봄이 오면 생각나는 그 사람', 'INDIE',        'https://audio.music.com/41.mp3', 185, NULL, 'PUBLISHED', NULL, '2024-10-10 00:00:00', 2100, '2024-10-10 10:00:00', NOW(), NULL),
-(42, 21,'FREE_CREATION', NULL, NULL, NULL, '여름밤',         NULL,                          'INDIE',        'https://audio.music.com/42.mp3', 195, NULL, 'PUBLISHED', NULL, '2024-10-15 00:00:00', 1800, '2024-10-15 10:00:00', NOW(), NULL),
-(43, 22,'FREE_CREATION', NULL, NULL, NULL, 'Guitar Loop #1', NULL,                          'INSTRUMENTAL', 'https://audio.music.com/43.mp3', 210, NULL, 'PUBLISHED', NULL, '2024-11-01 00:00:00', 1500, '2024-11-01 10:00:00', NOW(), NULL),
-(44, 23,'FREE_CREATION', NULL, NULL, NULL, 'Piano Sketch',   NULL,                          'INSTRUMENTAL', 'https://audio.music.com/44.mp3', 240, NULL, 'PUBLISHED', NULL, '2024-11-05 00:00:00', 1200, '2024-11-05 10:00:00', NOW(), NULL),
-(45, 24,'FREE_CREATION', NULL, NULL, NULL, '카페에서',        '커피 한 잔 마시며',           'JAZZ',         'https://audio.music.com/45.mp3', 225, NULL, 'PUBLISHED', NULL, '2024-11-10 00:00:00', 900,  '2024-11-10 10:00:00', NOW(), NULL),
-(46, 25,'FREE_CREATION', NULL, NULL, NULL, '산책',           NULL,                          'AMBIENT',      'https://audio.music.com/46.mp3', 300, NULL, 'PUBLISHED', NULL, '2024-11-15 00:00:00', 750,  '2024-11-15 10:00:00', NOW(), NULL),
-(47, 26,'FREE_CREATION', NULL, NULL, NULL, 'Rainy Day',      NULL,                          'AMBIENT',      'https://audio.music.com/47.mp3', 312, NULL, 'PUBLISHED', NULL, '2024-11-20 00:00:00', 680,  '2024-11-20 10:00:00', NOW(), NULL),
-(48, 27,'FREE_CREATION', NULL, NULL, NULL, '첫 눈',          '첫 눈이 내리는 날',           'INDIE',        'https://audio.music.com/48.mp3', 202, NULL, 'PUBLISHED', NULL, '2024-12-01 00:00:00', 1400, '2024-12-01 10:00:00', NOW(), NULL),
-(49, 28,'FREE_CREATION', NULL, NULL, NULL, '별 헤는 밤',     NULL,                          'INDIE',        'https://audio.music.com/49.mp3', 218, NULL, 'PUBLISHED', NULL, '2024-12-10 00:00:00', 1100, '2024-12-10 10:00:00', NOW(), NULL),
-(50, 29,'FREE_CREATION', NULL, NULL, NULL, 'Loop Study',     NULL,                          'ELECTRONIC',   'https://audio.music.com/50.mp3', 180, NULL, 'PUBLISHED', NULL, '2025-01-05 00:00:00', 890,  '2025-01-05 10:00:00', NOW(), NULL),
+(41, 20,'FREE_CREATION', NULL, NULL, NULL, '봄날의 기억',    '봄이 오면 생각나는 그 사람', 'INDIE',        'tracks/audio/41.mp3', 185, NULL, 'PUBLISHED', NULL, '2024-10-10 00:00:00', 2100, '2024-10-10 10:00:00', NOW(), NULL),
+(42, 21,'FREE_CREATION', NULL, NULL, NULL, '여름밤',         NULL,                          'INDIE',        'tracks/audio/42.mp3', 195, NULL, 'PUBLISHED', NULL, '2024-10-15 00:00:00', 1800, '2024-10-15 10:00:00', NOW(), NULL),
+(43, 22,'FREE_CREATION', NULL, NULL, NULL, 'Guitar Loop #1', NULL,                          'INSTRUMENTAL', 'tracks/audio/43.mp3', 210, NULL, 'PUBLISHED', NULL, '2024-11-01 00:00:00', 1500, '2024-11-01 10:00:00', NOW(), NULL),
+(44, 23,'FREE_CREATION', NULL, NULL, NULL, 'Piano Sketch',   NULL,                          'INSTRUMENTAL', 'tracks/audio/44.mp3', 240, NULL, 'PUBLISHED', NULL, '2024-11-05 00:00:00', 1200, '2024-11-05 10:00:00', NOW(), NULL),
+(45, 24,'FREE_CREATION', NULL, NULL, NULL, '카페에서',        '커피 한 잔 마시며',           'JAZZ',         'tracks/audio/45.mp3', 225, NULL, 'PUBLISHED', NULL, '2024-11-10 00:00:00', 900,  '2024-11-10 10:00:00', NOW(), NULL),
+(46, 25,'FREE_CREATION', NULL, NULL, NULL, '산책',           NULL,                          'AMBIENT',      'tracks/audio/46.mp3', 300, NULL, 'PUBLISHED', NULL, '2024-11-15 00:00:00', 750,  '2024-11-15 10:00:00', NOW(), NULL),
+(47, 26,'FREE_CREATION', NULL, NULL, NULL, 'Rainy Day',      NULL,                          'AMBIENT',      'tracks/audio/47.mp3', 312, NULL, 'PUBLISHED', NULL, '2024-11-20 00:00:00', 680,  '2024-11-20 10:00:00', NOW(), NULL),
+(48, 27,'FREE_CREATION', NULL, NULL, NULL, '첫 눈',          '첫 눈이 내리는 날',           'INDIE',        'tracks/audio/48.mp3', 202, NULL, 'PUBLISHED', NULL, '2024-12-01 00:00:00', 1400, '2024-12-01 10:00:00', NOW(), NULL),
+(49, 28,'FREE_CREATION', NULL, NULL, NULL, '별 헤는 밤',     NULL,                          'INDIE',        'tracks/audio/49.mp3', 218, NULL, 'PUBLISHED', NULL, '2024-12-10 00:00:00', 1100, '2024-12-10 10:00:00', NOW(), NULL),
+(50, 29,'FREE_CREATION', NULL, NULL, NULL, 'Loop Study',     NULL,                          'ELECTRONIC',   'tracks/audio/50.mp3', 180, NULL, 'PUBLISHED', NULL, '2025-01-05 00:00:00', 890,  '2025-01-05 10:00:00', NOW(), NULL),
 -- 앨범 8 (에코 - Hidden Tracks)
-(51, 8,'OFFICIAL_RELEASE', 3, 9, 1, 'Blinding Lights',          '바람아 불어라',           'INDIE',        'https://audio.music.com/51.mp3', 210, NULL, 'BLOCKED', NULL, NULL, 0, '2024-11-20 10:00:00', NOW(), NULL),
-(52, 8,'OFFICIAL_RELEASE', 3, 9, 2, 'Shape of You',     '조각같은 너',                          'INDIE',        'https://audio.music.com/52.mp3', 240, NULL, 'BLOCKED', NULL, NULL, 0, '2024-11-20 10:00:00', NOW(), NULL),
-(53, 8,'OFFICIAL_RELEASE', 3, 9, 3, 'Yesterday',     '어제로 돌아가자',                          'ELECTRONIC',   'https://audio.music.com/53.mp3', 270, NULL, 'BLOCKED', NULL, NULL, 0,  '2024-11-20 10:00:00', NOW(), NULL);
+(51, 8,'OFFICIAL_RELEASE', 3, 9, 1, 'Blinding Lights',          '바람아 불어라',           'INDIE',        'tracks/audio/51.mp3', 210, NULL, 'BLOCKED', NULL, NULL, 0, '2024-11-20 10:00:00', NOW(), NULL),
+(52, 8,'OFFICIAL_RELEASE', 3, 9, 2, 'Shape of You',     '조각같은 너',                          'INDIE',        'tracks/audio/52.mp3', 240, NULL, 'BLOCKED', NULL, NULL, 0, '2024-11-20 10:00:00', NOW(), NULL),
+(53, 8,'OFFICIAL_RELEASE', 3, 9, 3, 'Yesterday',     '어제로 돌아가자',                          'ELECTRONIC',   'tracks/audio/53.mp3', 270, NULL, 'BLOCKED', NULL, NULL, 0,  '2024-11-20 10:00:00', NOW(), NULL);
 
 
 -- ================================================================
@@ -279,20 +279,18 @@ DROP PROCEDURE IF EXISTS insert_subscriptions $$
 CREATE PROCEDURE insert_subscriptions()
 BEGIN
     DECLARE i INT DEFAULT 1;
-    DECLARE uid INT;
     DECLARE plan VARCHAR(10);
     DECLARE stat VARCHAR(10);
     DECLARE sdate DATETIME;
     DECLARE edate DATETIME;
     WHILE i <= 60 DO
-            SET uid   = 15 + i;
             SET plan = ELT(1 + FLOOR(RAND() * 2), 'FREE', 'RECURRING');
             SET stat  = ELT(1 + FLOOR(RAND() * 4), 'FREE', 'ACTIVE', 'EXPIRE', 'CANCELED');
             SET sdate = DATE_SUB(NOW(), INTERVAL FLOOR(RAND() * 180) DAY);
             SET edate = IF(plan='RECURRING', DATE_ADD(sdate, INTERVAL 1 MONTH),
                            DATE_ADD(sdate, INTERVAL 3 DAY));
-            INSERT INTO subscriptions (id, user_id, plan_type, status, start_date, expiry_date, next_billing_date, created_at)
-            VALUES (i, uid, plan, stat, sdate, edate, IF(stat='ACTIVE', edate, NULL), sdate);
+            INSERT INTO subscriptions (id, point_order_id, plan_type, status, start_date, expiry_date, next_billing_date, created_at)
+            VALUES (i, i, plan, stat, sdate, edate, IF(stat='ACTIVE', edate, NULL), sdate);
             SET i = i + 1;
         END WHILE;
 END $$

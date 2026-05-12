@@ -119,9 +119,9 @@ def generate_payments(count: int, user_count: int, cash_order_count: int):
         created_at = random_datetime_between(BASE_DATE, NOW)
         paid_at = random_datetime_between(created_at, NOW) if status in ("COMPLETED","REFUNDED") else None
         refunded_at = random_datetime_between(paid_at or created_at, NOW) if status == "REFUNDED" else None
-        yield [payment_id, random.randint(1,user_count), random.choice([0,1000,2000,3000]), status, f"CASH-{cash_order_id}", f"pg-tx-{payment_id}", f"payment-webhook-{payment_id}", nullable("Seed refund reason" if status == "REFUNDED" else None), format_dt(paid_at), format_dt(refunded_at), format_dt(created_at)]
+        yield [payment_id, cash_order_id, random.randint(1,user_count), random.choice([0,1000,2000,3000]), status, f"CASH-{cash_order_id}", f"pg-tx-{payment_id}", f"payment-webhook-{payment_id}", nullable("Seed refund reason" if status == "REFUNDED" else None), format_dt(paid_at), format_dt(refunded_at), format_dt(created_at)]
 
-def generate_subscriptions(count: int, user_count: int, point_order_count: int):
+def generate_subscriptions(count: int, point_order_count: int):
     for subscription_id in range(1, count + 1):
         plan_type = weighted_choice([("FREE",20),("RECURRING",80)])
         status = weighted_choice([("FREE",10),("ACTIVE",65),("INACTIVE",10),("EXPIRE",5),("CANCELED",8),("REFUND",2)])
@@ -129,7 +129,7 @@ def generate_subscriptions(count: int, user_count: int, point_order_count: int):
         expiry_date = start_date + (timedelta(days=3) if plan_type == "FREE" else timedelta(days=30))
         next_billing_date = expiry_date if plan_type == "RECURRING" and status == "ACTIVE" else None
         created_at = random_datetime_between(BASE_DATE, start_date)
-        yield [subscription_id, random.randint(1,user_count), random.randint(1,point_order_count), plan_type, status, format_dt(start_date), format_dt(expiry_date), format_dt(next_billing_date), format_dt(created_at)]
+        yield [subscription_id, random.randint(1,point_order_count), plan_type, status, format_dt(start_date), format_dt(expiry_date), format_dt(next_billing_date), format_dt(created_at)]
 
 def generate_artists(count: int, user_count: int):
     for artist_id in range(1, count + 1):
@@ -178,7 +178,7 @@ def generate_tracks(count: int, user_count: int, artist_count: int, album_count:
         published_at=random_datetime_between(created_at,NOW) if status=="PUBLISHED" else None
         scheduled_publish_at=None if status=="PUBLISHED" else created_at+timedelta(days=random.randint(1,7))
 
-        yield [track_id, owner_user_id, track_type, nullable(artist_id), nullable(album_id), nullable(track_number), f"Track {track_id}", f"Lyrics for track {track_id}", f"GENRE_{random.randint(1,20)}", f"https://cdn.fivefy.local/audio/{track_id}.mp3", random.randint(60,420), nullable(featured_artist_text), status, format_dt(scheduled_publish_at), format_dt(published_at), int(random.paretovariate(1.5)*100), format_dt(created_at), format_dt(updated_at), format_dt(random_datetime_between(updated_at,NOW) if random.random()<0.05 else None)]
+        yield [track_id, owner_user_id, track_type, nullable(artist_id), nullable(album_id), nullable(track_number), f"Track {track_id}", f"Lyrics for track {track_id}", f"GENRE_{random.randint(1,20)}", f"tracks/audio/{track_id}.mp3", random.randint(60,420), nullable(featured_artist_text), status, format_dt(scheduled_publish_at), format_dt(published_at), int(random.paretovariate(1.5)*100), format_dt(created_at), format_dt(updated_at), format_dt(random_datetime_between(updated_at,NOW) if random.random()<0.05 else None)]
 
 def generate_likes(count: int, user_count: int, track_count: int):
     for like_id in range(1, count + 1):
@@ -317,7 +317,7 @@ def generate_track_applications(count: int, user_count: int, artist_count: int, 
         if status=="REJECTED":
             rejection_reason="트랙 등록 신청 기준에 부합하지 않습니다."
 
-        yield [application_id, requester_user_id, track_type, nullable(artist_id), nullable(album_id), nullable(track_number), title, f"Requested lyrics {application_id}", f"GENRE_{random.randint(1,20)}", f"https://cdn.fivefy.local/application-audio/{application_id}.mp3", random.randint(60,420), nullable(featured_artist_text), nullable(publish_delay_days), status, nullable(reviewed_by_admin_id), format_dt(reviewed_at), nullable(rejection_reason), format_dt(created_at), format_dt(updated_at)]
+        yield [application_id, requester_user_id, track_type, nullable(artist_id), nullable(album_id), nullable(track_number), title, f"Requested lyrics {application_id}", f"GENRE_{random.randint(1,20)}", f"tracks/audio/application-{application_id}.mp3", random.randint(60,420), nullable(featured_artist_text), nullable(publish_delay_days), status, nullable(reviewed_by_admin_id), format_dt(reviewed_at), nullable(rejection_reason), format_dt(created_at), format_dt(updated_at)]
 
 def generate_all(config: ScaleConfig, output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -328,8 +328,8 @@ def generate_all(config: ScaleConfig, output_dir: Path) -> None:
     write_csv(output_dir / "billing_keys.csv", ["id","user_id","billing_key","card_last4","card_name","pay_method","active","created_at"], generate_billing_keys(config.billing_keys, config.users))
     write_csv(output_dir / "cash_orders.csv", ["id","user_id","product_type","cash_amount","point_amount","order_number","status","webhook_id","created_at"], generate_cash_orders(config.cash_orders, config.users))
     write_csv(output_dir / "point_orders.csv", ["id","user_id","plan_type","subscription_amount","order_number","status","created_at"], generate_point_orders(config.point_orders, config.users))
-    write_csv(output_dir / "payments.csv", ["id","user_id","amount","status","order_number","pg_transaction_id","webhook_id","refund_reason","paid_at","refunded_at","created_at"], generate_payments(config.payments, config.users, config.cash_orders))
-    write_csv(output_dir / "subscriptions.csv", ["id","user_id","point_order_id","plan_type","status","start_date","expiry_date","next_billing_date","created_at"], generate_subscriptions(config.subscriptions, config.users, config.point_orders))
+    write_csv(output_dir / "payments.csv", ["id","cash_order_id","user_id","amount","status","order_number","pg_transaction_id","webhook_id","refund_reason","paid_at","refunded_at","created_at"], generate_payments(config.payments, config.users, config.cash_orders))
+    write_csv(output_dir / "subscriptions.csv", ["id","point_order_id","plan_type","status","start_date","expiry_date","next_billing_date","created_at"], generate_subscriptions(config.subscriptions, config.point_orders))
     write_csv(output_dir / "artists.csv", ["id","owner_user_id","name","artist_type","bio","profile_image_url","status","created_at","updated_at","deleted_at"], generate_artists(config.artists, config.users))
     write_csv(output_dir / "albums.csv", ["id","artist_id","title","description","cover_image_url","status","scheduled_publish_at","published_at","track_count","total_duration_sec","created_at","updated_at","deleted_at"], generate_albums(config.albums, album_artist_ids))
     write_csv(output_dir / "tracks.csv", ["id","owner_user_id","track_type","artist_id","album_id","track_number","title","lyrics","genre","audio_key","duration_sec","featured_artist_text","status","scheduled_publish_at","published_at","play_count","created_at","updated_at","deleted_at"], generate_tracks(config.tracks, config.users, config.artists, config.albums, album_artist_ids))
