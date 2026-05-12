@@ -139,8 +139,7 @@ class TrackServiceTest {
 
             when(trackApplicationRepository.existsPendingFreeCreationApplication(
                     userId,
-                    request.title(),
-                    AUDIO_KEY
+                    request.title()
             )).thenReturn(false);
 
             TrackApplication savedApplication = TrackApplication.create(
@@ -217,8 +216,7 @@ class TrackServiceTest {
 
             when(trackApplicationRepository.existsPendingFreeCreationApplication(
                     userId,
-                    request.title(),
-                    AUDIO_KEY
+                    request.title()
             )).thenReturn(true);
 
             assertThatThrownBy(() -> trackService.createFreeTrackApplication(userId, request, audioFile()))
@@ -244,8 +242,7 @@ class TrackServiceTest {
 
             when(trackApplicationRepository.existsPendingFreeCreationApplication(
                     userId,
-                    request.title(),
-                    AUDIO_KEY
+                    request.title()
             )).thenReturn(false);
 
             when(trackApplicationRepository.saveAndFlush(any(TrackApplication.class)))

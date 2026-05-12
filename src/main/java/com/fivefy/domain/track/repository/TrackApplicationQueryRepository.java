@@ -12,8 +12,7 @@ import java.util.List;
 public interface TrackApplicationQueryRepository {
     boolean existsPendingFreeCreationApplication(
             Long requesterUserId,
-            String title,
-            String audioKey
+            String title
     );
 
     boolean existsPendingOfficialReleaseApplication(

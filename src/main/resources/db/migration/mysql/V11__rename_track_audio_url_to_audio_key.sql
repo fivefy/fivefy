@@ -25,9 +25,7 @@ ALTER TABLE track_applications
                                 CHAR(31),
                                 requester_user_id,
                                 CHAR_LENGTH(COALESCE(title, '')),
-                                COALESCE(title, ''),
-                                CHAR_LENGTH(COALESCE(audio_key, '')),
-                                COALESCE(audio_key, '')
+                                COALESCE(title, '')
                         ),
                         256
                          )

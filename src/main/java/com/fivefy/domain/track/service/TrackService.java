@@ -71,10 +71,10 @@ public class TrackService {
         // 신청 유저 존재 확인
         findUser(userId);
 
-        String audioKey = audioStorageService.upload(audioFile);
-
         // 자유 창작 PENDING 중복 신청 검증
-        validateDuplicateFreeCreationApplication(userId, request.title(), audioKey);
+        validateDuplicateFreeCreationApplication(userId, request.title());
+
+        String audioKey = audioStorageService.upload(audioFile);
 
         // 등록 신청 생성 및 저장
         TrackApplication savedApplication = saveTrackApplication(
@@ -444,13 +444,11 @@ public class TrackService {
     // 자유 창작 중복 신청 검증
     private void validateDuplicateFreeCreationApplication(
             Long requesterUserId,
-            String title,
-            String audioKey
+            String title
     ) {
         if (trackApplicationRepository.existsPendingFreeCreationApplication(
                 requesterUserId,
-                title,
-                audioKey
+                title
         )) {
             throw new BusinessException(
                     TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS
