@@ -119,7 +119,7 @@ class TrackServiceTest {
             when(trackApplicationRepository.existsPendingFreeCreationApplication(
                     userId,
                     request.title(),
-                    request.audioUrl()
+                    request.audioKey()
             )).thenReturn(false);
 
             TrackApplication savedApplication = TrackApplication.create(
@@ -131,7 +131,7 @@ class TrackServiceTest {
                     request.title(),
                     request.lyrics(),
                     request.genre(),
-                    request.audioUrl(),
+                    request.audioKey(),
                     request.durationSec(),
                     null,
                     null
@@ -199,7 +199,7 @@ class TrackServiceTest {
             when(trackApplicationRepository.existsPendingFreeCreationApplication(
                     userId,
                     request.title(),
-                    request.audioUrl()
+                    request.audioKey()
             )).thenReturn(true);
 
             assertThatThrownBy(() -> trackService.createFreeTrackApplication(userId, request))
@@ -227,7 +227,7 @@ class TrackServiceTest {
             when(trackApplicationRepository.existsPendingFreeCreationApplication(
                     userId,
                     request.title(),
-                    request.audioUrl()
+                    request.audioKey()
             )).thenReturn(false);
 
             when(trackApplicationRepository.saveAndFlush(any(TrackApplication.class)))
@@ -313,7 +313,7 @@ class TrackServiceTest {
                     request.title(),
                     request.lyrics(),
                     request.genre(),
-                    request.audioUrl(),
+                    request.audioKey(),
                     request.durationSec(),
                     request.featuredArtistText(),
                     request.publishDelayDays()
@@ -1037,7 +1037,7 @@ class TrackServiceTest {
             assertThat(response.trackNumber()).isNull();
             assertThat(response.title()).isEqualTo("밤편지 AI 버전");
             assertThat(response.genre()).isEqualTo("BALLAD");
-            assertThat(response.audioUrl()).isEqualTo("https://example.com/audio.mp3");
+            assertThat(response.audioKey()).isEqualTo("https://example.com/audio.mp3");
             assertThat(response.durationSec()).isEqualTo(210L);
             assertThat(response.publishDelayDays()).isNull();
             assertThat(response.status()).isEqualTo(ApplicationStatus.PENDING);
@@ -1322,7 +1322,7 @@ class TrackServiceTest {
                     application.getTitle(),
                     application.getLyrics(),
                     application.getGenre(),
-                    application.getAudioUrl(),
+                    application.getAudioKey(),
                     application.getDurationSec(),
                     application.getFeaturedArtistText(),
                     null
@@ -1398,7 +1398,7 @@ class TrackServiceTest {
                     application.getTitle(),
                     application.getLyrics(),
                     application.getGenre(),
-                    application.getAudioUrl(),
+                    application.getAudioKey(),
                     application.getDurationSec(),
                     application.getFeaturedArtistText(),
                     LocalDateTime.now().plusDays(3)
@@ -1515,7 +1515,7 @@ class TrackServiceTest {
                     application.getTitle(),
                     application.getLyrics(),
                     application.getGenre(),
-                    application.getAudioUrl(),
+                    application.getAudioKey(),
                     application.getDurationSec()
             );
             ReflectionTestUtils.setField(savedTrack, "id", 1000L);
@@ -1940,7 +1940,6 @@ class TrackServiceTest {
             assertThat(response.title()).isEqualTo("밤편지");
             assertThat(response.lyrics()).isEqualTo("가사");
             assertThat(response.genre()).isEqualTo("BALLAD");
-            assertThat(response.audioUrl()).isEqualTo("https://example.com/audio.mp3");
             assertThat(response.durationSec()).isEqualTo(230L);
             assertThat(response.featuredArtistText()).isEqualTo("feat. 10cm");
             assertThat(response.playCount()).isEqualTo(1200L);
@@ -1988,7 +1987,6 @@ class TrackServiceTest {
             assertThat(response.albumTitle()).isNull();
             assertThat(response.trackNumber()).isNull();
             assertThat(response.title()).isEqualTo("밤편지 AI 버전");
-            assertThat(response.audioUrl()).isEqualTo("https://example.com/audio-free.mp3");
             assertThat(response.durationSec()).isEqualTo(210L);
             assertThat(response.playCount()).isEqualTo(300L);
             assertThat(response.publishedAt()).isEqualTo(LocalDateTime.of(2026, 5, 2, 12, 0, 0));
@@ -2243,7 +2241,6 @@ class TrackServiceTest {
                     "캐시된 제목",
                     "캐시된 가사",
                     "BALLAD",
-                    "https://example.com/cached-audio.mp3",
                     200L,
                     null,
                     LocalDateTime.of(2026, 5, 1, 18, 0, 0)
@@ -2268,7 +2265,6 @@ class TrackServiceTest {
             assertThat(response.trackId()).isEqualTo(trackId);
             assertThat(response.title()).isEqualTo("캐시된 제목");
             assertThat(response.lyrics()).isEqualTo("캐시된 가사");
-            assertThat(response.audioUrl()).isEqualTo("https://example.com/cached-audio.mp3");
             assertThat(response.durationSec()).isEqualTo(200L);
             assertThat(response.playCount()).isEqualTo(999L);
             assertThat(response.comments()).hasSize(1);

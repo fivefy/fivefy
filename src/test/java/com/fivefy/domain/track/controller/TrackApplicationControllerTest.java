@@ -126,7 +126,7 @@ class TrackApplicationControllerTest extends RestDocsSupport {
                                     fieldWithPath("title").type(STRING).description("트랙 제목 (값 없음)"),
                                     fieldWithPath("lyrics").type(STRING).description("가사"),
                                     fieldWithPath("genre").type(STRING).description("장르"),
-                                    fieldWithPath("audioUrl").type(STRING).description("오디오 URL"),
+                                    fieldWithPath("audioKey").type(STRING).description("오디오 Key"),
                                     fieldWithPath("durationSec").type(NUMBER).description("재생 시간(초)")
                             ),
                             responseFields(
@@ -258,7 +258,7 @@ class TrackApplicationControllerTest extends RestDocsSupport {
                                     fieldWithPath("title").type(STRING).description("트랙 제목 (값 없음)"),
                                     fieldWithPath("lyrics").type(STRING).description("가사"),
                                     fieldWithPath("genre").type(STRING).description("장르"),
-                                    fieldWithPath("audioUrl").type(STRING).description("오디오 URL"),
+                                    fieldWithPath("audioKey").type(STRING).description("오디오 Key"),
                                     fieldWithPath("durationSec").type(NUMBER).description("재생 시간(초)"),
                                     fieldWithPath("featuredArtistText").type(STRING).description("피처링 아티스트 정보"),
                                     fieldWithPath("publishDelayDays").type(NUMBER).description("공개 예약 일수 (0~7)")
@@ -422,7 +422,7 @@ class TrackApplicationControllerTest extends RestDocsSupport {
                                     fieldWithPath("data.title").type(STRING).description("트랙 제목"),
                                     fieldWithPath("data.lyrics").type(STRING).description("가사"),
                                     fieldWithPath("data.genre").type(STRING).description("장르"),
-                                    fieldWithPath("data.audioUrl").type(STRING).description("오디오 URL"),
+                                    fieldWithPath("data.audioKey").type(STRING).description("오디오 Key"),
                                     fieldWithPath("data.durationSec").type(NUMBER).description("재생 시간(초)"),
                                     fieldWithPath("data.featuredArtistText").type(STRING).description("피처링 아티스트 정보"),
                                     fieldWithPath("data.publishDelayDays").type(NUMBER).description("공개 예약 일수"),
@@ -826,7 +826,7 @@ class TrackApplicationControllerTest extends RestDocsSupport {
                 fieldWithPath("title").type(STRING).description("트랙 제목"),
                 fieldWithPath("lyrics").type(STRING).description("가사"),
                 fieldWithPath("genre").type(STRING).description("장르"),
-                fieldWithPath("audioUrl").type(STRING).description("오디오 URL"),
+                fieldWithPath("audioKey").type(STRING).description("오디오 Key"),
                 fieldWithPath("durationSec").type(NUMBER).description("재생 시간(초)")
         };
     }
@@ -839,7 +839,7 @@ class TrackApplicationControllerTest extends RestDocsSupport {
                 fieldWithPath("title").type(STRING).description("트랙 제목"),
                 fieldWithPath("lyrics").type(STRING).description("가사"),
                 fieldWithPath("genre").type(STRING).description("장르"),
-                fieldWithPath("audioUrl").type(STRING).description("오디오 URL"),
+                fieldWithPath("audioKey").type(STRING).description("오디오 Key"),
                 fieldWithPath("durationSec").type(NUMBER).description("재생 시간(초)"),
                 fieldWithPath("featuredArtistText").type(STRING).description("피처링 아티스트 정보"),
                 fieldWithPath("publishDelayDays").type(NUMBER).description("공개 예약 일수 (0~7)")
