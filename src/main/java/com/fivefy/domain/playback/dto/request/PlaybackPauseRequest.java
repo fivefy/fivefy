@@ -4,6 +4,9 @@ import jakarta.validation.constraints.NotNull;
 
 public record PlaybackPauseRequest(
         @NotNull(message = "id는 필수입니다")
-        Long id
+        Long id,
+
+        @NotNull(message = "playedDuration은 필수입니다")
+        Integer playedDuration
 ) {
 }

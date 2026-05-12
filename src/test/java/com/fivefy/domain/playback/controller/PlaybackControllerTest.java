@@ -64,7 +64,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                     0,
                     LocalDateTime.now(),
                     LocalDateTime.now(),
-                    null
+                    null,
+                    "https://example.com/audio.mp3"
             );
 
             given(playbackService.play(any(), any(PlaybackPlayRequest.class)))
@@ -103,7 +104,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                                     fieldWithPath("data.playedDuration").type(NUMBER).description("누적 재생 시간(초)"),
                                     fieldWithPath("data.startedAt").type(STRING).description("재생 시작 시각"),
                                     fieldWithPath("data.lastPlayedAt").type(STRING).description("마지막 재생 시각"),
-                                    fieldWithPath("data.endedAt").type(NULL).description("재생 종료 시각")
+                                    fieldWithPath("data.endedAt").type(NULL).description("재생 종료 시각"),
+                                    fieldWithPath("data.audioUrl").type(STRING).description("오디오 파일 URL")
                             )
                     ));
         }
@@ -250,7 +252,7 @@ class PlaybackControllerTest extends RestDocsSupport {
         @DisplayName("재생 일시정지 성공 시 200 반환")
         void pauseSuccess() throws Exception {
             // given
-            PlaybackPauseRequest request = new PlaybackPauseRequest(1L);
+            PlaybackPauseRequest request = new PlaybackPauseRequest(1L, 30);
             PlaybackResponse response = new PlaybackResponse(
                     1L,
                     1L,
@@ -262,7 +264,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                     30,
                     LocalDateTime.now(),
                     LocalDateTime.now(),
-                    null
+                    null,
+                    "https://example.com/audio.mp3"
             );
 
             given(playbackService.pause(any(), any(PlaybackPauseRequest.class)))
@@ -279,7 +282,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                     .andExpect(jsonPath("$.data.status").value("PAUSED"))
                     .andDo(document("playback-pause",
                             requestFields(
-                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID")
+                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID"),
+                                    fieldWithPath("playedDuration").type(NUMBER).description("실제 재생 시간(초)")
                             ),
                             responseFields(
                                     fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
@@ -295,7 +299,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                                     fieldWithPath("data.playedDuration").type(NUMBER).description("누적 재생 시간(초)"),
                                     fieldWithPath("data.startedAt").type(STRING).description("재생 시작 시각"),
                                     fieldWithPath("data.lastPlayedAt").type(STRING).description("마지막 재생 시각"),
-                                    fieldWithPath("data.endedAt").type(NULL).description("재생 종료 시각")
+                                    fieldWithPath("data.endedAt").type(NULL).description("재생 종료 시각"),
+                                    fieldWithPath("data.audioUrl").type(STRING).description("오디오 파일 URL")
                             )
                     ));
         }
@@ -328,7 +333,7 @@ class PlaybackControllerTest extends RestDocsSupport {
         @DisplayName("존재하지 않는 재생 기록 일시정지 시 404 반환")
         void pauseNotFound() throws Exception {
             // given
-            PlaybackPauseRequest request = new PlaybackPauseRequest(1L);
+            PlaybackPauseRequest request = new PlaybackPauseRequest(1L, 30);
 
             given(playbackService.pause(any(), any(PlaybackPauseRequest.class)))
                     .willThrow(new BusinessException(PlaybackErrorCode.PLAYBACK_NOT_FOUND));
@@ -342,7 +347,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                     .andExpect(jsonPath("$.message").value(PlaybackErrorCode.PLAYBACK_NOT_FOUND.getMessage()))
                     .andDo(document("playback-pause-not-found",
                             requestFields(
-                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID")
+                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID"),
+                                    fieldWithPath("playedDuration").type(NUMBER).description("실제 재생 시간(초)")
                             ),
                             responseFields(
                                     fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
@@ -356,7 +362,7 @@ class PlaybackControllerTest extends RestDocsSupport {
         @DisplayName("현재 재생 중이 아닌 경우 일시정지 시 409 반환")
         void pauseCurrentPlaybackNotFound() throws Exception {
             // given
-            PlaybackPauseRequest request = new PlaybackPauseRequest(1L);
+            PlaybackPauseRequest request = new PlaybackPauseRequest(1L, 30);
 
             given(playbackService.pause(any(), any(PlaybackPauseRequest.class)))
                     .willThrow(new BusinessException(PlaybackErrorCode.CURRENT_PLAYBACK_NOT_FOUND));
@@ -370,7 +376,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                     .andExpect(jsonPath("$.message").value(PlaybackErrorCode.CURRENT_PLAYBACK_NOT_FOUND.getMessage()))
                     .andDo(document("playback-pause-current-not-found",
                             requestFields(
-                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID")
+                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID"),
+                                    fieldWithPath("playedDuration").type(NUMBER).description("실제 재생 시간(초)")
                             ),
                             responseFields(
                                     fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
@@ -389,7 +396,7 @@ class PlaybackControllerTest extends RestDocsSupport {
         @DisplayName("곡 건너뛰기 성공 시 200 반환")
         void skipSuccess() throws Exception {
             // given
-            PlaybackSkipRequest request = new PlaybackSkipRequest(1L);
+            PlaybackSkipRequest request = new PlaybackSkipRequest(1L, 30);
             PlaybackResponse response = new PlaybackResponse(
                     2L,
                     1L,
@@ -401,7 +408,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                     0,
                     LocalDateTime.now(),
                     LocalDateTime.now(),
-                    null
+                    null,
+                    "https://example.com/audio.mp3"
             );
 
             given(playbackService.skip(any(), any(PlaybackSkipRequest.class)))
@@ -420,7 +428,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                     .andExpect(jsonPath("$.data.status").value("PLAYING"))
                     .andDo(document("playback-skip",
                             requestFields(
-                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID")
+                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID"),
+                                    fieldWithPath("playedDuration").type(NUMBER).description("실제 재생 시간(초)")
                             ),
                             responseFields(
                                     fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
@@ -436,7 +445,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                                     fieldWithPath("data.playedDuration").type(NUMBER).description("누적 재생 시간(초)"),
                                     fieldWithPath("data.startedAt").type(STRING).description("재생 시작 시각"),
                                     fieldWithPath("data.lastPlayedAt").type(STRING).description("마지막 재생 시각"),
-                                    fieldWithPath("data.endedAt").type(NULL).description("재생 종료 시각")
+                                    fieldWithPath("data.endedAt").type(NULL).description("재생 종료 시각"),
+                                    fieldWithPath("data.audioUrl").type(STRING).description("오디오 파일 URL")
                             )
                     ));
         }
@@ -469,7 +479,7 @@ class PlaybackControllerTest extends RestDocsSupport {
         @DisplayName("존재하지 않는 재생 기록 건너뛰기 시 404 반환")
         void skipNotFound() throws Exception {
             // given
-            PlaybackSkipRequest request = new PlaybackSkipRequest(1L);
+            PlaybackSkipRequest request = new PlaybackSkipRequest(1L, 30);
 
             given(playbackService.skip(any(), any(PlaybackSkipRequest.class)))
                     .willThrow(new BusinessException(PlaybackErrorCode.PLAYBACK_NOT_FOUND));
@@ -483,7 +493,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                     .andExpect(jsonPath("$.message").value(PlaybackErrorCode.PLAYBACK_NOT_FOUND.getMessage()))
                     .andDo(document("playback-skip-not-found",
                             requestFields(
-                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID")
+                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID"),
+                                    fieldWithPath("playedDuration").type(NUMBER).description("실제 재생 시간(초)")
                             ),
                             responseFields(
                                     fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
@@ -497,7 +508,7 @@ class PlaybackControllerTest extends RestDocsSupport {
         @DisplayName("현재 재생 상태에서 건너뛸 수 없으면 409 반환")
         void skipInvalidState() throws Exception {
             // given
-            PlaybackSkipRequest request = new PlaybackSkipRequest(1L);
+            PlaybackSkipRequest request = new PlaybackSkipRequest(1L, 30);
 
             given(playbackService.skip(any(), any(PlaybackSkipRequest.class)))
                     .willThrow(new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE));
@@ -511,7 +522,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                     .andExpect(jsonPath("$.message").value(PlaybackErrorCode.INVALID_PLAYBACK_STATE.getMessage()))
                     .andDo(document("playback-skip-invalid-state",
                             requestFields(
-                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID")
+                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID"),
+                                    fieldWithPath("playedDuration").type(NUMBER).description("실제 재생 시간(초)")
                             ),
                             responseFields(
                                     fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
@@ -525,7 +537,7 @@ class PlaybackControllerTest extends RestDocsSupport {
         @DisplayName("플레이리스트 트랙 정보가 없으면 404 반환")
         void skipPlaylistTrackNotFound() throws Exception {
             // given
-            PlaybackSkipRequest request = new PlaybackSkipRequest(1L);
+            PlaybackSkipRequest request = new PlaybackSkipRequest(1L, 30);
 
             given(playbackService.skip(any(), any(PlaybackSkipRequest.class)))
                     .willThrow(new BusinessException(PlaybackErrorCode.PLAYLIST_TRACK_NOT_FOUND));
@@ -539,7 +551,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                     .andExpect(jsonPath("$.message").value(PlaybackErrorCode.PLAYLIST_TRACK_NOT_FOUND.getMessage()))
                     .andDo(document("playback-skip-playlist-track-not-found",
                             requestFields(
-                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID")
+                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID"),
+                                    fieldWithPath("playedDuration").type(NUMBER).description("실제 재생 시간(초)")
                             ),
                             responseFields(
                                     fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
@@ -553,7 +566,7 @@ class PlaybackControllerTest extends RestDocsSupport {
         @DisplayName("현재 재생 트랙 정보와 플레이리스트 트랙 순서가 일치하지 않으면 409 반환")
         void skipTrackMismatch() throws Exception {
             // given
-            PlaybackSkipRequest request = new PlaybackSkipRequest(1L);
+            PlaybackSkipRequest request = new PlaybackSkipRequest(1L, 30);
 
             given(playbackService.skip(any(), any(PlaybackSkipRequest.class)))
                     .willThrow(new BusinessException(PlaybackErrorCode.PLAYBACK_TRACK_MISMATCH));
@@ -567,7 +580,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                     .andExpect(jsonPath("$.message").value(PlaybackErrorCode.PLAYBACK_TRACK_MISMATCH.getMessage()))
                     .andDo(document("playback-skip-track-mismatch",
                             requestFields(
-                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID")
+                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID"),
+                                    fieldWithPath("playedDuration").type(NUMBER).description("실제 재생 시간(초)")
                             ),
                             responseFields(
                                     fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
@@ -586,7 +600,7 @@ class PlaybackControllerTest extends RestDocsSupport {
         @DisplayName("곡 정지 성공 시 200 반환")
         void stopSuccess() throws Exception {
             // given
-            PlaybackStopRequest request = new PlaybackStopRequest(1L);
+            PlaybackStopRequest request = new PlaybackStopRequest(1L, 30);
             PlaybackResponse response = new PlaybackResponse(
                     1L,
                     1L,
@@ -598,7 +612,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                     40,
                     LocalDateTime.now(),
                     LocalDateTime.now(),
-                    LocalDateTime.now()
+                    LocalDateTime.now(),
+                    null
             );
 
             given(playbackService.stop(any(), any(PlaybackStopRequest.class)))
@@ -615,7 +630,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                     .andExpect(jsonPath("$.data.status").value("STOPPED"))
                     .andDo(document("playback-stop",
                             requestFields(
-                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID")
+                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID"),
+                                    fieldWithPath("playedDuration").type(NUMBER).description("실제 재생 시간(초)")
                             ),
                             responseFields(
                                     fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
@@ -631,7 +647,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                                     fieldWithPath("data.playedDuration").type(NUMBER).description("누적 재생 시간(초)"),
                                     fieldWithPath("data.startedAt").type(STRING).description("재생 시작 시각"),
                                     fieldWithPath("data.lastPlayedAt").type(STRING).description("마지막 재생 시각"),
-                                    fieldWithPath("data.endedAt").type(STRING).description("재생 종료 시각")
+                                    fieldWithPath("data.endedAt").type(STRING).description("재생 종료 시각"),
+                                    fieldWithPath("data.audioUrl").type(NULL).description("오디오 파일 URL")
                             )
                     ));
         }
@@ -664,7 +681,7 @@ class PlaybackControllerTest extends RestDocsSupport {
         @DisplayName("존재하지 않는 재생 기록 정지 시 404 반환")
         void stopNotFound() throws Exception {
             // given
-            PlaybackStopRequest request = new PlaybackStopRequest(1L);
+            PlaybackStopRequest request = new PlaybackStopRequest(1L, 30);
 
             given(playbackService.stop(any(), any(PlaybackStopRequest.class)))
                     .willThrow(new BusinessException(PlaybackErrorCode.PLAYBACK_NOT_FOUND));
@@ -678,7 +695,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                     .andExpect(jsonPath("$.message").value(PlaybackErrorCode.PLAYBACK_NOT_FOUND.getMessage()))
                     .andDo(document("playback-stop-not-found",
                             requestFields(
-                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID")
+                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID"),
+                                    fieldWithPath("playedDuration").type(NUMBER).description("실제 재생 시간(초)")
                             ),
                             responseFields(
                                     fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
@@ -692,7 +710,7 @@ class PlaybackControllerTest extends RestDocsSupport {
         @DisplayName("현재 재생 상태에서 정지할 수 없으면 409 반환")
         void stopInvalidState() throws Exception {
             // given
-            PlaybackStopRequest request = new PlaybackStopRequest(1L);
+            PlaybackStopRequest request = new PlaybackStopRequest(1L, 30);
 
             given(playbackService.stop(any(), any(PlaybackStopRequest.class)))
                     .willThrow(new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE));
@@ -706,7 +724,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                     .andExpect(jsonPath("$.message").value(PlaybackErrorCode.INVALID_PLAYBACK_STATE.getMessage()))
                     .andDo(document("playback-stop-invalid-state",
                             requestFields(
-                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID")
+                                    fieldWithPath("id").type(NUMBER).description("재생 기록 ID"),
+                                    fieldWithPath("playedDuration").type(NUMBER).description("실제 재생 시간(초)")
                             ),
                             responseFields(
                                     fieldWithPath("success").type(BOOLEAN).description("성공 여부"),
@@ -736,7 +755,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                     25,
                     LocalDateTime.now(),
                     LocalDateTime.now(),
-                    LocalDateTime.now()
+                    LocalDateTime.now(),
+                    null
             );
             PlaybackResponse response2 = new PlaybackResponse(
                     1L,
@@ -749,7 +769,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                     180,
                     LocalDateTime.now(),
                     LocalDateTime.now(),
-                    LocalDateTime.now()
+                    LocalDateTime.now(),
+                    null
             );
 
             given(playbackService.getPlaybackHistory(any()))
@@ -781,7 +802,8 @@ class PlaybackControllerTest extends RestDocsSupport {
                                     fieldWithPath("data[].playedDuration").type(NUMBER).description("누적 재생 시간(초)"),
                                     fieldWithPath("data[].startedAt").type(STRING).description("재생 시작 시각"),
                                     fieldWithPath("data[].lastPlayedAt").type(STRING).description("마지막 재생 시각"),
-                                    fieldWithPath("data[].endedAt").type(STRING).description("재생 종료 시각")
+                                    fieldWithPath("data[].endedAt").type(STRING).description("재생 종료 시각"),
+                                    fieldWithPath("data[].audioUrl").type(NULL).description("오디오 파일 URL")
                             )
                     ));
         }

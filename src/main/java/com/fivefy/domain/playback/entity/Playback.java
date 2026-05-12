@@ -112,37 +112,40 @@ public class Playback {
         this.lastPlayedAt = LocalDateTime.now();
     }
 
-    public void pause() {
+    public void pause(Integer playedDuration) {
         if (!isPlaying()) {
             throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
         }
 
-        accumulatePlayedDuration();
+        validatePlayedDuration(playedDuration);
+
+        this.playedDuration = playedDuration;
+        this.lastPlayedAt = LocalDateTime.now();
         this.status = PlaybackStatus.PAUSED;
     }
 
-    public void stop() {
+    public void stop(Integer playedDuration) {
         if (!isPlaying() && !isPaused()) {
             throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
         }
 
-        if (isPlaying()) {
-            accumulatePlayedDuration();
-        }
+        validatePlayedDuration(playedDuration);
 
+        this.playedDuration = playedDuration;
+        this.lastPlayedAt = LocalDateTime.now();
         this.status = PlaybackStatus.STOPPED;
         this.endedAt = LocalDateTime.now();
     }
 
-    public void skip() {
+    public void skip(Integer playedDuration) {
         if (!isPlaying() && !isPaused()) {
             throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
         }
 
-        if (isPlaying()) {
-            accumulatePlayedDuration();
-        }
+        validatePlayedDuration(playedDuration);
 
+        this.playedDuration = playedDuration;
+        this.lastPlayedAt = LocalDateTime.now();
         this.status = PlaybackStatus.SKIPPED;
         this.endedAt = LocalDateTime.now();
     }
@@ -166,5 +169,16 @@ public class Playback {
         }
 
         this.lastPlayedAt = now;
+    }
+
+    private void validatePlayedDuration(Integer playedDuration) {
+        if (playedDuration == null || playedDuration < 0) {
+            throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
+        }
+
+        if (this.playedDuration != null
+                && playedDuration < this.playedDuration) {
+            throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
+        }
     }
 }
