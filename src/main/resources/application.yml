@@ -9,3 +9,15 @@ spring:
 jwt:
   access-expiration: 1800000    # 30분
   refresh-expiration: 604800000 # 7일
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+
+storage:
+  audio:
+    type: local
+    prefix: tracks/audio
+    local-root: build/audio-storage
