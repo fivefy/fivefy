@@ -175,5 +175,10 @@ public class Playback {
         if (playedDuration == null || playedDuration < 0) {
             throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
         }
+
+        if (this.playedDuration != null
+                && playedDuration < this.playedDuration) {
+            throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
+        }
     }
 }
