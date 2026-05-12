@@ -23,7 +23,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("S3AudioStorageService")
+@DisplayName("S3 오디오 저장소")
 class S3AudioStorageServiceTest {
 
     @Mock
@@ -39,7 +39,7 @@ class S3AudioStorageServiceTest {
             when(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
                     .thenReturn(PutObjectResponse.builder().build());
             S3AudioStorageService storageService = new S3AudioStorageService(s3Client, properties());
-            MockMultipartFile audioFile = audioFile("sample.mp3", null, "audio".getBytes());
+            MockMultipartFile audioFile = audioFile("sample.mp3", null, validMp3Bytes());
 
             String audioKey = storageService.upload(audioFile);
 
@@ -52,16 +52,16 @@ class S3AudioStorageServiceTest {
             assertThat(request.bucket()).isEqualTo("fivefy-audio");
             assertThat(request.key()).isEqualTo(audioKey);
             assertThat(request.contentType()).isEqualTo("audio/mpeg");
-            assertThat(request.contentLength()).isEqualTo(5L);
+            assertThat(request.contentLength()).isEqualTo(validMp3Bytes().length);
         }
 
         @Test
         @DisplayName("S3 업로드 실패 시 오디오 업로드 실패 예외를 반환한다")
         void upload_fail_whenS3UploadFails() {
             when(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
-                    .thenThrow(S3Exception.builder().message("upload failed").build());
+                    .thenThrow(S3Exception.builder().message("업로드 실패").build());
             S3AudioStorageService storageService = new S3AudioStorageService(s3Client, properties());
-            MockMultipartFile audioFile = audioFile("sample.mp3", "audio/mpeg", "audio".getBytes());
+            MockMultipartFile audioFile = audioFile("sample.mp3", "audio/mpeg", validMp3Bytes());
 
             assertThatThrownBy(() -> storageService.upload(audioFile))
                     .isInstanceOf(BusinessException.class)
@@ -86,5 +86,9 @@ class S3AudioStorageServiceTest {
                 contentType,
                 content
         );
+    }
+
+    private byte[] validMp3Bytes() {
+        return new byte[]{'I', 'D', '3', 0x04, 0x00, 0x00};
     }
 }

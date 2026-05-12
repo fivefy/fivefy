@@ -1,7 +1,10 @@
 package com.fivefy.common.storage;
 
+import jakarta.validation.constraints.AssertTrue;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
+@Validated
 @ConfigurationProperties(prefix = "storage.audio")
 public record AudioStorageProperties(
         String type,
@@ -15,7 +18,8 @@ public record AudioStorageProperties(
             return "tracks/audio";
         }
 
-        return prefix.replaceAll("^/+", "").replaceAll("/+$", "");
+        String normalized = prefix.replaceAll("^/+", "").replaceAll("/+$", "");
+        return normalized.isBlank() ? "tracks/audio" : normalized;
     }
 
     public String normalizedLocalRoot() {
@@ -23,6 +27,14 @@ public record AudioStorageProperties(
             return "build/audio-storage";
         }
 
-        return localRoot.replaceAll("/+$", "");
+        String normalized = localRoot.replaceAll("/+$", "");
+        return normalized.isBlank() ? "build/audio-storage" : normalized;
+    }
+
+    @AssertTrue(message = "S3 오디오 저장소 bucket 설정은 필수입니다")
+    public boolean isBucketConfiguredWhenUsingS3() {
+        return type == null
+                || !"s3".equalsIgnoreCase(type)
+                || (bucket != null && !bucket.isBlank());
     }
 }

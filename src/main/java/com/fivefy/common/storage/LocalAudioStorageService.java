@@ -50,5 +50,36 @@ public class LocalAudioStorageService implements AudioStorageService {
         if (filename == null || !filename.toLowerCase().endsWith(".mp3")) {
             throw new BusinessException(TrackApplicationErrorCode.ERR_INVALID_AUDIO_FILE);
         }
+
+        String contentType = audioFile.getContentType();
+        if (contentType != null && !contentType.isBlank()) {
+            String normalizedContentType = contentType.toLowerCase();
+            boolean allowedContentType = normalizedContentType.equals("audio/mpeg")
+                    || normalizedContentType.equals("audio/mp3")
+                    || normalizedContentType.equals("application/octet-stream")
+                    || normalizedContentType.startsWith("audio/");
+            if (!allowedContentType) {
+                throw new BusinessException(TrackApplicationErrorCode.ERR_INVALID_AUDIO_FILE);
+            }
+        }
+
+        if (!hasMp3Signature(audioFile)) {
+            throw new BusinessException(TrackApplicationErrorCode.ERR_INVALID_AUDIO_FILE);
+        }
+    }
+
+    private static boolean hasMp3Signature(MultipartFile audioFile) {
+        try (InputStream inputStream = audioFile.getInputStream()) {
+            byte[] header = inputStream.readNBytes(3);
+            if (header.length < 3) {
+                return false;
+            }
+
+            boolean hasId3Header = header[0] == 'I' && header[1] == 'D' && header[2] == '3';
+            boolean hasFrameSync = (header[0] & 0xFF) == 0xFF && (header[1] & 0xE0) == 0xE0;
+            return hasId3Header || hasFrameSync;
+        } catch (IOException e) {
+            return false;
+        }
     }
 }
