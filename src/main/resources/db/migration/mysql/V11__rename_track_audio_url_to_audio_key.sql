@@ -1,6 +1,6 @@
 -- 트랙 오디오 저장값을 URL이 아닌 객체 스토리지 key로 관리한다.
--- V8에서 생성한 중복 방지 컬럼이 audio_url을 참조하므로 물리 컬럼명 변경에 맞춰 재생성한다.
--- uq_track_applications_free_creation_pending 제거 및 재생성 시
+-- V8에서 생성한 중복 방지 컬럼이 audio_url을 참조할 수 있으므로 물리 컬럼명 변경에 맞춰 재생성한다.
+-- uq_track_applications_free_creation_pending이 존재하는 경우 제거 및 재생성 시
 -- track_applications 테이블 메타데이터 락이 발생할 수 있다.
 /*
 rollback:
@@ -45,11 +45,35 @@ ALTER TABLE track_applications
     LOCK=NONE;
 */
 
-ALTER TABLE track_applications
-    DROP INDEX uq_track_applications_free_creation_pending;
+SET @drop_free_creation_pending_index_sql = IF(
+        (
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.STATISTICS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'track_applications'
+              AND INDEX_NAME = 'uq_track_applications_free_creation_pending'
+        ) > 0,
+        'ALTER TABLE track_applications DROP INDEX uq_track_applications_free_creation_pending',
+        'SELECT 1'
+                                         );
+PREPARE drop_free_creation_pending_index_stmt FROM @drop_free_creation_pending_index_sql;
+EXECUTE drop_free_creation_pending_index_stmt;
+DEALLOCATE PREPARE drop_free_creation_pending_index_stmt;
 
-ALTER TABLE track_applications
-    DROP COLUMN free_creation_pending_key;
+SET @drop_free_creation_pending_column_sql = IF(
+        (
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'track_applications'
+              AND COLUMN_NAME = 'free_creation_pending_key'
+        ) > 0,
+        'ALTER TABLE track_applications DROP COLUMN free_creation_pending_key',
+        'SELECT 1'
+                                          );
+PREPARE drop_free_creation_pending_column_stmt FROM @drop_free_creation_pending_column_sql;
+EXECUTE drop_free_creation_pending_column_stmt;
+DEALLOCATE PREPARE drop_free_creation_pending_column_stmt;
 
 ALTER TABLE track_applications
     RENAME COLUMN audio_url TO audio_key;
