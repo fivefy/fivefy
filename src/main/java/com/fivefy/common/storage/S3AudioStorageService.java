@@ -8,6 +8,7 @@ import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
@@ -48,6 +49,24 @@ public class S3AudioStorageService implements AudioStorageService {
         }
 
         return audioKey;
+    }
+
+    @Override
+    public void delete(String audioKey) {
+        if (audioKey == null || audioKey.isBlank()) {
+            return;
+        }
+
+        DeleteObjectRequest request = DeleteObjectRequest.builder()
+                .bucket(properties.bucket())
+                .key(audioKey)
+                .build();
+
+        try {
+            s3Client.deleteObject(request);
+        } catch (S3Exception | SdkClientException e) {
+            throw new BusinessException(TrackApplicationErrorCode.ERR_AUDIO_UPLOAD_FAILED);
+        }
     }
 
     private String resolveContentType(MultipartFile audioFile) {

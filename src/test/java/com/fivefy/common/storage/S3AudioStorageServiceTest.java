@@ -12,6 +12,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 import software.amazon.awssdk.services.s3.model.S3Exception;
@@ -66,6 +67,27 @@ class S3AudioStorageServiceTest {
             assertThatThrownBy(() -> storageService.upload(audioFile))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_AUDIO_UPLOAD_FAILED.getMessage());
+        }
+    }
+
+    @Nested
+    @DisplayName("오디오 파일 삭제")
+    class Delete {
+
+        @Test
+        @DisplayName("S3 저장소는 audioKey 경로의 MP3 파일을 삭제한다")
+        void delete_success() {
+            S3AudioStorageService storageService = new S3AudioStorageService(s3Client, properties());
+
+            storageService.delete("tracks/audio/test.mp3");
+
+            ArgumentCaptor<DeleteObjectRequest> requestCaptor =
+                    ArgumentCaptor.forClass(DeleteObjectRequest.class);
+            verify(s3Client).deleteObject(requestCaptor.capture());
+
+            DeleteObjectRequest request = requestCaptor.getValue();
+            assertThat(request.bucket()).isEqualTo("fivefy-audio");
+            assertThat(request.key()).isEqualTo("tracks/audio/test.mp3");
         }
     }
 

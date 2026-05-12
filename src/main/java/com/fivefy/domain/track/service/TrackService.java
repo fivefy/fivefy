@@ -30,6 +30,7 @@ import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.enums.UserRole;
 import com.fivefy.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -37,6 +38,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
@@ -47,6 +49,7 @@ import java.util.List;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TrackService {
 
     private final TrackApplicationRepository trackApplicationRepository;
@@ -58,105 +61,122 @@ public class TrackService {
     private final ApplicationEventPublisher eventPublisher;
     private final TrackDetailCacheService trackDetailCacheService;
     private final AudioStorageService audioStorageService;
+    private final TransactionTemplate transactionTemplate;
 
     /**
      * 자유 창작 트랙 등록 신청
      */
-    @Transactional
     public TrackApplicationResponse createFreeTrackApplication(
             Long userId,
             FreeTrackApplicationCreateRequest request,
             MultipartFile audioFile
     ) {
-        // 신청 유저 존재 확인
-        findUser(userId);
+        transactionTemplate.executeWithoutResult(status -> {
+            // 신청 유저 존재 확인
+            findUser(userId);
 
-        // 자유 창작 PENDING 중복 신청 검증
-        validateDuplicateFreeCreationApplication(userId, request.title());
+            // 자유 창작 PENDING 중복 신청 검증
+            validateDuplicateFreeCreationApplication(userId, request.title());
+        });
 
         String audioKey = audioStorageService.upload(audioFile);
 
-        // 등록 신청 생성 및 저장
-        TrackApplication savedApplication = saveTrackApplication(
-                TrackApplication.create(
-                        userId,
-                        TrackType.FREE_CREATION,
-                        null,
-                        null,
-                        null,
-                        request.title(),
-                        request.lyrics(),
-                        request.genre(),
-                        audioKey,
-                        request.durationSec(),
-                        null,
-                        null
-                )
-        );
+        try {
+            return transactionTemplate.execute(status -> {
+                // 등록 신청 생성 및 저장
+                TrackApplication savedApplication = saveTrackApplication(
+                        TrackApplication.create(
+                                userId,
+                                TrackType.FREE_CREATION,
+                                null,
+                                null,
+                                null,
+                                request.title(),
+                                request.lyrics(),
+                                request.genre(),
+                                audioKey,
+                                request.durationSec(),
+                                null,
+                                null
+                        )
+                );
 
-        return TrackApplicationResponse.from(savedApplication);
+                return TrackApplicationResponse.from(savedApplication);
+            });
+        } catch (RuntimeException e) {
+            deleteUploadedAudio(audioKey);
+            throw e;
+        }
     }
 
     /**
      * 정식 발매 트랙 등록 신청
      */
-    @Transactional
     public TrackApplicationResponse createOfficialTrackApplication(
             Long userId,
             OfficialTrackApplicationCreateRequest request,
             MultipartFile audioFile
     ) {
-        // 신청 유저 존재 확인
-        findUser(userId);
+        transactionTemplate.executeWithoutResult(status -> {
+            // 신청 유저 존재 확인
+            findUser(userId);
 
-        // 아티스트 조회 및 삭제 여부 검증
-        Artist artist = findNotDeletedArtist(request.artistId());
+            // 아티스트 조회 및 삭제 여부 검증
+            Artist artist = findNotDeletedArtist(request.artistId());
 
-        // 소유자 검증
-        validateArtistOwner(userId, artist);
+            // 소유자 검증
+            validateArtistOwner(userId, artist);
 
-        // 아티스트 상태 검증
-        validateArtistActive(artist);
+            // 아티스트 상태 검증
+            validateArtistActive(artist);
 
-        // 앨범 조회 및 삭제 여부 검증
-        Album album = findNotDeletedAlbum(request.albumId());
+            // 앨범 조회 및 삭제 여부 검증
+            Album album = findNotDeletedAlbum(request.albumId());
 
-        // 앨범-아티스트 일치 검증
-        validateAlbumArtistMatch(album, request.artistId());
+            // 앨범-아티스트 일치 검증
+            validateAlbumArtistMatch(album, request.artistId());
 
-        // 공개 예약 옵션 검증
-        validatePublishDelayDays(request.publishDelayDays());
+            // 공개 예약 옵션 검증
+            validatePublishDelayDays(request.publishDelayDays());
 
-        // 정식 발매 중복 신청 검증
-        validateDuplicateOfficialReleaseApplication(
-                userId,
-                request.artistId(),
-                request.albumId(),
-                request.trackNumber(),
-                request.title()
-        );
+            // 정식 발매 중복 신청 검증
+            validateDuplicateOfficialReleaseApplication(
+                    userId,
+                    request.artistId(),
+                    request.albumId(),
+                    request.trackNumber(),
+                    request.title()
+            );
+        });
 
         String audioKey = audioStorageService.upload(audioFile);
 
-        // 등록 신청 생성 및 저장
-        TrackApplication savedApplication = saveTrackApplication(
-                TrackApplication.create(
-                        userId,
-                        TrackType.OFFICIAL_RELEASE,
-                        request.artistId(),
-                        request.albumId(),
-                        request.trackNumber(),
-                        request.title(),
-                        request.lyrics(),
-                        request.genre(),
-                        audioKey,
-                        request.durationSec(),
-                        request.featuredArtistText(),
-                        request.publishDelayDays()
-                )
-        );
+        try {
+            return transactionTemplate.execute(status -> {
+                // 등록 신청 생성 및 저장
+                TrackApplication savedApplication = saveTrackApplication(
+                        TrackApplication.create(
+                                userId,
+                                TrackType.OFFICIAL_RELEASE,
+                                request.artistId(),
+                                request.albumId(),
+                                request.trackNumber(),
+                                request.title(),
+                                request.lyrics(),
+                                request.genre(),
+                                audioKey,
+                                request.durationSec(),
+                                request.featuredArtistText(),
+                                request.publishDelayDays()
+                        )
+                );
 
-        return TrackApplicationResponse.from(savedApplication);
+                return TrackApplicationResponse.from(savedApplication);
+            });
+        } catch (RuntimeException e) {
+            deleteUploadedAudio(audioKey);
+            throw e;
+        }
     }
 
     /**
@@ -514,6 +534,15 @@ public class TrackService {
     // =========================
     // 생성 / 후처리
     // =========================
+
+    // DB 저장 실패 시 업로드된 오디오 파일 정리
+    private void deleteUploadedAudio(String audioKey) {
+        try {
+            audioStorageService.delete(audioKey);
+        } catch (RuntimeException e) {
+            log.warn("오디오 파일 정리 실패 : {}", audioKey, e);
+        }
+    }
 
     // 승인된 신청 기반 트랙 생성
     private Track createTrack(TrackApplication application) {

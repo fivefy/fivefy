@@ -41,6 +41,21 @@ public class LocalAudioStorageService implements AudioStorageService {
         return audioKey;
     }
 
+    @Override
+    public void delete(String audioKey) {
+        if (audioKey == null || audioKey.isBlank()) {
+            return;
+        }
+
+        Path targetPath = Path.of(properties.normalizedLocalRoot()).resolve(audioKey);
+
+        try {
+            Files.deleteIfExists(targetPath);
+        } catch (IOException e) {
+            throw new BusinessException(TrackApplicationErrorCode.ERR_AUDIO_UPLOAD_FAILED);
+        }
+    }
+
     static void validateAudioFile(MultipartFile audioFile) {
         if (audioFile == null || audioFile.isEmpty()) {
             throw new BusinessException(TrackApplicationErrorCode.ERR_INVALID_AUDIO_FILE);

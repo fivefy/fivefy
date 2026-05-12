@@ -71,6 +71,23 @@ class LocalAudioStorageServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("오디오 파일 삭제")
+    class Delete {
+
+        @Test
+        @DisplayName("로컬 저장소는 audioKey 경로의 MP3 파일을 삭제한다")
+        void delete_success() {
+            LocalAudioStorageService storageService = new LocalAudioStorageService(properties());
+            MockMultipartFile audioFile = audioFile("sample.mp3", "audio/mpeg", validMp3Bytes());
+            String audioKey = storageService.upload(audioFile);
+
+            storageService.delete(audioKey);
+
+            assertThat(Files.exists(tempDir.resolve(audioKey))).isFalse();
+        }
+    }
+
     private AudioStorageProperties properties() {
         return new AudioStorageProperties(
                 "local",

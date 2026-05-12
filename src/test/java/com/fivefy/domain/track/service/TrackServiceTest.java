@@ -44,10 +44,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -100,12 +104,27 @@ class TrackServiceTest {
     @Mock
     private AudioStorageService audioStorageService;
 
+    @Mock
+    private TransactionTemplate transactionTemplate;
+
     @InjectMocks
     private TrackService trackService;
 
     @BeforeEach
     void setUp() {
         lenient().when(audioStorageService.upload(any())).thenReturn(AUDIO_KEY);
+        lenient().when(transactionTemplate.execute(any()))
+                .thenAnswer(invocation -> {
+                    TransactionCallback<?> callback = invocation.getArgument(0);
+                    return callback.doInTransaction(mock(TransactionStatus.class));
+                });
+        lenient().doAnswer(invocation -> {
+                    Consumer<TransactionStatus> action = invocation.getArgument(0);
+                    action.accept(mock(TransactionStatus.class));
+                    return null;
+                })
+                .when(transactionTemplate)
+                .executeWithoutResult(any());
     }
 
     private MockMultipartFile audioFile() {
@@ -251,6 +270,7 @@ class TrackServiceTest {
             assertThatThrownBy(() -> trackService.createFreeTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS.getMessage());
+            verify(audioStorageService).delete(AUDIO_KEY);
         }
     }
 
@@ -913,6 +933,7 @@ class TrackServiceTest {
             assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS.getMessage());
+            verify(audioStorageService).delete(AUDIO_KEY);
         }
     }
 
