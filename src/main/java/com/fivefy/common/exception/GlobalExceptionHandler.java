@@ -2,6 +2,7 @@ package com.fivefy.common.exception;
 
 import com.fivefy.common.dto.response.BaseResponse;
 import com.fivefy.common.dto.response.FieldErrorResponse;
+import com.fivefy.common.enums.MultipartErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +10,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestCookieException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.List;
@@ -39,6 +42,20 @@ public class GlobalExceptionHandler {
         );
     }
 
+    // multipart 업로드 용량 초과 예외 처리
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<BaseResponse<Void>> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException e) {
+        log.warn("업로드 용량 초과 : {}", e.getMessage());
+        return toErrorResponse(MultipartErrorCode.ERR_MULTIPART_UPLOAD_SIZE_EXCEEDED);
+    }
+
+    // multipart 요청 형식 예외 처리
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<BaseResponse<Void>> handleMultipartException(MultipartException e) {
+        log.warn("multipart 요청 형식 에러 발생 : ", e);
+        return toErrorResponse(MultipartErrorCode.ERR_INVALID_MULTIPART_REQUEST);
+    }
+
     // 존재하지 않는 경로 예외 처리
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<BaseResponse<Void>> handleNoResourceFoundException(NoResourceFoundException e) {
@@ -62,6 +79,12 @@ public class GlobalExceptionHandler {
         log.error("예상치 못한 에러 발생 : ", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                 BaseResponse.fail(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류로 인해 잠시 후 시도 바랍니다")
+        );
+    }
+
+    private ResponseEntity<BaseResponse<Void>> toErrorResponse(ErrorCode errorCode) {
+        return ResponseEntity.status(errorCode.getHttpStatus()).body(
+                BaseResponse.fail(errorCode.getHttpStatus(), errorCode.getMessage())
         );
     }
 }
