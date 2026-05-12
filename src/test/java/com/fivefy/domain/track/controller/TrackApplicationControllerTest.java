@@ -338,7 +338,7 @@ class TrackApplicationControllerTest extends RestDocsSupport {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/550e8400-e29b-41d4-a716-446655440000.mp3",
                     230L,
                     "feat. 10cm",
                     3,
