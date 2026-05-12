@@ -189,8 +189,9 @@ public class SubscriptionService {
                 .toList();
 
         // 구독 존재 여부(활성화, ACTIVE)만 확인
-        return subscriptionRepository.findAllByPointOrderIdIn(pointOrderIds)
-                .stream()
-                .anyMatch(s -> s.getStatus() == SubscriptionStatus.ACTIVE);
+        return subscriptionRepository.existsByPointOrderIdInAndStatus(
+                    pointOrderIds,
+                    SubscriptionStatus.ACTIVE
+        );
     }
 }
