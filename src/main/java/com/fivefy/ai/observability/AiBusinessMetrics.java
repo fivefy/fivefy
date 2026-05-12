@@ -62,4 +62,16 @@ public class AiBusinessMetrics {
                 .publishPercentiles(0.5, 0.95, 0.99)
                 .register(meterRegistry));
     }
+
+    public void recordCitationParseFailed() {
+        Counter.builder("ai.citation.parse_failed")
+                .description("LLM이 파싱 가능한 [N] 인용구를 생성하는 데 실패하였습니다")
+                .register(meterRegistry)
+                .increment();
+    }
+
+    public void recordCitationParseSuccess(int citedCount) {
+        meterRegistry.counter("ai.citation.parse_success").increment();
+        meterRegistry.summary("ai.citation.cited_count").record(citedCount);
+    }
 }

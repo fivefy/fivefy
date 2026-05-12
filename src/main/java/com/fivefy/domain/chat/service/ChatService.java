@@ -1,5 +1,6 @@
 package com.fivefy.domain.chat.service;
 
+import com.fivefy.ai.observability.AiBusinessMetrics;
 import com.fivefy.domain.chat.dto.etc.ChatSetupResult;
 import com.fivefy.domain.chat.dto.event.ChatStreamEvent;
 import com.fivefy.ai.dto.etc.RetrievedTrack;
@@ -27,6 +28,9 @@ public class ChatService {
     private final CitationExtractor citationExtractor;
     @Qualifier("anthropicChatClient")
     private final ChatClient chatClient;
+    private final AiBusinessMetrics metrics;
+
+    private static final int MAX_CARDS_PER_MESSAGE = 8;
 
     public Flux<ChatStreamEvent> sendMessage(Long userId, Long sessionId, String userMessage) {
         // ─── 1. 세션 확보 + 유저 메시지 저장 (트랜잭션) ───
@@ -75,9 +79,23 @@ public class ChatService {
             // LLM이 실제로 인용한 트랙만 골라냄
             List<RetrievedTrack> citedTracks = citationExtractor.filterCited(retrieved, responseText);
 
-            // LLM이 [N] 인용을 안 했거나 매칭 실패 시 fallback: 후보 전체 노출
-            // (사용자가 카드 영역을 비어있는 상태로 보면 더 어색함)
-            List<RetrievedTrack> tracksToShow = citedTracks.isEmpty() ? retrieved : citedTracks;
+            List<RetrievedTrack> tracksToShow;
+            if (citedTracks.isEmpty()) {
+                // LLM이 [N] 인용 형식을 어긴 경우 — 카드 미노출
+                // 후보 전체 노출 시 텍스트와 카드 불일치 위험
+                tracksToShow = List.of();
+                metrics.recordCitationParseFailed();
+                log.warn("LLM citation parsing failed, sessionId={}, responseLength={}",
+                        setup.session().getId(), responseText.length());
+            } else {
+                tracksToShow = citedTracks;
+                metrics.recordCitationParseSuccess(citedTracks.size());
+
+                // citedTracks 리스트도 상한 적용
+                if (tracksToShow.size() > MAX_CARDS_PER_MESSAGE) {
+                    tracksToShow = tracksToShow.subList(0, MAX_CARDS_PER_MESSAGE);
+                }
+            }
 
             Long assistantMessageId = commandService.saveAssistantMessage(
                     setup.session().getId(), responseText, tracksToShow);
