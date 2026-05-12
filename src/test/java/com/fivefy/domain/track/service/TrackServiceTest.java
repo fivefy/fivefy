@@ -1012,7 +1012,7 @@ class TrackServiceTest {
                     "밤편지 AI 버전",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     210L,
                     null,
                     null
@@ -1042,7 +1042,7 @@ class TrackServiceTest {
             assertThat(response.trackNumber()).isNull();
             assertThat(response.title()).isEqualTo("밤편지 AI 버전");
             assertThat(response.genre()).isEqualTo("BALLAD");
-            assertThat(response.audioKey()).isEqualTo("https://example.com/audio.mp3");
+            assertThat(response.audioKey()).isEqualTo("tracks/audio/test.mp3");
             assertThat(response.durationSec()).isEqualTo(210L);
             assertThat(response.publishDelayDays()).isNull();
             assertThat(response.status()).isEqualTo(ApplicationStatus.PENDING);
@@ -1068,7 +1068,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     3
@@ -1120,7 +1120,7 @@ class TrackServiceTest {
                     "밤편지 AI 버전",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     210L,
                     null,
                     null
@@ -1230,7 +1230,7 @@ class TrackServiceTest {
                     "승인 대기 신청",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     210L,
                     null,
                     null
@@ -1291,7 +1291,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     0
@@ -1367,7 +1367,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     3
@@ -1455,7 +1455,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     0
@@ -1507,7 +1507,7 @@ class TrackServiceTest {
                     "밤편지 AI 버전",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     210L,
                     null,
                     null
@@ -1555,7 +1555,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     0
@@ -1602,7 +1602,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     0
@@ -1645,7 +1645,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     0
@@ -1703,7 +1703,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     0
@@ -1754,7 +1754,7 @@ class TrackServiceTest {
                     "밤편지 AI 버전",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     210L,
                     null,
                     null
@@ -1792,7 +1792,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     3
@@ -1842,7 +1842,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     0
@@ -1891,7 +1891,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     null
@@ -2020,7 +2020,7 @@ class TrackServiceTest {
                     "밤편지 AI 버전",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     210L
             );
             ReflectionTestUtils.setField(track, "id", trackId);
@@ -2051,7 +2051,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     null
@@ -2081,7 +2081,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     null
@@ -2128,7 +2128,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     null
@@ -2170,7 +2170,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     null
@@ -2224,7 +2224,7 @@ class TrackServiceTest {
                     "캐시 이전 제목",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     210L
             );
             ReflectionTestUtils.setField(track, "id", trackId);
@@ -2296,7 +2296,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     null
