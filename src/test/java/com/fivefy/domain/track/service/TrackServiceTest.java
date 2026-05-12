@@ -4,6 +4,7 @@ import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.dto.response.SliceResponse;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
+import com.fivefy.common.storage.AudioStorageService;
 import com.fivefy.domain.album.entity.Album;
 import com.fivefy.domain.album.enums.AlbumErrorCode;
 import com.fivefy.domain.album.repository.AlbumRepository;
@@ -27,6 +28,7 @@ import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.enums.UserRole;
 import com.fivefy.domain.user.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -40,6 +42,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.SliceImpl;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -68,6 +71,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class TrackServiceTest {
 
+    private static final String AUDIO_KEY = "tracks/audio/test.mp3";
+
     @Mock
     private TrackApplicationRepository trackApplicationRepository;
 
@@ -92,8 +97,25 @@ class TrackServiceTest {
     @Mock
     private TrackDetailCacheService trackDetailCacheService;
 
+    @Mock
+    private AudioStorageService audioStorageService;
+
     @InjectMocks
     private TrackService trackService;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(audioStorageService.upload(any())).thenReturn(AUDIO_KEY);
+    }
+
+    private MockMultipartFile audioFile() {
+        return new MockMultipartFile(
+                "audioFile",
+                "sample.mp3",
+                "audio/mpeg",
+                "audio".getBytes()
+        );
+    }
 
     @Nested
     @DisplayName("자유 창작 트랙 등록 신청 생성")
@@ -109,7 +131,6 @@ class TrackServiceTest {
                             "밤편지 AI 버전",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             210L
                     );
 
@@ -119,7 +140,7 @@ class TrackServiceTest {
             when(trackApplicationRepository.existsPendingFreeCreationApplication(
                     userId,
                     request.title(),
-                    request.audioKey()
+                    AUDIO_KEY
             )).thenReturn(false);
 
             TrackApplication savedApplication = TrackApplication.create(
@@ -131,7 +152,7 @@ class TrackServiceTest {
                     request.title(),
                     request.lyrics(),
                     request.genre(),
-                    request.audioKey(),
+                    AUDIO_KEY,
                     request.durationSec(),
                     null,
                     null
@@ -147,7 +168,7 @@ class TrackServiceTest {
                     .thenReturn(savedApplication);
 
             TrackApplicationResponse response =
-                    trackService.createFreeTrackApplication(userId, request);
+                    trackService.createFreeTrackApplication(userId, request, audioFile());
 
             assertThat(response.applicationId()).isEqualTo(1L);
             assertThat(response.trackType()).isEqualTo(TrackType.FREE_CREATION);
@@ -168,13 +189,12 @@ class TrackServiceTest {
                             "밤편지 AI 버전",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             210L
                     );
 
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> trackService.createFreeTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createFreeTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(UserErrorCode.ERR_USER_NOT_FOUND.getMessage());
         }
@@ -189,7 +209,6 @@ class TrackServiceTest {
                             "밤편지 AI 버전",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             210L
                     );
 
@@ -199,10 +218,10 @@ class TrackServiceTest {
             when(trackApplicationRepository.existsPendingFreeCreationApplication(
                     userId,
                     request.title(),
-                    request.audioKey()
+                    AUDIO_KEY
             )).thenReturn(true);
 
-            assertThatThrownBy(() -> trackService.createFreeTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createFreeTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS.getMessage());
         }
@@ -217,7 +236,6 @@ class TrackServiceTest {
                             "밤편지 AI 버전",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             210L
                     );
 
@@ -227,13 +245,13 @@ class TrackServiceTest {
             when(trackApplicationRepository.existsPendingFreeCreationApplication(
                     userId,
                     request.title(),
-                    request.audioKey()
+                    AUDIO_KEY
             )).thenReturn(false);
 
             when(trackApplicationRepository.saveAndFlush(any(TrackApplication.class)))
                     .thenThrow(new DataIntegrityViolationException("duplicate free creation application"));
 
-            assertThatThrownBy(() -> trackService.createFreeTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createFreeTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS.getMessage());
         }
@@ -258,7 +276,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -313,7 +330,7 @@ class TrackServiceTest {
                     request.title(),
                     request.lyrics(),
                     request.genre(),
-                    request.audioKey(),
+                    AUDIO_KEY,
                     request.durationSec(),
                     request.featuredArtistText(),
                     request.publishDelayDays()
@@ -329,7 +346,7 @@ class TrackServiceTest {
                     .thenReturn(savedApplication);
 
             TrackApplicationResponse response =
-                    trackService.createOfficialTrackApplication(userId, request);
+                    trackService.createOfficialTrackApplication(userId, request, audioFile());
 
             assertThat(response.applicationId()).isEqualTo(2L);
             assertThat(response.trackType()).isEqualTo(TrackType.OFFICIAL_RELEASE);
@@ -353,7 +370,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -361,7 +377,7 @@ class TrackServiceTest {
 
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(UserErrorCode.ERR_USER_NOT_FOUND.getMessage());
         }
@@ -380,7 +396,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -390,7 +405,7 @@ class TrackServiceTest {
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
             when(artistRepository.findById(artistId)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
         }
@@ -409,7 +424,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -431,7 +445,7 @@ class TrackServiceTest {
 
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
         }
@@ -450,7 +464,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -471,7 +484,7 @@ class TrackServiceTest {
 
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(ArtistErrorCode.ERR_FORBIDDEN_ARTIST_ACCESS.getMessage());
         }
@@ -490,7 +503,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -512,7 +524,7 @@ class TrackServiceTest {
 
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_INACTIVE_ARTIST_CANNOT_REQUEST_OFFICIAL_RELEASE.getMessage());
         }
@@ -532,7 +544,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -554,7 +565,7 @@ class TrackServiceTest {
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
             when(albumRepository.findById(albumId)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(AlbumErrorCode.ERR_ALBUM_NOT_FOUND.getMessage());
         }
@@ -574,7 +585,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -607,7 +617,7 @@ class TrackServiceTest {
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
             when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(AlbumErrorCode.ERR_ALBUM_NOT_FOUND.getMessage());
         }
@@ -627,7 +637,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -659,7 +668,7 @@ class TrackServiceTest {
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
             when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_ALBUM_ARTIST_MISMATCH.getMessage());
         }
@@ -679,7 +688,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             8
@@ -711,7 +719,7 @@ class TrackServiceTest {
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
             when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_INVALID_PUBLISH_DELAY_DAYS.getMessage());
         }
@@ -731,7 +739,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -770,7 +777,7 @@ class TrackServiceTest {
                     request.title()
             )).thenReturn(true);
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS.getMessage());
         }
@@ -790,7 +797,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -838,7 +844,7 @@ class TrackServiceTest {
                     request.title()
             )).thenReturn(true);
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_PROCESSED.getMessage());
         }
@@ -858,7 +864,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -908,7 +913,7 @@ class TrackServiceTest {
             when(trackApplicationRepository.saveAndFlush(any(TrackApplication.class)))
                     .thenThrow(new DataIntegrityViolationException("duplicate official release application"));
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS.getMessage());
         }
