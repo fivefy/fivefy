@@ -3,6 +3,9 @@ package com.fivefy.domain.playback.service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+/**
+ * CloudFront 기반 audio URL 생성 서비스
+ */
 @Service
 public class AudioUrlService {
 
