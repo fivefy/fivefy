@@ -86,8 +86,10 @@ public class RecommendationService {
             metrics.recordLatency(rerankTimer, RECOMMENDATION, "rerank");
 
             // ─── 4. 메타데이터 join ───
+            Timer.Sample metadataTimer = metrics.startTimer();
             List<RecommendationResponse.RecommendedTrack> tracks =
                     enrichWithMetadata(finalIds, userVector, candidateVectors);
+            metrics.recordLatency(metadataTimer, RECOMMENDATION, "metadata_join");
 
             metrics.recordResultCount(RECOMMENDATION, tracks.size());
             metrics.recordCall(RECOMMENDATION, true);
