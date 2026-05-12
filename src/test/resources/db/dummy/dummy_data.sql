@@ -187,7 +187,7 @@ TRUNCATE TABLE track_release_requests;
 
 INSERT INTO track_release_requests
 (id, requester_user_id, track_type, artist_id, album_id, track_number, title, lyrics,
- genre, audio_url, duration_sec, featured_artist_text, scheduled_publish_at,
+ genre, audio_key, duration_sec, featured_artist_text, scheduled_publish_at,
  status, reviewed_by_admin_id, reviewed_at, rejection_reason, created_at, updated_at)
 VALUES
 (1, 6, 'OFFICIAL_RELEASE', 1, 1, 1, 'Moonlight Drive', NULL, 'ELECTRONIC', 'https://audio.music.com/req/1.mp3', 234, NULL, NULL, 'APPROVED', 1, '2024-07-26 10:00:00', NULL, '2024-07-25 12:00:00', '2024-07-26 10:00:00'),
@@ -203,7 +203,7 @@ TRUNCATE TABLE tracks;
 -- 앨범 1 (루나 - Midnight Dreams) 6트랙
 INSERT INTO tracks
 (id, owner_user_id, track_type, artist_id, album_id, track_number, title, lyrics, genre,
- audio_url, duration_sec, featured_artist_text, status, scheduled_publish_at, published_at,
+ audio_key, duration_sec, featured_artist_text, status, scheduled_publish_at, published_at,
  play_count, created_at, updated_at, deleted_at)
 VALUES
 (1,  6, 'OFFICIAL_RELEASE', 1, 1, 1, 'Moonlight Drive',    '달빛 아래 달려가는 꿈속에서', 'ELECTRONIC', 'https://audio.music.com/1.mp3',  234, NULL, 'PUBLISHED', NULL, '2024-08-01 00:00:00', 15420, '2024-07-26 10:00:00', NOW(), NULL),
