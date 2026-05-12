@@ -61,4 +61,15 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
 
     // 테스트 정리용
     void deleteAllByPointOrderIdIn(List<Long> pointOrderIds);
+
+    /**
+     * 코드래빗 조언 : 조건을 만족하는 행이 하나라도 있으면 즉시 멈추고 true 반환
+     * @param pointOrderIds
+     * @param status
+     * @return
+     */
+    boolean existsByPointOrderIdInAndStatus(
+            List<Long> pointOrderIds,
+            SubscriptionStatus status
+    );
 }

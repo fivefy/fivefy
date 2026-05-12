@@ -174,4 +174,24 @@ public class SubscriptionService {
                 .orElseThrow(() -> new BusinessException(
                         SubscriptionErrorCode.ERR_SUBSCRIPTION_RECURRING_NOT_FOUND));
     }
+
+    /**
+     * 구독 활성 여부만 boolean으로 반환
+     *
+     * @param userId
+     * @return
+     */
+    public boolean isActiveSubscriber(Long userId) {
+        // userId → pointOrderIds
+        List<Long> pointOrderIds = pointOrderRepository.findAllByUserId(userId)
+                .stream()
+                .map(PointOrder::getId)
+                .toList();
+
+        // 구독 존재 여부(활성화, ACTIVE)만 확인
+        return subscriptionRepository.existsByPointOrderIdInAndStatus(
+                    pointOrderIds,
+                    SubscriptionStatus.ACTIVE
+        );
+    }
 }
