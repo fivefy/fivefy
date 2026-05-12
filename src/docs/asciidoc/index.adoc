@@ -577,21 +577,24 @@ include::{snippets}/albums-by-artist-not-found/response-fields.adoc[]
 === 자유 창작 트랙 등록 신청 생성
 
 include::{snippets}/track-applications-free-creations-create/http-request.adoc[]
-include::{snippets}/track-applications-free-creations-create/request-fields.adoc[]
+include::{snippets}/track-applications-free-creations-create/request-parts.adoc[]
+include::{snippets}/track-applications-free-creations-create/request-part-request-fields.adoc[]
 include::{snippets}/track-applications-free-creations-create/http-response.adoc[]
 include::{snippets}/track-applications-free-creations-create/response-fields.adoc[]
 
 ==== 에러 케이스 - 요청 검증 실패
 
 include::{snippets}/track-applications-free-creations-create-invalid/http-request.adoc[]
-include::{snippets}/track-applications-free-creations-create-invalid/request-fields.adoc[]
+include::{snippets}/track-applications-free-creations-create-invalid/request-parts.adoc[]
+include::{snippets}/track-applications-free-creations-create-invalid/request-part-request-fields.adoc[]
 include::{snippets}/track-applications-free-creations-create-invalid/http-response.adoc[]
 include::{snippets}/track-applications-free-creations-create-invalid/response-fields.adoc[]
 
 ==== 에러 케이스 - 중복 신청
 
 include::{snippets}/track-applications-free-creations-create-duplicate/http-request.adoc[]
-include::{snippets}/track-applications-free-creations-create-duplicate/request-fields.adoc[]
+include::{snippets}/track-applications-free-creations-create-duplicate/request-parts.adoc[]
+include::{snippets}/track-applications-free-creations-create-duplicate/request-part-request-fields.adoc[]
 include::{snippets}/track-applications-free-creations-create-duplicate/http-response.adoc[]
 include::{snippets}/track-applications-free-creations-create-duplicate/response-fields.adoc[]
 
@@ -600,21 +603,24 @@ include::{snippets}/track-applications-free-creations-create-duplicate/response-
 === 정식 발매 트랙 등록 신청 생성
 
 include::{snippets}/track-applications-official-releases-create/http-request.adoc[]
-include::{snippets}/track-applications-official-releases-create/request-fields.adoc[]
+include::{snippets}/track-applications-official-releases-create/request-parts.adoc[]
+include::{snippets}/track-applications-official-releases-create/request-part-request-fields.adoc[]
 include::{snippets}/track-applications-official-releases-create/http-response.adoc[]
 include::{snippets}/track-applications-official-releases-create/response-fields.adoc[]
 
 ==== 에러 케이스 - 요청 검증 실패
 
 include::{snippets}/track-applications-official-releases-create-invalid/http-request.adoc[]
-include::{snippets}/track-applications-official-releases-create-invalid/request-fields.adoc[]
+include::{snippets}/track-applications-official-releases-create-invalid/request-parts.adoc[]
+include::{snippets}/track-applications-official-releases-create-invalid/request-part-request-fields.adoc[]
 include::{snippets}/track-applications-official-releases-create-invalid/http-response.adoc[]
 include::{snippets}/track-applications-official-releases-create-invalid/response-fields.adoc[]
 
 ==== 에러 케이스 - 중복 신청
 
 include::{snippets}/track-applications-official-releases-create-duplicate/http-request.adoc[]
-include::{snippets}/track-applications-official-releases-create-duplicate/request-fields.adoc[]
+include::{snippets}/track-applications-official-releases-create-duplicate/request-parts.adoc[]
+include::{snippets}/track-applications-official-releases-create-duplicate/request-part-request-fields.adoc[]
 include::{snippets}/track-applications-official-releases-create-duplicate/http-response.adoc[]
 include::{snippets}/track-applications-official-releases-create-duplicate/response-fields.adoc[]
 
