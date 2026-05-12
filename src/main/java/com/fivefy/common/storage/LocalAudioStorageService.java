@@ -17,9 +17,11 @@ import java.util.UUID;
 public class LocalAudioStorageService implements AudioStorageService {
 
     private final AudioStorageProperties properties;
+    private final Path storageRoot;
 
     public LocalAudioStorageService(AudioStorageProperties properties) {
         this.properties = properties;
+        this.storageRoot = Path.of(properties.normalizedLocalRoot()).toAbsolutePath().normalize();
     }
 
     @Override
@@ -27,7 +29,7 @@ public class LocalAudioStorageService implements AudioStorageService {
         validateAudioFile(audioFile);
 
         String audioKey = properties.normalizedPrefix() + "/" + UUID.randomUUID() + ".mp3";
-        Path targetPath = Path.of(properties.normalizedLocalRoot()).resolve(audioKey);
+        Path targetPath = resolveAudioPath(audioKey);
 
         try {
             Files.createDirectories(targetPath.getParent());
@@ -47,13 +49,22 @@ public class LocalAudioStorageService implements AudioStorageService {
             return;
         }
 
-        Path targetPath = Path.of(properties.normalizedLocalRoot()).resolve(audioKey);
+        Path targetPath = resolveAudioPath(audioKey);
 
         try {
             Files.deleteIfExists(targetPath);
         } catch (IOException e) {
             throw new BusinessException(TrackApplicationErrorCode.ERR_AUDIO_UPLOAD_FAILED);
         }
+    }
+
+    private Path resolveAudioPath(String audioKey) {
+        Path targetPath = storageRoot.resolve(audioKey).normalize();
+        if (!targetPath.startsWith(storageRoot)) {
+            throw new BusinessException(TrackApplicationErrorCode.ERR_INVALID_AUDIO_KEY);
+        }
+
+        return targetPath;
     }
 
     static void validateAudioFile(MultipartFile audioFile) {

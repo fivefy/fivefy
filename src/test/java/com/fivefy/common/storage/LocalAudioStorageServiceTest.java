@@ -69,6 +69,17 @@ class LocalAudioStorageServiceTest {
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_INVALID_AUDIO_FILE.getMessage());
         }
+
+        @Test
+        @DisplayName("prefix가 로컬 저장소 경로를 벗어나면 오디오 파일 저장 실패")
+        void upload_fail_whenPrefixEscapesStorageRoot() {
+            LocalAudioStorageService storageService = new LocalAudioStorageService(properties("../outside"));
+            MockMultipartFile audioFile = audioFile("sample.mp3", "audio/mpeg", validMp3Bytes());
+
+            assertThatThrownBy(() -> storageService.upload(audioFile))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackApplicationErrorCode.ERR_INVALID_AUDIO_KEY.getMessage());
+        }
     }
 
     @Nested
@@ -86,14 +97,31 @@ class LocalAudioStorageServiceTest {
 
             assertThat(Files.exists(tempDir.resolve(audioKey))).isFalse();
         }
+
+        @Test
+        @DisplayName("audioKey가 로컬 저장소 경로를 벗어나면 삭제 실패")
+        void delete_fail_whenAudioKeyEscapesStorageRoot() throws Exception {
+            LocalAudioStorageService storageService = new LocalAudioStorageService(properties());
+            Path outsideFile = tempDir.resolveSibling("outside.mp3");
+            Files.write(outsideFile, validMp3Bytes());
+
+            assertThatThrownBy(() -> storageService.delete("../outside.mp3"))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(TrackApplicationErrorCode.ERR_INVALID_AUDIO_KEY.getMessage());
+            assertThat(Files.exists(outsideFile)).isTrue();
+        }
     }
 
     private AudioStorageProperties properties() {
+        return properties("tracks/audio");
+    }
+
+    private AudioStorageProperties properties(String prefix) {
         return new AudioStorageProperties(
                 "local",
                 null,
                 null,
-                "tracks/audio",
+                prefix,
                 tempDir.toString()
         );
     }
