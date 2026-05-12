@@ -18,7 +18,7 @@ java {
 ext {
     snippetsDir = file('build/generated-snippets')
     set('springAiVersion', '2.0.0-M2')
-    set('awsSdkVersion', '2.44.3')
+    set('awsSdkVersion', '2.44.4')
 }
 
 configurations {
