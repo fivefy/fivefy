@@ -98,7 +98,14 @@ export function setup() {
     console.log(`로그인 완료 — 성공: ${tokens.filter(Boolean).length}개`);
 
     // ── 3. 잔액 확인 (포인트 부족 계정 경고) ─────────
-    const walletReqs = tokens.map(token => ({
+    // 토끼 수정 :
+    // 로그인 실패 시 null값도 배열에 포함되어 요청
+    // 생성할 경우 Authorization: Bearer null가 발생
+    // const validTokens = tokens.filter(Boolean);으로
+    // null, undefined, false, 빈 문자열 제거
+    // ──────────────────────────────────────────────
+    const validTokens = tokens.filter(Boolean);
+    const walletReqs = validTokens.map(token => ({
         method: 'GET',
         url:    `${BASE_URL}/api/me/wallets`,
         params: { headers: { 'Authorization': `Bearer ${token}` } },

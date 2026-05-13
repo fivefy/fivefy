@@ -116,11 +116,22 @@ export function setup() {
 //         VU2 → test2@gmail.com 토큰 ...
 // ──────────────────────────────────────────────
 export default function (data) {
+    // ──────────────────────────────────────────────
+    // 토끼 수정 :
+    // 만일 로그인에 실패하면 data.tokens[0] === null
+    // 이 경우 실제 헤더 요청은 Authorization: Bearer null
+    // 인증 자체가 실패하므로 토큰 없는 경우 스킵 실행 추가
+    // K6에서 가상유저는 1부터 시작, 배열은 0부터 시작이니 -1
+    // ──────────────────────────────────────────────
+    const token = data.tokens[__VU - 1];
+    if (!token) {
+        console.error(`VU${__VU} 토큰 없음 — iteration 스킵`);
+        sleep(1);
+        return;
+    }
     const headers = {
         'Content-Type':  'application/json',
-        // ✅ 수정: data.accessToken → data.tokens[__VU - 1]
-        //         __VU는 1부터 시작, 배열은 0부터 시작이므로 -1
-        'Authorization': `Bearer ${data.tokens[__VU - 1]}`,
+        'Authorization': `Bearer ${token}`,
     };
 
     // ── 1. 내 지갑 조회 ──────────────────────────
