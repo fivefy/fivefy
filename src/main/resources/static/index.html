@@ -458,6 +458,7 @@
         </div>`).join('');
     }
 
+    async function runCurrentRequest() {
     function row(t, index, options = {}) {
       const id = trackIdOf(t);
       const trend = index % 3 === 0 ? 'same' : index % 2 ? 'up' : 'down';
@@ -530,6 +531,18 @@
     }
     async function loadCharts() {
       try {
+        setStatus('요청 중...');
+        const method = $('method').value;
+        const endpoint = $('endpoint').value;
+        const body = method === 'GET' ? undefined : getBodyValue();
+        const result = await request(method, endpoint, body);
+        $('response').textContent = pretty(result);
+        setStatus(`${result.status} ${result.statusText}`, result.ok ? 'ok' : 'error');
+      } catch (error) {
+        $('response').textContent = error.stack || error.message;
+        setStatus('요청 실패', 'error');
+      }
+    }
         const chart = data(await api('/api/popular-charts/top100')) || [];
         state.chartTracks = await Promise.all(chart.slice(0, 8).map(async c => {
           const existing = state.publicTracks.find(t => String(trackIdOf(t)) === String(c.trackId));
