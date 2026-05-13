@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fivefy API Runner</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0d1020;
+      --panel: rgba(255, 255, 255, 0.08);
+      --panel-strong: rgba(255, 255, 255, 0.14);
+      --text: #f7f7fb;
+      --muted: #b6bdd6;
+      --primary: #7c5cff;
+      --primary-strong: #9f89ff;
+      --success: #4ade80;
+      --danger: #fb7185;
+      --line: rgba(255, 255, 255, 0.16);
+      font-family: Inter, Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(124, 92, 255, 0.34), transparent 34rem),
+        radial-gradient(circle at top right, rgba(45, 212, 191, 0.18), transparent 28rem),
+        var(--bg);
+      color: var(--text);
+    }
+
+    button, input, select, textarea { font: inherit; }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 40px 0;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.3fr 0.7fr;
+      gap: 24px;
+      align-items: stretch;
+      margin-bottom: 24px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: linear-gradient(145deg, var(--panel), rgba(255, 255, 255, 0.04));
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(18px);
+      padding: 24px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 18px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--primary-strong);
+      background: rgba(124, 92, 255, 0.12);
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    h1 { margin: 0 0 14px; font-size: clamp(2.2rem, 6vw, 4.5rem); line-height: 0.98; letter-spacing: -0.06em; }
+    h2 { margin: 0 0 14px; font-size: 1.35rem; }
+    p { margin: 0; color: var(--muted); line-height: 1.65; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(9, 11, 24, 0.72);
+      color: var(--text);
+      outline: none;
+      padding: 13px 14px;
+      transition: border-color 0.16s, box-shadow 0.16s;
+    }
+
+    textarea { min-height: 210px; resize: vertical; font-family: "JetBrains Mono", Consolas, monospace; line-height: 1.55; }
+    input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(124, 92, 255, 0.16); }
+
+    .field { margin-bottom: 16px; }
+    .row { display: grid; grid-template-columns: 130px 1fr; gap: 12px; }
+
+    .button-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      color: #fff;
+      background: var(--primary);
+      padding: 12px 18px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.16s, background 0.16s;
+    }
+
+    button:hover { transform: translateY(-1px); background: var(--primary-strong); }
+    button.secondary { background: var(--panel-strong); border: 1px solid var(--line); }
+    button.danger { background: rgba(251, 113, 133, 0.18); border: 1px solid rgba(251, 113, 133, 0.38); color: #fecdd3; }
+
+    .examples { display: grid; gap: 10px; }
+    .example {
+      display: block;
+      text-align: left;
+      width: 100%;
+      border-radius: 18px;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid transparent;
+      color: var(--text);
+    }
+    .example:hover { border-color: var(--primary); }
+    .example span { display: block; color: var(--muted); font-weight: 600; font-size: 0.84rem; margin-top: 4px; }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 32px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+    .status.ok .dot { background: var(--success); }
+    .status.error .dot { background: var(--danger); }
+
+    pre {
+      min-height: 320px;
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(4, 6, 16, 0.74);
+      padding: 18px;
+      color: #dbeafe;
+      font-family: "JetBrains Mono", Consolas, monospace;
+      line-height: 1.6;
+      overflow: auto;
+    }
+
+    .token-chip {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(74, 222, 128, 0.1);
+      color: #bbf7d0;
+      border: 1px solid rgba(74, 222, 128, 0.26);
+      font-family: "JetBrains Mono", Consolas, monospace;
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 920px) {
+      .hero, .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="card">
+        <div class="eyebrow">🎧 Fivefy API Runner</div>
+        <h1>백엔드 코드를 바로 호출하는 프론트엔드 실험실</h1>
+        <p>Spring Boot로 제공되는 Fivefy API를 브라우저에서 로그인, 토큰 저장, 요청 실행, 응답 확인까지 한 번에 테스트할 수 있습니다. 서버 실행 후 이 페이지에서 샘플 요청을 선택하거나 직접 엔드포인트를 입력하세요.</p>
+      </div>
+      <div class="card">
+        <h2>사용 순서</h2>
+        <p>1. 서버 주소를 확인합니다.<br>2. 회원가입 또는 로그인으로 액세스 토큰을 저장합니다.<br>3. 샘플 요청을 선택하고 실행합니다.<br>4. 응답 JSON과 HTTP 상태를 확인합니다.</p>
+      </div>
+    </section>
+
+    <section class="grid">
+      <aside class="card">
+        <h2>빠른 인증</h2>
+        <div class="field">
+          <label for="baseUrl">서버 주소</label>
+          <input id="baseUrl" value="http://localhost:8080" />
+        </div>
+        <div class="field">
+          <label for="email">이메일</label>
+          <input id="email" type="email" value="test@test.com" />
+        </div>
+        <div class="field">
+          <label for="password">비밀번호</label>
+          <input id="password" type="password" value="Test1234!" />
+        </div>
+        <div class="field">
+          <label for="name">회원가입 이름</label>
+          <input id="name" value="테스트" />
+        </div>
+        <div class="button-row">
+          <button id="loginButton">로그인</button>
+          <button class="secondary" id="signupButton">회원가입</button>
+          <button class="danger" id="clearTokenButton">토큰 삭제</button>
+        </div>
+        <div class="field" style="margin-top: 18px;">
+          <label>저장된 액세스 토큰</label>
+          <div class="token-chip" id="tokenView">토큰 없음</div>
+        </div>
+
+        <h2 style="margin-top: 26px;">샘플 요청</h2>
+        <div class="examples" id="examples"></div>
+      </aside>
+
+      <section class="card">
+        <div class="row">
+          <div class="field">
+            <label for="method">Method</label>
+            <select id="method">
+              <option>GET</option>
+              <option>POST</option>
+              <option>PATCH</option>
+              <option>DELETE</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="endpoint">Endpoint</label>
+            <input id="endpoint" value="/api/tracks" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="body">Request Body (GET은 비워두세요)</label>
+          <textarea id="body" spellcheck="false"></textarea>
+        </div>
+        <div class="button-row">
+          <button id="sendButton">요청 실행</button>
+          <button class="secondary" id="formatButton">JSON 정렬</button>
+          <span class="status" id="status"><span class="dot"></span><span>대기 중</span></span>
+        </div>
+        <div class="field" style="margin-top: 18px;">
+          <label for="response">Response</label>
+          <pre id="response">샘플을 선택하거나 직접 요청을 실행하세요.</pre>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const samples = [
+      { title: '내 프로필 조회', desc: '로그인 후 JWT 인증 확인', method: 'GET', endpoint: '/api/users/me', body: '' },
+      { title: '트랙 목록 조회', desc: '공개 GET API', method: 'GET', endpoint: '/api/tracks?page=0&size=20', body: '' },
+      { title: '트랙 상세 조회', desc: 'trackId를 실제 값으로 변경하세요', method: 'GET', endpoint: '/api/tracks/1', body: '' },
+      { title: '통합 검색', desc: '키워드 기반 검색 API', method: 'GET', endpoint: '/api/search?keyword=chill&page=0&size=10', body: '' },
+      { title: '무드 검색', desc: 'AI 기반 분위기 검색', method: 'POST', endpoint: '/api/ai/search/mood', body: { query: '퇴근길에 듣기 좋은 신나는 노래', limit: 10, mode: 'BALANCED' } },
+      { title: 'AI 플레이리스트 생성', desc: '프롬프트와 시드 트랙으로 생성', method: 'POST', endpoint: '/api/ai/playlists/generate', body: { prompt: '비 오는 밤에 듣기 좋은 인디 음악', seedTrackIds: [], size: 10, diversityLambda: 0.7 } },
+      { title: '좋아요 목록', desc: '로그인 후 사용자 좋아요 조회', method: 'GET', endpoint: '/api/likes?page=0&size=20', body: '' },
+      { title: '플레이리스트 목록', desc: '로그인 후 내 플레이리스트 조회', method: 'GET', endpoint: '/api/playlists?page=0&size=20', body: '' }
+    ];
+
+    const $ = (id) => document.getElementById(id);
+    const tokenKey = 'fivefy.accessToken';
+
+    function getToken() {
+      return localStorage.getItem(tokenKey) || '';
+    }
+
+    function setStatus(message, type = '') {
+      const status = $('status');
+      status.className = `status ${type}`;
+      status.lastElementChild.textContent = message;
+    }
+
+    function updateTokenView() {
+      const token = getToken();
+      $('tokenView').textContent = token ? token : '토큰 없음';
+    }
+
+    function pretty(data) {
+      return typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+    }
+
+    function getBodyValue() {
+      const value = $('body').value.trim();
+      return value ? JSON.parse(value) : undefined;
+    }
+
+    async function request(method, endpoint, body) {
+      const baseUrl = $('baseUrl').value.replace(/\/$/, '');
+      const headers = { Accept: 'application/json' };
+      const token = getToken();
+      const init = { method, headers, credentials: 'include' };
+
+      if (token) headers.Authorization = `Bearer ${token}`;
+      if (body !== undefined && method !== 'GET') {
+        headers['Content-Type'] = 'application/json';
+        init.body = JSON.stringify(body);
+      }
+
+      const response = await fetch(`${baseUrl}${endpoint}`, init);
+      const text = await response.text();
+      let payload = text;
+      try { payload = text ? JSON.parse(text) : null; } catch (_) { /* keep raw text */ }
+      return { ok: response.ok, status: response.status, statusText: response.statusText, payload };
+    }
+
+    async function runCurrentRequest() {
+      try {
+        setStatus('요청 중...');
+        const method = $('method').value;
+        const endpoint = $('endpoint').value;
+        const body = method === 'GET' ? undefined : getBodyValue();
+        const result = await request(method, endpoint, body);
+        $('response').textContent = pretty(result);
+        setStatus(`${result.status} ${result.statusText}`, result.ok ? 'ok' : 'error');
+      } catch (error) {
+        $('response').textContent = error.stack || error.message;
+        setStatus('요청 실패', 'error');
+      }
+    }
+
+    async function login() {
+      try {
+        setStatus('로그인 중...');
+        const result = await request('POST', '/api/users/login', {
+          email: $('email').value,
+          password: $('password').value
+        });
+        const accessToken = result.payload?.data?.accessToken;
+        if (accessToken) localStorage.setItem(tokenKey, accessToken);
+        updateTokenView();
+        $('response').textContent = pretty(result);
+        setStatus(accessToken ? '로그인 성공' : '토큰 없음', result.ok ? 'ok' : 'error');
+      } catch (error) {
+        $('response').textContent = error.stack || error.message;
+        setStatus('로그인 실패', 'error');
+      }
+    }
+
+    async function signup() {
+      try {
+        setStatus('회원가입 중...');
+        const result = await request('POST', '/api/users/signup', {
+          name: $('name').value,
+          email: $('email').value,
+          password: $('password').value
+        });
+        $('response').textContent = pretty(result);
+        setStatus(`${result.status} ${result.statusText}`, result.ok ? 'ok' : 'error');
+      } catch (error) {
+        $('response').textContent = error.stack || error.message;
+        setStatus('회원가입 실패', 'error');
+      }
+    }
+
+    function loadSample(sample) {
+      $('method').value = sample.method;
+      $('endpoint').value = sample.endpoint;
+      $('body').value = sample.body ? pretty(sample.body) : '';
+      setStatus(`${sample.title} 선택됨`);
+    }
+
+    function renderSamples() {
+      const container = $('examples');
+      samples.forEach((sample) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'example';
+        button.innerHTML = `${sample.title}<span>${sample.method} ${sample.endpoint}</span><span>${sample.desc}</span>`;
+        button.addEventListener('click', () => loadSample(sample));
+        container.appendChild(button);
+      });
+    }
+
+    $('sendButton').addEventListener('click', runCurrentRequest);
+    $('loginButton').addEventListener('click', login);
+    $('signupButton').addEventListener('click', signup);
+    $('clearTokenButton').addEventListener('click', () => {
+      localStorage.removeItem(tokenKey);
+      updateTokenView();
+      setStatus('토큰 삭제됨');
+    });
+    $('formatButton').addEventListener('click', () => {
+      try { $('body').value = pretty(getBodyValue() ?? {}); } catch (error) { setStatus('JSON 형식 오류', 'error'); }
+    });
+
+    renderSamples();
+    updateTokenView();
+  </script>
+</body>
+</html>
