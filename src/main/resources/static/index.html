@@ -332,7 +332,16 @@
             <div class="row"><div class="field"><label>Method</label><select id="apiMethod"><option>GET</option><option>POST</option><option>PATCH</option><option>DELETE</option></select></div><div class="field"><label>Endpoint</label><input id="apiEndpoint" value="/api/tracks" /></div></div>
             <div class="field"><label>JSON Body / request Part</label><textarea class="api-textarea" id="apiBody" spellcheck="false"></textarea></div>
             <div class="field"><label>Multipart file (필요한 API만)</label><input id="apiFile" type="file" /></div>
-            <div class="actions"><button class="pill primary" id="apiRun">API 실행</button><button class="pill ghost" id="apiCopyCurl">curl 복사</button><button class="pill ghost" id="apiFormatBody">JSON 정렬</button></div>
+            <div class="actions">
+                <button class="pill primary" id="apiRun">API 실행</button>
+                <button class="pill ghost" id="apiCopyCurl">curl 복사</button>
+                <button class="pill ghost" id="apiFormatBody">JSON 정렬</button>
+            </div>
+            <div class="field"><label>챗봇 메시지</label><input id="chatInput" placeholder="내 취향에 맞는 음악 추천해줘" /></div>
+            <div class="actions">
+                <button class="pill primary" id="chatSend">챗봇 전송</button>
+            </div>
+            <pre class="api-response" id="chatLog">챗봇 응답이 여기에 표시됩니다.</pre>
             <pre class="api-response" id="apiResponse">응답이 여기에 표시됩니다.</pre>
           </div>
         </div>
@@ -1179,6 +1188,26 @@
     $('apiSearch').addEventListener('input', renderApiList);
     $('apiDomain').addEventListener('change', renderApiList);
     $('apiRun').onclick = runApiLab;
+    $('chatSend').onclick = async () => {
+      const message = $('chatInput').value.trim();
+      if (!message) return;
+      $('chatLog').textContent = '응답 대기 중...\n';
+      try {
+        const res = await fetch('/api/ai/chat/messages', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` },
+          body: JSON.stringify({ sessionId: state.sessionId, message })
+        });
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          $('chatLog').textContent += decoder.decode(value);
+        }
+      } catch (e) { $('chatLog').textContent = `실패: ${e.message}`; }
+    };
     $('apiCopyCurl').onclick = copyCurl;
     $('apiFormatBody').onclick = () => { try { $('apiBody').value = prettyJson(JSON.parse($('apiBody').value || '{}')); } catch (e) { toast('JSON 형식 오류입니다.', 'error'); } };
 
