@@ -44,7 +44,10 @@ public class SearchService {
         }
 
         // 캐시 조회
-        String cacheKey = "search:" + trimmedKeyword + ":page:" + pageable.getPageNumber();
+        String cacheKey = "search:" + trimmedKeyword
+                + ":page:" + pageable.getPageNumber()
+                + ":" + pageable.getPageSize()
+                + ":" + pageable.getSort();
         SearchResponse cached = getFromCache(cacheKey, pageable);
         if (cached != null) return cached;
 
