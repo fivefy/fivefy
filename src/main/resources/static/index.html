@@ -307,7 +307,8 @@
             <div class="actions"><button class="pill primary" id="pgPay">포인트 결제</button><button class="pill danger" id="pgRefund">포인트 환불</button><button class="pill ghost" id="pgWallet">지갑 조회</button><button class="pill ghost" id="pgPointHistory">포인트 내역</button></div>
             <div class="actions"><button class="pill primary" id="pgKakaoBilling">카카오페이 빌링키 등록</button><button class="pill primary" id="pgCardBilling">카드 빌링키 등록</button><button class="pill danger" id="pgDeactivateBilling">빌링키 해지</button></div>
             <div class="actions"><button class="pill ghost" id="pgChargeNow">① 카드 청구 지금 실행</button><button class="pill ghost" id="pgSkipMonth">결제일 당기기</button><button class="pill ghost" id="pgRecurringNow">② 구독료 차감 지금 실행</button><button class="pill ghost" id="pgPayments">카드 결제 내역</button></div>
-            <pre class="api-response" id="pgResult">테스트 결과가 여기에 표시됩니다.</pre>
+            <div class="actions"><button class="pill ghost" id="sseSubscribe">🔔 알림 SSE 구독</button><button class="pill ghost" id="sseClose">구독 종료</button><pre class="api-response" id="sseLog">알림 대기 중...</pre></div>
+              <pre class="api-response" id="pgResult">테스트 결과가 여기에 표시됩니다.</pre>
           </div>
         </div>
       </section>
@@ -1151,6 +1152,17 @@
     $('pgSkipMonth').onclick = () => pgQuick('/api/me/subscriptions/test-skip-month', 'POST');
     $('pgRecurringNow').onclick = () => pgQuick('/api/me/subscriptions/test-recurring', 'POST');
     $('pgPayments').onclick = () => pgQuick('/api/v1/payments');
+    let sseEmitter = null;
+    $('sseSubscribe').onclick = () => {
+      if (sseEmitter) sseEmitter.close();
+      sseEmitter = new EventSource('/api/notifications/subscribe', { withCredentials: true });
+      sseEmitter.addEventListener('notification', e => {
+        log('sseLog', `[알림] ${e.data}`);
+      });
+      sseEmitter.onopen = () => log('sseLog', 'SSE 연결됨');
+      sseEmitter.onerror = () => log('sseLog', 'SSE 연결 끊김');
+    };
+    $('sseClose').onclick = () => { if (sseEmitter) { sseEmitter.close(); log('sseLog', 'SSE 종료'); } };
     $('apiSearch').addEventListener('input', renderApiList);
     $('apiDomain').addEventListener('change', renderApiList);
     $('apiRun').onclick = runApiLab;
