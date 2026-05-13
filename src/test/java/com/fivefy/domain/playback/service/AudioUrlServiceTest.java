@@ -57,7 +57,7 @@ class AudioUrlServiceTest {
     }
 
     @Test
-    @DisplayName("audioKey 앞뒤에 공백이 있어도 그대로 URL을 생성한다")
+    @DisplayName("audioKey 앞뒤에 공백이 있으면 인코딩된 URL을 생성한다")
     void createAudioUrlWithSpaceInKey() {
         // given
         String audioKey = " tracks/test.mp3 ";
@@ -67,6 +67,40 @@ class AudioUrlServiceTest {
 
         // then
         assertThat(result)
-                .isEqualTo("https://cdn.fivefy.com/ tracks/test.mp3 ");
+                .isEqualTo("https://cdn.fivefy.com/%20tracks/test.mp3%20");
+    }
+
+    @Test
+    @DisplayName("CloudFront 도메인 끝에 슬래시가 없어도 정상적으로 audioUrl을 생성한다")
+    void createAudioUrlWithoutTrailingSlash() {
+        // given
+        AudioUrlService service =
+                new AudioUrlService("https://cdn.fivefy.com");
+
+        String audioKey = "tracks/test.mp3";
+
+        // when
+        String result = service.createAudioUrl(audioKey);
+
+        // then
+        assertThat(result)
+                .isEqualTo("https://cdn.fivefy.com/tracks/test.mp3");
+    }
+
+    @Test
+    @DisplayName("CloudFront 도메인 끝에 슬래시가 있으면 제거 후 audioUrl을 생성한다")
+    void createAudioUrlWithTrailingSlashDomain() {
+        // given
+        AudioUrlService service =
+                new AudioUrlService("https://cdn.fivefy.com/");
+
+        String audioKey = "tracks/test.mp3";
+
+        // when
+        String result = service.createAudioUrl(audioKey);
+
+        // then
+        assertThat(result)
+                .isEqualTo("https://cdn.fivefy.com/tracks/test.mp3");
     }
 }
