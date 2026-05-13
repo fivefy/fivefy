@@ -45,13 +45,14 @@ public class PublishTrackConsumer {
 
     @RabbitListener(
             queues = NotificationRabbitConfig.PUBLISH_TRACK_QUEUE,
-            concurrency = "3-10",
+            concurrency = "5-10",
             ackMode = "MANUAL"
     )
     public void consume(String message, Channel channel,
                         @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag,
                         @Header(value = "x-death", required = false) List<Map<String, Object>> xDeath) {
         String dedupKey = null;
+        long start = System.currentTimeMillis();
 
         try {
             PublishTrackChunkEvent event = objectMapper.readValue(message, PublishTrackChunkEvent.class);
@@ -108,6 +109,8 @@ public class PublishTrackConsumer {
 
             log.info("PUBLISH_TRACK 청크 처리 완료: trackId={}, 청크 size={}",
                     event.trackId(), event.userIds().size());
+            log.info("청크 처리 완료 — trackId={}, size={}, 소요={}ms",
+                    event.trackId(), event.userIds().size(), System.currentTimeMillis() - start);
 
             channel.basicAck(deliveryTag, false); // 성공 → ACK
 

@@ -77,22 +77,35 @@ public class SearchQueryRepositoryImpl implements SearchQueryRepository {
             return new PageImpl<>(results, pageable, total);
         }
 
+        // OR → UNION 분리로 fulltext 인덱스 활성화
         List<Track> results = em.createNativeQuery(
-                        "SELECT * FROM tracks" +
-                                " WHERE (MATCH(title) AGAINST(:keyword IN BOOLEAN MODE) OR artist_id IN (:ids))" +
-                                " AND deleted_at IS NULL AND status = 'PUBLISHED'" +
+                        "SELECT * FROM (" +
+                                " SELECT * FROM tracks" +
+                                "  WHERE MATCH(title) AGAINST(:keyword IN BOOLEAN MODE)" +
+                                "  AND deleted_at IS NULL AND status = 'PUBLISHED'" +
+                                " UNION DISTINCT" +
+                                " SELECT * FROM tracks" +
+                                "  WHERE artist_id IN (" + joinedIds + ")" +
+                                "  AND deleted_at IS NULL AND status = 'PUBLISHED'" +
+                                ") AS combined" +
                                 " ORDER BY " + orderClause +
                                 " LIMIT :offset, :size",
                         Track.class)
                 .setParameter("keyword", keyword)
-                .setParameter("ids", ids)
                 .setParameter("offset", pageable.getOffset())
                 .setParameter("size", pageable.getPageSize())
                 .getResultList();
 
         Long total = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM tracks WHERE (MATCH(title) AGAINST(? IN BOOLEAN MODE) OR artist_id IN (" + joinedIds + "))" +
-                        " AND deleted_at IS NULL AND status = 'PUBLISHED'",
+                "SELECT COUNT(*) FROM (" +
+                        " SELECT id FROM tracks" +
+                        "  WHERE MATCH(title) AGAINST(? IN BOOLEAN MODE)" +
+                        "  AND deleted_at IS NULL AND status = 'PUBLISHED'" +
+                        " UNION DISTINCT" +
+                        " SELECT id FROM tracks" +
+                        "  WHERE artist_id IN (" + joinedIds + ")" +
+                        "  AND deleted_at IS NULL AND status = 'PUBLISHED'" +
+                        ") AS combined",
                 Long.class, keyword);
 
         return new PageImpl<>(results, pageable, total);
@@ -128,21 +141,33 @@ public class SearchQueryRepositoryImpl implements SearchQueryRepository {
         }
 
         List<Album> results = em.createNativeQuery(
-                        "SELECT * FROM albums" +
-                                " WHERE (MATCH(title) AGAINST(:keyword IN BOOLEAN MODE) OR artist_id IN (:ids))" +
-                                " AND deleted_at IS NULL AND status = 'PUBLISHED'" +
+                        "SELECT * FROM (" +
+                                " SELECT * FROM albums" +
+                                "  WHERE MATCH(title) AGAINST(:keyword IN BOOLEAN MODE)" +
+                                "  AND deleted_at IS NULL AND status = 'PUBLISHED'" +
+                                " UNION DISTINCT" +
+                                " SELECT * FROM albums" +
+                                "  WHERE artist_id IN (" + joinedIds + ")" +
+                                "  AND deleted_at IS NULL AND status = 'PUBLISHED'" +
+                                ") AS combined" +
                                 " ORDER BY " + orderClause +
                                 " LIMIT :offset, :size",
                         Album.class)
                 .setParameter("keyword", keyword)
-                .setParameter("ids", ids)
                 .setParameter("offset", pageable.getOffset())
                 .setParameter("size", pageable.getPageSize())
                 .getResultList();
 
         Long total = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM albums WHERE (MATCH(title) AGAINST(? IN BOOLEAN MODE) OR artist_id IN (" + joinedIds + "))" +
-                        " AND deleted_at IS NULL AND status = 'PUBLISHED'",
+                "SELECT COUNT(*) FROM (" +
+                        " SELECT id FROM albums" +
+                        "  WHERE MATCH(title) AGAINST(? IN BOOLEAN MODE)" +
+                        "  AND deleted_at IS NULL AND status = 'PUBLISHED'" +
+                        " UNION DISTINCT" +
+                        " SELECT id FROM albums" +
+                        "  WHERE artist_id IN (" + joinedIds + ")" +
+                        "  AND deleted_at IS NULL AND status = 'PUBLISHED'" +
+                        ") AS combined",
                 Long.class, keyword);
 
         return new PageImpl<>(results, pageable, total);
@@ -187,7 +212,6 @@ public class SearchQueryRepositoryImpl implements SearchQueryRepository {
                 WHEN %s LIKE '%s%%' THEN 1
                 ELSE 0
             END DESC,
-            MATCH(%s) AGAINST('%s' IN NATURAL LANGUAGE MODE) DESC,
             id DESC
             """, safeColumn, sanitized, safeColumn, sanitized, safeColumn, sanitized);
     }
