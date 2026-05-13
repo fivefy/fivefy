@@ -1,4 +1,4 @@
-package com.fivefy.domain.search.dto;
+package com.fivefy.domain.search.dto.cache;
 
 import com.fivefy.domain.search.dto.response.SearchAlbumResponse;
 import com.fivefy.domain.search.dto.response.SearchArtistResponse;

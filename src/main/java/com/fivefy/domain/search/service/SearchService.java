@@ -1,7 +1,7 @@
 package com.fivefy.domain.search.service;
 
 import com.fivefy.common.exception.BusinessException;
-import com.fivefy.domain.search.dto.SearchCacheDto;
+import com.fivefy.domain.search.dto.cache.SearchCacheDto;
 import com.fivefy.domain.search.dto.response.SearchAlbumResponse;
 import com.fivefy.domain.search.dto.response.SearchArtistResponse;
 import com.fivefy.domain.search.dto.response.SearchResponse;

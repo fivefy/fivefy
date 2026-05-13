@@ -10,7 +10,6 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 
 @Slf4j
@@ -26,7 +25,7 @@ public class NotificationBulkRepository {
      * 대량 알림 Bulk INSERT
      * IDENTITY 전략으로 JPA saveAll() 배치 불가 → JDBC 직접 구현
      *
-     * @return 삽입된 행 수
+     * @return 시도한 행 수
      */
     public int bulkInsert(List<Long> userIds, NotificationType type,
                           String content, NotificationChannel channel,
@@ -43,7 +42,7 @@ public class NotificationBulkRepository {
 
         Timestamp now = Timestamp.valueOf(LocalDateTime.now());
 
-        int[][] results = jdbcTemplate.batchUpdate(sql, userIds, BATCH_SIZE,
+        jdbcTemplate.batchUpdate(sql, userIds, BATCH_SIZE,
                 (ps, userId) -> {
                     ps.setLong(1, userId);
                     ps.setString(2, type.name());
@@ -54,11 +53,7 @@ public class NotificationBulkRepository {
                     ps.setString(7, userId + ":PUBLISH_TRACK:" + trackId);
                 });
 
-        int totalInserted = Arrays.stream(results)
-                .flatMapToInt(Arrays::stream)
-                .sum();
-
-        log.info("Bulk INSERT 완료: {}건", totalInserted);
-        return totalInserted;
+        log.info("Bulk INSERT 시도: {}건", userIds.size());
+        return userIds.size();
     }
 }
