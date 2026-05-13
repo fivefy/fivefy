@@ -584,10 +584,45 @@
       if (state.token && state.selectedPlaylistId && !String(state.selectedPlaylistId).startsWith('demo')) {
         try {
           state.currentPlayback = data(await api('/api/playbacks/play', { method: 'POST', body: { playlistId: Number(state.selectedPlaylistId), trackId: Number(trackId), sessionId: state.sessionId, deviceId: navigator.userAgent.slice(0, 40) } }));
+            /**
+             * 재생
+             * 이전 : 비동기 작업 후 play() 호출 : 사용자가 직접 액션하지 않으면 안 함
+             * 이후 : 직접 사용자 클릭 이벤트 내부에서 실행
+             */
           if (state.currentPlayback?.audioUrl) {
-              $('audio').src = state.currentPlayback.audioUrl;
-              $('audio').play().catch(() => {});
-          }
+              const audio = $('audio');
+
+                // 기존 재생 제거
+                audio.pause();
+                audio.currentTime = 0;
+
+                // 새 소스 연결
+                audio.src = state.currentPlayback.audioUrl;
+
+                // preload 활성화
+                audio.preload = 'auto';
+
+                // 디버깅 로그
+                log('playbackLog', `audioUrl 연결: ${state.currentPlayback.audioUrl}`);
+
+                // 로드 완료 후 재생
+                audio.onloadedmetadata = async () => {
+                  try {
+                    await audio.play();
+                    log('playbackLog', '오디오 재생 시작');
+                  } catch (err) {
+                    log('playbackLog', `재생 실패: ${err.message}`);
+                  }
+                };
+
+                audio.onerror = () => {
+                  const err = audio.error;
+                  log('playbackLog', `오디오 오류 코드: ${err?.code}`);
+                };
+
+                // 강제 로드
+                audio.load();
+              }
           log('playbackLog', `백엔드 재생 시작: playbackId=${state.currentPlayback?.id || '-'}`);
         } catch (e) { log('playbackLog', `백엔드 재생 실패: ${e.message}`); }
       }
