@@ -69,7 +69,7 @@ public class PlaybackService {
 
         Playback savedPlayback = playbackRepository.save(playback);
 
-        // audio 재생 URL 생성
+        // 실제 재생 가능한 audioUrl 생성
         String audioUrl = createAudioUrl(savedPlayback.getTrackId());
 
         return PlaybackResponse.from(savedPlayback, audioUrl);
@@ -79,12 +79,12 @@ public class PlaybackService {
     public PlaybackResponse pause(Long userId, PlaybackPauseRequest request) {
         Playback playback = getOwnedPlayback(userId, request.id());
 
-        // 재생 중인 playback만 일시정지 가능
+        // 재생 중 상태만 pause 가능
         if (!playback.isPlaying()) {
             throw new BusinessException(PlaybackErrorCode.CURRENT_PLAYBACK_NOT_FOUND);
         }
 
-        // 클라이언트 재생 시간을 기준으로 일시정지 처리
+        // 클라이언트 기준 재생 시간 저장
         playback.pause(request.playedDuration());
         return PlaybackResponse.from(playback);
     }
@@ -93,12 +93,12 @@ public class PlaybackService {
     public PlaybackResponse stop(Long userId, PlaybackStopRequest request) {
         Playback playback = getOwnedPlayback(userId, request.id());
 
-        // 재생/일시정지 상태의 playback만 종료 가능
+        // 재생/일시정지 상태만 stop 가능
         if (!playback.isPlaying() && !playback.isPaused()) {
             throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
         }
 
-        // 클라이언트 재생 시간을 기준으로 종료 처리
+        // 클라이언트 기준 재생 시간 저장
         playback.stop(request.playedDuration());
         return PlaybackResponse.from(playback);
     }
@@ -107,7 +107,7 @@ public class PlaybackService {
     public PlaybackResponse skip(Long userId, PlaybackSkipRequest request) {
         Playback currentPlayback = getOwnedPlayback(userId, request.id());
 
-        // 재생/일시정지 상태의 playback만 skip 가능
+        // 재생/일시정지 상태만 skip 가능
         if (!currentPlayback.isPlaying() && !currentPlayback.isPaused()) {
             throw new BusinessException(PlaybackErrorCode.INVALID_PLAYBACK_STATE);
         }
@@ -120,14 +120,14 @@ public class PlaybackService {
             throw new BusinessException(PlaybackErrorCode.PLAYLIST_TRACK_NOT_FOUND);
         }
 
-        // 현재 트랙 기준 다음 트랙 계산
+        // 다음 재생 트랙 계산
         Long nextTrackId = resolveNextTrackId(playlistTracks, currentPlayback.getTrackId());
 
         // 현재 playback skip 처리
         currentPlayback.skip(request.playedDuration());
         playbackRepository.save(currentPlayback);
 
-        // 다음 트랙 playback 생성
+        // 다음 playback 생성
         Playback nextPlayback = Playback.create(
                 currentPlayback.getPlaylistId(),
                 nextTrackId,
@@ -138,7 +138,7 @@ public class PlaybackService {
 
         Playback savedNextPlayback = playbackRepository.save(nextPlayback);
 
-        // 다음 트랙 audio 재생 URL 생성
+        // 다음 곡 audioUrl 생성
         String audioUrl = createAudioUrl(savedNextPlayback.getTrackId());
 
         return PlaybackResponse.from(savedNextPlayback, audioUrl);
@@ -151,13 +151,13 @@ public class PlaybackService {
     }
 
     private Playback handlePlay(Playback playback, PlaybackPlayRequest request) {
-        // 일시정지 상태 playback 재개
+        // pause 상태면 이어서 재생
         if (playback.isPaused()) {
             playback.resume();
             return playback;
         }
 
-        // 종료된 playback 이후 새 playback 생성
+        // 종료된 playback이면 새 playback 생성
         if (playback.isStopped() || playback.isCompleted() || playback.isSkipped()) {
             return Playback.create(
                     request.playlistId(),
@@ -172,13 +172,13 @@ public class PlaybackService {
     }
 
     private Playback getOwnedPlayback(Long userId, Long playbackId) {
-        // 사용자 소유 playback 조회
+        // 사용자 본인 playback 조회
         return playbackRepository.findByIdAndUserId(playbackId, userId)
                 .orElseThrow(() -> new BusinessException(PlaybackErrorCode.PLAYBACK_NOT_FOUND));
     }
 
     private Long resolveNextTrackId(List<PlaylistTrack> playlistTracks, Long currentTrackId) {
-        // 현재 트랙 기준 다음 트랙 계산 (마지막 트랙이면 처음으로 순환)
+        // 마지막 곡이면 처음 곡으로 순환
         for (int i = 0; i < playlistTracks.size(); i++) {
             if (playlistTracks.get(i).getTrackId().equals(currentTrackId)) {
                 int nextIndex = (i + 1) % playlistTracks.size();
@@ -197,6 +197,7 @@ public class PlaybackService {
     }
 
     private String createAudioUrl(Long trackId) {
+        // track 조회 후 audioKey 기반 URL 생성
         Track track = trackRepository.findById(trackId)
                 .orElseThrow(() -> new BusinessException(PlaybackErrorCode.PLAYBACK_TRACK_MISMATCH));
 
