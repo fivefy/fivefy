@@ -247,8 +247,10 @@
                 <audio id="audio" controls></audio>
                 <div class="actions">
                   <button class="pill primary" id="toggleVideo">영상 켜기</button>
-                  <button class="pill ghost" id="pausePlayback">일시정지</button>
-                  <button class="pill danger" id="stopPlayback">정지</button>
+                  <button class="pill ghost" id="pausePlayback" disabled>일시정지</button>
+                  <button class="pill ghost" id="resumePlayback" disabled>이어재생</button>
+                  <button class="pill ghost" id="skipPlayback" disabled>건너뛰기</button>
+                  <button class="pill danger" id="stopPlayback" disabled>정지</button>
                 </div>
                 <div class="log" id="playbackLog">재생 로그가 여기에 표시됩니다.</div>
               </div>
@@ -375,14 +377,7 @@
     };
     localStorage.setItem('fivefy.sessionId', state.sessionId);
 
-    const demoTracks = [
-      { trackId: 1, title: 'ON', artistName: 'BTS', albumTitle: 'MAP OF THE SOUL', durationSec: 246, playCount: 98123 },
-      { trackId: 2, title: 'Celebrity', artistName: '아이유', albumTitle: 'LILAC', durationSec: 196, playCount: 88121 },
-      { trackId: 3, title: 'Black Swan', artistName: 'BTS', albumTitle: 'MAP OF THE SOUL', durationSec: 198, playCount: 75441 },
-      { trackId: 4, title: 'LILAC', artistName: '아이유', albumTitle: 'LILAC', durationSec: 214, playCount: 71045 },
-      { trackId: 5, title: 'Coin', artistName: '아이유', albumTitle: 'LILAC', durationSec: 192, playCount: 65412 },
-      { trackId: 6, title: 'Neon Dreams', artistName: 'Electronic Dreams', albumTitle: 'Indie Vibes', durationSec: 224, playCount: 51004 }
-    ];
+    // 데모 트랙 없음 — 실제 트랙은 사용자가 등록 신청 후 관리자 승인 시 생성됩니다.
     const products = [
       { type: 'PRODUCT_1', label: '1,000P', cash: 1000, points: 1000, desc: '기본 충전' },
       { type: 'PRODUCT_2', label: '2,500P', cash: 2000, points: 2500, desc: '보너스 포인트 포함' },
@@ -449,7 +444,11 @@
     }
 
     function renderRecommendations() {
-      const recs = state.chartTracks.slice(0, 3).length ? state.chartTracks.slice(0, 3) : demoTracks.slice(1, 4);
+      const recs = state.chartTracks.slice(0, 3);
+      if (!recs.length) {
+        $('recommendations').innerHTML = `<div class="muted" style="padding:18px 0">재생 기록이 쌓이면 AI 추천이 표시됩니다.</div>`;
+        return;
+      }
       $('recommendations').innerHTML = recs.map((t, i) => `
         <div class="recommend">
           <div class="art" style="background:${cover(trackIdOf(t) || i)}"></div>
@@ -471,31 +470,44 @@
     }
 
     function renderCharts() {
-      const tracks = state.chartTracks.length ? state.chartTracks : demoTracks;
-      $('chartList').innerHTML = tracks.slice(0, 8).map((t, i) => row(t, i)).join('');
+      if (!state.chartTracks.length) {
+        $('chartList').innerHTML = `<div class="muted" style="padding:18px 0">아직 인기 차트 데이터가 없습니다. 재생 기록이 쌓이면 업데이트됩니다.</div>`;
+      } else {
+        $('chartList').innerHTML = state.chartTracks.slice(0, 8).map((t, i) => row(t, i)).join('');
+      }
       renderRecommendations();
     }
 
     function renderPlaylists() {
-      const playlists = state.playlists.length ? state.playlists : [{ id: 'demo-liked', title: '내가 좋아하는 노래', description: '로그인 후 실제 플레이리스트가 표시됩니다' }, { id: 'demo-workout', title: '운동할 때 듣는 음악', description: '샘플 플레이리스트' }, { id: 'demo-mood', title: '감성 충전', description: '샘플 플레이리스트' }];
-      if (!state.selectedPlaylistId) state.selectedPlaylistId = playlists[0]?.id;
-      $('sidePlaylists').innerHTML = playlists.map(p => `<button class="${String(p.id) === String(state.selectedPlaylistId) ? 'active' : ''}" data-select-playlist="${p.id}"><span>♬</span>${p.title}</button>`).join('');
-      $('playlistGrid').innerHTML = playlists.map(p => `<button class="playlist-card ${String(p.id) === String(state.selectedPlaylistId) ? 'active' : ''}" data-select-playlist="${p.id}"><strong>${p.title}</strong><small>${p.description || '설명 없음'}</small></button>`).join('');
+      const playlists = state.playlists;
+      if (!state.selectedPlaylistId && playlists.length) state.selectedPlaylistId = playlists[0]?.id;
+      $('sidePlaylists').innerHTML = playlists.length
+        ? playlists.map(p => `<button class="${String(p.id) === String(state.selectedPlaylistId) ? 'active' : ''}" data-select-playlist="${p.id}"><span>♬</span>${p.title}</button>`).join('')
+        : `<span class="muted" style="font-size:13px">플레이리스트 없음</span>`;
+      $('playlistGrid').innerHTML = playlists.length
+        ? playlists.map(p => `<button class="playlist-card ${String(p.id) === String(state.selectedPlaylistId) ? 'active' : ''}" data-select-playlist="${p.id}"><strong>${p.title}</strong><small>${p.description || '설명 없음'}</small></button>`).join('')
+        : `<div class="muted" style="font-size:13px;padding:8px 0">아래에서 플레이리스트를 만들어보세요.</div>`;
       const selected = playlists.find(p => String(p.id) === String(state.selectedPlaylistId));
       $('selectedPlaylistTitle').textContent = selected ? selected.title : '선택한 플레이리스트';
     }
 
     function renderPlaylistTracks() {
-      const tracks = state.playlistTracks.length ? state.playlistTracks : demoTracks.slice(0, 4);
-      $('playlistTracks').innerHTML = tracks.map((pt, i) => {
+      if (!state.playlistTracks.length) {
+        $('playlistTracks').innerHTML = `<div class="muted" style="padding:12px 0;font-size:14px">이 플레이리스트에 트랙이 없습니다.<br>아래 공개 트랙에서 + 버튼으로 추가하세요.</div>`;
+        return;
+      }
+      $('playlistTracks').innerHTML = state.playlistTracks.map((pt, i) => {
         const t = state.publicTracks.find(x => String(trackIdOf(x)) === String(pt.trackId)) || pt;
         return row({ ...t, trackId: pt.trackId || trackIdOf(t) }, i);
       }).join('');
     }
 
     function renderPublicTracks() {
-      const tracks = state.publicTracks.length ? state.publicTracks : demoTracks;
-      $('publicTracks').innerHTML = tracks.map((t, i) => row(t, i, { add: true })).join('');
+      if (!state.publicTracks.length) {
+        $('publicTracks').innerHTML = `<div class="muted" style="padding:12px 0;font-size:14px">등록된 공개 트랙이 없습니다.<br>트랙 등록 신청 후 관리자 승인을 받으면 표시됩니다.</div>`;
+        return;
+      }
+      $('publicTracks').innerHTML = state.publicTracks.map((t, i) => row(t, i, { add: true })).join('');
     }
 
     function renderProducts() {
@@ -520,12 +532,12 @@
       renderPlaylists();
     }
     async function loadPlaylistTracks() {
-      if (!state.token || String(state.selectedPlaylistId).startsWith('demo')) { renderPlaylistTracks(); return; }
+      if (!state.token || !state.selectedPlaylistId) { renderPlaylistTracks(); return; }
       try { state.playlistTracks = data(await api(`/api/playlists/${state.selectedPlaylistId}/tracks`)) || []; } catch (e) { toast(`플레이리스트 트랙 조회 실패: ${e.message}`, 'error'); }
       renderPlaylistTracks();
     }
     async function loadPublicTracks() {
-      try { state.publicTracks = list(await api('/api/tracks?page=0&size=30')); } catch (e) { state.publicTracks = demoTracks; }
+      try { state.publicTracks = list(await api('/api/tracks?page=0&size=30')); } catch (e) { state.publicTracks = []; }
       renderPublicTracks();
     }
     async function loadCharts() {
@@ -536,7 +548,7 @@
           if (existing) return existing;
           try { return data(await api(`/api/tracks/${c.trackId}`)); } catch { return { trackId: c.trackId, title: `Track #${c.trackId}`, artistName: `TOP ${c.rank}`, playCount: c.playCount }; }
         }));
-      } catch (e) { state.chartTracks = demoTracks; }
+      } catch (e) { state.chartTracks = []; }
       renderCharts();
     }
     async function refreshAll() { renderAuth(); renderProducts(); await refreshProfile(); await refreshWallet(); await loadPublicTracks(); await loadPlaylists(); await loadPlaylistTracks(); await loadCharts(); }
@@ -566,78 +578,178 @@
       await loadPlaylists(); await loadPlaylistTracks();
     }
     async function addTrack(trackId) {
-      if (!state.token || !state.selectedPlaylistId || String(state.selectedPlaylistId).startsWith('demo')) { toast('로그인 후 실제 플레이리스트를 선택하세요.', 'error'); return; }
+      if (!state.token || !state.selectedPlaylistId) { toast('로그인 후 플레이리스트를 선택하세요.', 'error'); return; }
       await api(`/api/playlists/${state.selectedPlaylistId}/tracks`, { method: 'POST', body: { trackId: Number(trackId) } });
       toast('플레이리스트에 추가했습니다.', 'success');
       await loadPlaylistTracks();
     }
 
     async function playTrack(trackId) {
-      const track = state.publicTracks.find(t => String(trackIdOf(t)) === String(trackId)) || state.chartTracks.find(t => String(trackIdOf(t)) === String(trackId)) || demoTracks.find(t => String(trackIdOf(t)) === String(trackId)) || { trackId, title: `Track #${trackId}` };
+      const track = state.publicTracks.find(t => String(trackIdOf(t)) === String(trackId)) || state.chartTracks.find(t => String(trackIdOf(t)) === String(trackId)) || { trackId, title: `Track #${trackId}` };
       state.currentTrack = track;
       document.documentElement.style.setProperty('--cover', cover(trackId));
       $('nowTitle').textContent = trackName(track);
       $('nowArtist').textContent = artistName(track);
       $('bottomTitle').textContent = trackName(track);
       $('bottomArtist').textContent = artistName(track);
-      log('playbackLog', `재생 요청: ${trackName(track)}`);
-      if (state.token && state.selectedPlaylistId && !String(state.selectedPlaylistId).startsWith('demo')) {
-        try {
-          state.currentPlayback = data(await api('/api/playbacks/play', { method: 'POST', body: { playlistId: Number(state.selectedPlaylistId), trackId: Number(trackId), sessionId: state.sessionId, deviceId: navigator.userAgent.slice(0, 40) } }));
-            /**
-             * 재생
-             * 이전 : 비동기 작업 후 play() 호출 : 사용자가 직접 액션하지 않으면 안 함
-             * 이후 : 직접 사용자 클릭 이벤트 내부에서 실행
-             */
-          if (state.currentPlayback?.audioUrl) {
-              const audio = $('audio');
 
-                // 기존 재생 제거
-                audio.pause();
-                audio.currentTime = 0;
-
-                // 새 소스 연결
-                audio.src = state.currentPlayback.audioUrl;
-
-                // preload 활성화
-                audio.preload = 'auto';
-
-                // 디버깅 로그
-                log('playbackLog', `audioUrl 연결: ${state.currentPlayback.audioUrl}`);
-
-                // 로드 완료 후 재생
-                audio.onloadedmetadata = async () => {
-                  try {
-                    await audio.play();
-                    log('playbackLog', '오디오 재생 시작');
-                  } catch (err) {
-                    log('playbackLog', `재생 실패: ${err.message}`);
-                  }
-                };
-
-                audio.onerror = () => {
-                  const err = audio.error;
-                  log('playbackLog', `오디오 오류 코드: ${err?.code}`);
-                };
-
-                // 강제 로드
-                audio.load();
-              }
-          log('playbackLog', `백엔드 재생 시작: playbackId=${state.currentPlayback?.id || '-'}`);
-        } catch (e) { log('playbackLog', `백엔드 재생 실패: ${e.message}`); }
+      // ── 1. 로그인 체크 ──────────────────────────────────────────────
+      if (!state.token) {
+        toast('로그인이 필요합니다.', 'error');
+        $('authModal').classList.add('open');
+        return;
       }
+
+      // ── 2. 실제 플레이리스트 확보 ────────────────────────────────────
+      // 플레이리스트 없으면 먼저 로드 시도
+      if (!state.selectedPlaylistId) {
+        if (!state.playlists.length) await loadPlaylists();
+        if (!state.playlists.length) {
+          toast('재생하려면 먼저 플레이리스트를 만들어주세요.', 'error');
+          switchView('library');
+          return;
+        }
+        state.selectedPlaylistId = state.playlists[0].id;
+        renderPlaylists();
+      }
+
+      log('playbackLog', `재생 요청: ${trackName(track)} → 플레이리스트 #${state.selectedPlaylistId}`);
+      switchView('library');
       state.videoOn = true;
       startVisualizer();
-      switchView('library');
+
+      // ── 3. 플레이리스트에 트랙 자동 추가 ───────────────────────────
+      // /api/playbacks/play 는 playlist_track 행이 있어야 audioUrl 을 반환한다.
+      // 이미 존재하면 서버가 409/오류를 반환하므로 조용히 무시한다.
+      try {
+        await api(`/api/playlists/${state.selectedPlaylistId}/tracks`, {
+          method: 'POST',
+          body: { trackId: Number(trackId) }
+        });
+        log('playbackLog', '플레이리스트에 트랙 추가 완료');
+      } catch (_) {
+        log('playbackLog', '트랙이 이미 플레이리스트에 존재하거나 추가 불가 (재생 계속 시도)');
+      }
+
+      // ── 4. 재생 API 호출 + 오디오 로드 (fivefy-player.html 패턴) ────
+      try {
+        state.currentPlayback = data(await api('/api/playbacks/play', {
+          method: 'POST',
+          body: {
+            playlistId: Number(state.selectedPlaylistId),
+            trackId: Number(trackId),
+            sessionId: state.sessionId,
+            deviceId: navigator.userAgent.slice(0, 40)
+          }
+        }));
+
+        if (!state.currentPlayback?.audioUrl) {
+          log('playbackLog', '⚠️ audioUrl 없음 — 구독 활성화 여부를 확인하세요.');
+          toast('audioUrl이 없습니다. 구독이 활성화되어 있는지 확인하세요.', 'error');
+          return;
+        }
+
+        const audio = $('audio');
+        audio.pause();
+        audio.currentTime = 0;
+
+        // [fivefy-player] CORS 대응
+        audio.crossOrigin = 'anonymous';
+        audio.src = state.currentPlayback.audioUrl;
+        audio.load();
+
+        log('playbackLog', `audioUrl 연결: ${state.currentPlayback.audioUrl}`);
+
+        // [fivefy-player] canplay 시점에 재생
+        await new Promise((resolve, reject) => {
+          audio.oncanplay = resolve;
+          audio.onerror = () => reject(new Error(
+            audio.error ? `MEDIA_ERR_${audio.error.code} (1:중단 2:네트워크 3:디코딩 4:포맷불가)` : '로드 실패'
+          ));
+        });
+
+        await audio.play();
+        log('playbackLog', `▶ 재생 시작 — playbackId=${state.currentPlayback.id}`);
+
+        $('pausePlayback').disabled = false;
+        $('skipPlayback').disabled = false;
+        $('stopPlayback').disabled = false;
+        $('resumePlayback').disabled = true;
+
+        await loadPlaylistTracks(); // 트랙 목록 갱신
+      } catch (e) {
+        log('playbackLog', `재생 실패: ${e.message}`);
+        if ($('audio').error) {
+          log('playbackLog', `상세: MEDIA_ERR_${$('audio').error.code} (1:중단 2:네트워크 3:디코딩 4:포맷불가)`);
+        }
+        toast(`재생 실패: ${e.message}`, 'error');
+      }
     }
     async function pausePlayback() {
-      $('audio').pause();
-      if (state.currentPlayback?.id) await api('/api/playbacks/pause', { method: 'POST', body: { id: state.currentPlayback.id, playedDuration: Math.floor($('audio').currentTime || 0) } }).catch(e => log('playbackLog', e.message));
+      const audio = $('audio');
+      audio.pause();
+      if (state.currentPlayback?.id) {
+        try {
+          const res = data(await api('/api/playbacks/pause', { method: 'POST', body: { id: state.currentPlayback.id, playedDuration: Math.floor(audio.currentTime || 0) } }));
+          log('playbackLog', `일시정지: status=${res?.status || '-'}`);
+        } catch (e) { log('playbackLog', `일시정지 API 실패: ${e.message}`); }
+      }
+      // [fivefy-player] 버튼 상태: 일시정지 ↔ 이어재생 토글
+      $('pausePlayback').disabled = true;
+      $('resumePlayback').disabled = false;
       log('playbackLog', '일시정지했습니다.');
     }
+
+    // [fivefy-player] 이어재생: pause 이후 audio.play() 재호출
+    async function resumePlayback() {
+      try {
+        await $('audio').play();
+        $('pausePlayback').disabled = false;
+        $('resumePlayback').disabled = true;
+        log('playbackLog', '이어재생합니다.');
+      } catch (e) {
+        log('playbackLog', `이어재생 실패: ${e.message}`);
+      }
+    }
+
+    // [fivefy-player] 건너뛰기: skip API 호출 후 오디오 초기화
+    async function skipPlayback() {
+      const audio = $('audio');
+      if (state.currentPlayback?.id) {
+        try {
+          const res = data(await api('/api/playbacks/skip', { method: 'POST', body: { id: state.currentPlayback.id, playedDuration: Math.floor(audio.currentTime || 0) } }));
+          log('playbackLog', `건너뛰기: status=${res?.status || '-'}`);
+        } catch (e) { log('playbackLog', `건너뛰기 API 실패: ${e.message}`); }
+      }
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+      state.currentPlayback = null;
+      $('pausePlayback').disabled = true;
+      $('resumePlayback').disabled = true;
+      $('skipPlayback').disabled = true;
+      $('stopPlayback').disabled = true;
+      log('playbackLog', '건너뛰었습니다.');
+    }
+
     async function stopPlayback() {
-      $('audio').pause(); $('audio').currentTime = 0; state.videoOn = false;
-      if (state.currentPlayback?.id) await api('/api/playbacks/stop', { method: 'POST', body: { id: state.currentPlayback.id, playedDuration: Math.floor($('audio').currentTime || 0) } }).catch(e => log('playbackLog', e.message));
+      const audio = $('audio');
+      // [fivefy-player] 정지 전에 currentTime을 캡처 (pause() 이후에는 0으로 리셋되므로)
+      const playedDuration = Math.floor(audio.currentTime || 0);
+      audio.pause();
+      audio.currentTime = 0;
+      state.videoOn = false;
+      if (state.currentPlayback?.id) {
+        try {
+          const res = data(await api('/api/playbacks/stop', { method: 'POST', body: { id: state.currentPlayback.id, playedDuration } }));
+          log('playbackLog', `정지: status=${res?.status || '-'}`);
+        } catch (e) { log('playbackLog', `정지 API 실패: ${e.message}`); }
+      }
+      state.currentPlayback = null;
+      $('pausePlayback').disabled = true;
+      $('resumePlayback').disabled = true;
+      $('skipPlayback').disabled = true;
+      $('stopPlayback').disabled = true;
       log('playbackLog', '정지했습니다.');
     }
 
@@ -653,30 +765,52 @@
           const res = data(await api(`/api/search?keyword=${encodeURIComponent(keyword)}&page=0&size=12`));
           tracks = res?.tracks?.content || [];
         }
-        $('searchResults').innerHTML = (tracks.length ? tracks : demoTracks).map((t, i) => row({ ...t, trackId: t.trackId || t.id }, i, { add: true })).join('');
-      } catch (e) { toast(`검색 실패: ${e.message}`, 'error'); $('searchResults').innerHTML = demoTracks.map((t, i) => row(t, i, { add: true })).join(''); }
+        if (tracks.length) {
+          $('searchResults').innerHTML = tracks.map((t, i) => row({ ...t, trackId: t.trackId || t.id }, i, { add: true })).join('');
+        } else {
+          $('searchResults').innerHTML = `<div class="muted" style="padding:18px 0">검색 결과가 없습니다.</div>`;
+        }
+      } catch (e) { toast(`검색 실패: ${e.message}`, 'error'); $('searchResults').innerHTML = `<div class="muted" style="padding:18px 0">검색 실패: ${e.message}</div>`; }
     }
 
     async function buyPoints() {
+      if (!state.token) { toast('먼저 로그인하세요.', 'error'); return; }
       const product = products.find(p => p.type === state.selectedProduct);
       try {
         log('billingLog', `주문 생성: ${product.label}`);
         const order = await api('/api/v1/cash-orders/purchase', { method: 'POST', body: { productType: product.type } });
         const orderNumber = order.orderNumber || order.data?.orderNumber;
-        const storeId = $('storeId').value.trim();
-        const channelKey = $('channelKey').value.trim();
         if (!orderNumber) throw new Error('orderNumber가 응답에 없습니다.');
-        if (window.PortOne && storeId && channelKey && product.cash > 0) {
-          const res = await PortOne.requestPayment({ storeId, channelKey, paymentId: orderNumber, orderName: `Fivefy ${product.label}`, totalAmount: product.cash, currency: 'KRW', payMethod: 'CARD', customer: { fullName: state.user?.name || 'Fivefy User', email: state.user?.email || $('email').value } });
-          if (res.code) throw new Error(res.message);
-          log('billingLog', `포트원 결제 완료: ${orderNumber}`);
-          toast('결제가 완료되었습니다. 웹훅 처리 후 포인트가 반영됩니다.', 'success');
+
+        if (product.cash === 0) {
+          // ── 무료 상품: PG 없이 즉시 포인트 지급 ──────────────────────
+          // 백엔드가 cash=0 주문을 자동 완료 처리하므로 PortOne 호출 불필요
+          log('billingLog', `✅ 무료 포인트 지급 완료\n상품: ${product.label}\norderNumber: ${orderNumber}`);
+          toast(`${product.label} 무료 충전 완료! (계정 1회 한정)`, 'success');
         } else {
-          log('billingLog', `orderNumber 발급: ${orderNumber}\nStore ID/Channel Key 또는 PortOne SDK가 없으면 결제창 대신 주문번호만 표시됩니다.`);
-          toast('주문번호가 발급되었습니다.', 'success');
+          // ── 유료 상품: PortOne PG 결제창 호출 ─────────────────────────
+          const storeId = $('storeId').value.trim();
+          const channelKey = $('channelKey').value.trim();
+          if (window.PortOne && storeId && channelKey) {
+            const res = await PortOne.requestPayment({
+              storeId, channelKey,
+              paymentId: orderNumber,
+              orderName: `Fivefy ${product.label}`,
+              totalAmount: product.cash,
+              currency: 'KRW',
+              payMethod: 'CARD',
+              customer: { fullName: state.user?.name || 'Fivefy User', email: state.user?.email || $('email').value }
+            });
+            if (res.code) throw new Error(res.message);
+            log('billingLog', `포트원 결제 완료: ${orderNumber}`);
+            toast('결제 완료. 웹훅 처리 후 포인트가 반영됩니다.', 'success');
+          } else {
+            log('billingLog', `orderNumber 발급: ${orderNumber}\nStore ID / Channel Key를 입력하면 PortOne 결제창이 열립니다.`);
+            toast('주문번호 발급 완료. Store ID·Channel Key를 입력하면 결제창이 열립니다.', 'success');
+          }
         }
         await refreshWallet();
-      } catch (e) { log('billingLog', `결제 실패: ${e.message}`); toast(`결제 실패: ${e.message}`, 'error'); }
+      } catch (e) { log('billingLog', `실패: ${e.message}`); toast(`실패: ${e.message}`, 'error'); }
     }
     async function buyPlan(planType) {
       try { const sub = await api('/api/me/point-orders/purchases', { method: 'POST', body: { planType } }); log('billingLog', `구독 구매 완료: ${JSON.stringify(sub)}`); toast('구독 구매가 완료되었습니다.', 'success'); await refreshWallet(); } catch (e) { toast(`구독 구매 실패: ${e.message}`, 'error'); }
@@ -749,15 +883,15 @@
       { d:'Playlist', m:'GET', p:'/api/playlists/{playlistId}', h:'플레이리스트 상세 조회', b:null },
       { d:'Playlist', m:'PATCH', p:'/api/playlists/{playlistId}', h:'플레이리스트 수정', b:{ title:'수정 제목', description:'수정 설명' } },
       { d:'Playlist', m:'DELETE', p:'/api/playlists/{playlistId}', h:'플레이리스트 삭제', b:null },
-      { d:'Playlist Track', m:'POST', p:'/api/playlists/{playlistId}/tracks', h:'플레이리스트에 트랙 추가', b:{ trackId:1 } },
-      { d:'Playlist Track', m:'GET', p:'/api/playlists/{playlistId}/tracks', h:'플레이리스트 트랙 목록 조회', b:null },
-      { d:'Playlist Track', m:'PATCH', p:'/api/playlists/{playlistId}/tracks/index', h:'플레이리스트 트랙 순서 변경', b:{ trackId:1, position:1 } },
-      { d:'Playlist Track', m:'DELETE', p:'/api/playlists/{playlistId}/tracks/{trackId}', h:'플레이리스트에서 트랙 제거', b:null },
-      { d:'Playback', m:'POST', p:'/api/playbacks/play', h:'재생 시작: playlistId/trackId/sessionId 필요', b:{ playlistId:1, trackId:1, sessionId:'web-session', deviceId:'browser' } },
-      { d:'Playback', m:'POST', p:'/api/playbacks/pause', h:'재생 일시정지: playback id 필요', b:{ id:1, playedDuration:30 } },
-      { d:'Playback', m:'POST', p:'/api/playbacks/stop', h:'재생 정지', b:{ id:1, playedDuration:120 } },
-      { d:'Playback', m:'POST', p:'/api/playbacks/skip', h:'곡 건너뛰기', b:{ id:1, playedDuration:15 } },
-      { d:'Playback', m:'GET', p:'/api/me/playback-history', h:'내 재생 기록 조회', b:null },
+      { d:'Playlist Track', m:'POST', p:'/api/playlists/{playlistId}/tracks', h:'플레이리스트에 트랙 추가 — {playlistId}를 실제 ID로 교체', b:{ trackId:1 } },
+      { d:'Playlist Track', m:'GET', p:'/api/playlists/{playlistId}/tracks', h:'플레이리스트 트랙 목록 조회 — {playlistId} 교체', b:null },
+      { d:'Playlist Track', m:'PATCH', p:'/api/playlists/{playlistId}/tracks/index', h:'플레이리스트 트랙 순서 변경 — position은 1부터 시작', b:{ trackId:1, position:1 } },
+      { d:'Playlist Track', m:'DELETE', p:'/api/playlists/{playlistId}/tracks/{trackId}', h:'플레이리스트에서 트랙 제거 — {playlistId}/{trackId} 교체', b:null },
+      { d:'Playback', m:'POST', p:'/api/playbacks/play', h:'재생 시작: playlistId/trackId/sessionId 필요 — playlistId·sessionId·deviceId는 앱 상태값으로 자동 채워집니다', b:{ playlistId:1, trackId:1, sessionId:'web-session', deviceId:'browser' } },
+      { d:'Playback', m:'POST', p:'/api/playbacks/pause', h:'재생 일시정지: 현재 재생 중인 playback id 입력', b:{ id:1, playedDuration:30 } },
+      { d:'Playback', m:'POST', p:'/api/playbacks/stop', h:'재생 정지: 현재 재생 중인 playback id 입력', b:{ id:1, playedDuration:120 } },
+      { d:'Playback', m:'POST', p:'/api/playbacks/skip', h:'곡 건너뛰기: 현재 재생 중인 playback id 입력', b:{ id:1, playedDuration:15 } },
+      { d:'Playback', m:'GET', p:'/api/me/playback-history?page=0&size=20', h:'내 재생 기록 조회', b:null },
       { d:'Like', m:'POST', p:'/api/likes', h:'좋아요 등록', b:{ targetType:'TRACK', targetId:1 } },
       { d:'Like', m:'GET', p:'/api/likes?page=0&size=20', h:'좋아요 목록 조회', b:null },
       { d:'Like', m:'DELETE', p:'/api/likes/{likeId}', h:'좋아요 삭제', b:null },
@@ -887,13 +1021,24 @@
       }).join('');
     }
 
+    // 현재 앱 상태값을 API body 에 자동 주입
+    function resolveApiBody(raw) {
+      if (!raw) return null;
+      const resolved = { ...raw };
+      const realPlaylistId = state.selectedPlaylistId ? Number(state.selectedPlaylistId) : 1;
+      if ('playlistId' in resolved)  resolved.playlistId  = realPlaylistId;
+      if ('sessionId'  in resolved)  resolved.sessionId   = state.sessionId;
+      if ('deviceId'   in resolved)  resolved.deviceId    = 'browser';
+      return resolved;
+    }
+
     function selectApi(index) {
       selectedApi = apiEndpoints[index];
       $('apiTitle').textContent = `${selectedApi.d} · ${selectedApi.m} ${selectedApi.p}`;
       $('apiHowto').textContent = selectedApi.h;
       $('apiMethod').value = selectedApi.m;
       $('apiEndpoint').value = selectedApi.p;
-      $('apiBody').value = prettyJson(selectedApi.b);
+      $('apiBody').value = prettyJson(resolveApiBody(selectedApi.b));
       $('apiResponse').textContent = selectedApi.multipart ? 'multipart API입니다. request JSON을 입력하고 파일을 선택한 뒤 실행하세요.' : '실행 결과가 여기에 표시됩니다.';
       renderApiList();
     }
@@ -970,7 +1115,26 @@
     $('refreshPlaylistTracks').onclick = loadPlaylistTracks;
     $('toggleVideo').onclick = $('bottomVideo').onclick = () => { state.videoOn = !state.videoOn; if (state.videoOn) startVisualizer(); $('toggleVideo').textContent = state.videoOn ? '영상 끄기' : '영상 켜기'; switchView('library'); };
     $('pausePlayback').onclick = pausePlayback;
+    $('resumePlayback').onclick = resumePlayback;
+    $('skipPlayback').onclick = skipPlayback;
     $('stopPlayback').onclick = stopPlayback;
+
+    // [fivefy-player] 곡이 끝나면 자동으로 stop API 호출
+    $('audio').addEventListener('ended', async () => {
+      if (!state.currentPlayback?.id) return;
+      const audio = $('audio');
+      try {
+        const res = data(await api('/api/playbacks/stop', { method: 'POST', body: { id: state.currentPlayback.id, playedDuration: Math.floor(audio.duration || audio.currentTime || 0) } }));
+        log('playbackLog', `재생 완료, 자동 정지: status=${res?.status || '-'}`);
+      } catch (e) { log('playbackLog', `자동 정지 실패: ${e.message}`); }
+      finally {
+        state.currentPlayback = null;
+        $('pausePlayback').disabled = true;
+        $('resumePlayback').disabled = true;
+        $('skipPlayback').disabled = true;
+        $('stopPlayback').disabled = true;
+      }
+    });
     $('buyPoints').onclick = buyPoints;
     $('refreshBilling').onclick = refreshWallet;
     $('cancelSubscription').onclick = cancelSubscription;

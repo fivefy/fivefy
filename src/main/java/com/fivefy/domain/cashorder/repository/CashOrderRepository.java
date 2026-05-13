@@ -1,6 +1,8 @@
 package com.fivefy.domain.cashorder.repository;
 
 import com.fivefy.domain.cashorder.entity.CashOrder;
+import com.fivefy.domain.cashorder.enums.CashOrderStatus;
+import com.fivefy.domain.cashorder.enums.CashProductType;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -16,4 +18,7 @@ public interface CashOrderRepository extends JpaRepository<CashOrder, Long> {
 
     // PaymentService에서 유저의 cashOrderId 목록 조회용
     List<CashOrder> findAllByUserId(Long userId);
+
+    // 포인트 충전 : 150P(PRODUCT_3) 중복 사용 방지용
+    boolean existsByUserIdAndProductTypeAndStatus(Long userId, CashProductType productType, CashOrderStatus status);
 }
