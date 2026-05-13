@@ -12,6 +12,8 @@ import com.fivefy.domain.playback.enums.PlaybackStatus;
 import com.fivefy.domain.playback.repository.PlaybackRepository;
 import com.fivefy.domain.playlisttrack.entity.PlaylistTrack;
 import com.fivefy.domain.playlisttrack.repository.PlaylistTrackRepository;
+import com.fivefy.domain.track.entity.Track;
+import com.fivefy.domain.track.repository.TrackRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +28,7 @@ public class PlaybackService {
     private final PlaybackRepository playbackRepository;
     private final PlaylistTrackRepository playlistTrackRepository;
     private final AudioUrlService audioUrlService;
+    private final TrackRepository trackRepository;
 
     @Transactional
     public PlaybackResponse play(Long userId, PlaybackPlayRequest request) {
@@ -67,7 +70,7 @@ public class PlaybackService {
         Playback savedPlayback = playbackRepository.save(playback);
 
         // audio 재생 URL 생성
-        String audioUrl = audioUrlService.createAudioUrl("example.mp3");
+        String audioUrl = createAudioUrl(savedPlayback.getTrackId());
 
         return PlaybackResponse.from(savedPlayback, audioUrl);
     }
@@ -136,7 +139,7 @@ public class PlaybackService {
         Playback savedNextPlayback = playbackRepository.save(nextPlayback);
 
         // 다음 트랙 audio 재생 URL 생성
-        String audioUrl = audioUrlService.createAudioUrl("example.mp3");
+        String audioUrl = createAudioUrl(savedNextPlayback.getTrackId());
 
         return PlaybackResponse.from(savedNextPlayback, audioUrl);
     }
@@ -191,5 +194,12 @@ public class PlaybackService {
         if (!playlistTrackRepository.existsByPlaylistIdAndTrackId(playlistId, trackId)) {
             throw new BusinessException(PlaybackErrorCode.PLAYLIST_TRACK_NOT_INCLUDED);
         }
+    }
+
+    private String createAudioUrl(Long trackId) {
+        Track track = trackRepository.findById(trackId)
+                .orElseThrow(() -> new BusinessException(PlaybackErrorCode.PLAYBACK_TRACK_MISMATCH));
+
+        return audioUrlService.createAudioUrl(track.getAudioKey());
     }
 }
