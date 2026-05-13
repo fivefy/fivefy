@@ -409,7 +409,7 @@ class PlaybackControllerTest extends RestDocsSupport {
                     LocalDateTime.now(),
                     LocalDateTime.now(),
                     null,
-                    "https://example.com/audio.mp3"
+                    null
             );
 
             given(playbackService.skip(any(), any(PlaybackSkipRequest.class)))
@@ -446,7 +446,7 @@ class PlaybackControllerTest extends RestDocsSupport {
                                     fieldWithPath("data.startedAt").type(STRING).description("재생 시작 시각"),
                                     fieldWithPath("data.lastPlayedAt").type(STRING).description("마지막 재생 시각"),
                                     fieldWithPath("data.endedAt").type(NULL).description("재생 종료 시각"),
-                                    fieldWithPath("data.audioUrl").type(STRING).description("오디오 파일 URL")
+                                    fieldWithPath("data.audioUrl").type(NULL).description("오디오 파일 URL")
                             )
                     ));
         }
