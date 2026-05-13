@@ -5,6 +5,7 @@ import com.fivefy.domain.pointorder.service.PointOrderService;
 import com.fivefy.domain.subscription.dto.SubscriptionResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,6 +29,8 @@ public class PointOrderController {
             @AuthenticationPrincipal Long userId,
             @Valid @RequestBody PointOrderPurchaseRequest request
     ) {
-        return ResponseEntity.ok(pointOrderService.purchase(userId, request));
+        //                      기존 : .ok() : 200 반환
+        //                      현재 : 201 반환
+        return ResponseEntity.status(HttpStatus.CREATED).body(pointOrderService.purchase(userId, request));
     }
 }

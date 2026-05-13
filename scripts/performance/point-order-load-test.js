@@ -5,10 +5,10 @@ import { check, sleep } from 'k6';
 // 환경변수 설정 (기본값 포함)
 // 실행 시 -e 옵션으로 덮어쓸 수 있음
 // 예시: k6 run -e VUS=20 -e DURATION=60s point-order-load-test.js
-// 로컬에선 localhost이지만, 일단 자료에는 host.docker.internal이라 함
+// 로컬에선 localhost이지만, Dokcer 환경에선 host.docker.internal이라 함
 // ──────────────────────────────────────────────
 const BASE_URL = __ENV.BASE_URL   || 'http://host.docker.internal:8080';
-// ✅ 수정: 단일 EMAIL 환경변수 제거
+// 수정: 단일 EMAIL 환경변수 제거
 //         → VU별 이메일을 자동 생성 (test1@gmail.com ~ testN@gmail.com)
 //         → 각 VU가 서로 다른 userId를 가지므로 락 키 분산됨
 //            wallet:{userId_1} ~ wallet:{userId_N}
@@ -16,15 +16,18 @@ const BASE_URL = __ENV.BASE_URL   || 'http://host.docker.internal:8080';
 const PASSWORD  = __ENV.PASSWORD  || 'test1234@';
 const VU_COUNT  = Number(__ENV.VUS || 5);
 
-// ✅ 409를 HTTP 성공으로 간주 (비즈니스 정상 응답) — 기존 코드 유지
+//  409를 HTTP 성공으로 간주 (비즈니스 정상 응답) — 기존 코드 유지
 http.setResponseCallback(http.expectedStatuses({ min: 200, max: 399 }, 409));
 
 // ──────────────────────────────────────────────
 // 부하 설정
 // ──────────────────────────────────────────────
 export const options = {
-    vus:      VU_COUNT,
-    duration: __ENV.DURATION   || '30s',
+    vus:          VU_COUNT,
+    duration:     __ENV.DURATION || '30s',
+    // setup()에서 병렬 batch 요청 허용 수 확대
+    batch:        200,
+    batchPerHost: 200,
     thresholds: {
         // HTTP 오류율 1% 미만
         http_req_failed:   ['rate<0.01'],
@@ -37,58 +40,78 @@ export const options = {
 
 // ──────────────────────────────────────────────
 // setup() — 테스트 시작 전 1회만 실행
-// ✅ 수정: VU별로 각각 로그인하여 토큰 배열로 반환
+//    수정: VU별로 각각 로그인하여 토큰 배열로 반환
 //         기존: 토큰 1개 반환 → 모든 VU가 동일 userId 사용 → 락 경합 발생
 //         변경: 토큰 N개 반환 → VU마다 다른 userId 사용 → 락 키 분산
 // ──────────────────────────────────────────────
-export function setup() {
-    const tokens = [];
-    const headers = { 'Content-Type': 'application/json' };
-
-    for (let i = 1; i <= VU_COUNT; i++) {
-        const email    = `test${i}@gmail.com`;
-        const name     = `tester${i}`;
-
-        // ── 1. 회원가입 시도 (이미 존재하면 409 → 무시하고 로그인 진행) ──
-        const signupRes = http.post(
-            `${BASE_URL}/api/users/signup`,
-            JSON.stringify({ name, email, password: PASSWORD }),
-            { headers }
-        );
-
-        if (signupRes.status === 201) {
-            console.log(`VU${i} 계정 생성 완료 (${email})`);
-        } else if (signupRes.status === 409) {
-            console.log(`VU${i} 계정 이미 존재 → 로그인 진행 (${email})`);
-        } else {
-            console.warn(`VU${i} 회원가입 예상 외 응답 [${signupRes.status}]: ${signupRes.body}`);
-        }
-
-        // ── 2. 로그인 ──────────────────────────────────────────────────────
-        const loginRes = http.post(
-            `${BASE_URL}/api/users/login`,
-            JSON.stringify({ email, password: PASSWORD }),
-            { headers }
-        );
-
-        check(loginRes, {
-            [`setup: VU${i} login status is 200`]: (r) => r.status === 200,
-        });
-
-        const accessToken = loginRes.json('data.accessToken');
-
-        if (!accessToken) {
-            console.error(`VU${i} 로그인 실패 (${email}). 응답: ${loginRes.body}`);
-        }
-
-        tokens.push(accessToken);
+// 배열을 size 단위로 나누는 헬퍼
+function chunkArray(arr, size) {
+    const chunks = [];
+    for (let i = 0; i < arr.length; i += size) {
+        chunks.push(arr.slice(i, i + size));
     }
+    return chunks;
+}
+
+export function setup() {
+    const headers = { 'Content-Type': 'application/json' };
+    const CHUNK_SIZE = 100; // 한 번에 병렬로 보낼 요청 수
+
+    // ── 1. 회원가입 병렬 처리 (100개씩 청크) ────────────────────────────
+    const signupReqs = [];
+    for (let i = 1; i <= VU_COUNT; i++) {
+        signupReqs.push({
+            method: 'POST',
+            url:    `${BASE_URL}/api/users/signup`,
+            body:   JSON.stringify({ name: `tester${i}`, email: `test${i}@gmail.com`, password: PASSWORD }),
+            params: { headers },
+        });
+    }
+
+    let created = 0, existed = 0;
+    for (const chunk of chunkArray(signupReqs, CHUNK_SIZE)) {
+        const responses = http.batch(chunk);
+        responses.forEach(r => {
+            if (r.status === 201)      created++;
+            else if (r.status === 409) existed++;
+            else console.warn(`회원가입 예상 외 응답 [${r.status}]: ${r.body}`);
+        });
+    }
+    console.log(`계정 준비 완료 — 신규: ${created}개, 기존: ${existed}개`);
+
+    // ── 2. 로그인 병렬 처리 (100개씩 청크) ─────────────────────────────
+    const loginReqs = [];
+    for (let i = 1; i <= VU_COUNT; i++) {
+        loginReqs.push({
+            method: 'POST',
+            url:    `${BASE_URL}/api/users/login`,
+            body:   JSON.stringify({ email: `test${i}@gmail.com`, password: PASSWORD }),
+            params: { headers },
+        });
+    }
+
+    const tokens = [];
+    let loginOk = 0, loginFail = 0;
+    for (const chunk of chunkArray(loginReqs, CHUNK_SIZE)) {
+        const responses = http.batch(chunk);
+        responses.forEach((r, idx) => {
+            const token = r.status === 200 ? r.json('data.accessToken') : null;
+            if (token) {
+                loginOk++;
+            } else {
+                loginFail++;
+                console.error(`로그인 실패 [${r.status}]: ${r.body}`);
+            }
+            tokens.push(token);
+        });
+    }
+    console.log(`로그인 완료 — 성공: ${loginOk}개, 실패: ${loginFail}개`);
 
     return { tokens };
 }
 // ──────────────────────────────────────────────
 // default function — VU마다 duration 동안 반복 실행
-// ✅ 수정: __VU(1-based)로 자신의 토큰 선택
+//    수정: __VU(1-based)로 자신의 토큰 선택
 //         VU1 → test1@gmail.com 토큰
 //         VU2 → test2@gmail.com 토큰 ...
 // ──────────────────────────────────────────────
