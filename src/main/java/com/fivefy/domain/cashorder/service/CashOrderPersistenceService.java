@@ -9,6 +9,8 @@ import com.fivefy.domain.cashorder.repository.CashOrderRepository;
 import com.fivefy.domain.billingkey.entity.BillingKey;
 import com.fivefy.domain.payment.entity.Payment;
 import com.fivefy.domain.payment.repository.PaymentRepository;
+import com.fivefy.domain.subscription.entity.Subscription;
+import com.fivefy.domain.subscription.repository.SubscriptionRepository;
 import com.fivefy.domain.wallet.entity.PointHistory;
 import com.fivefy.domain.wallet.entity.Wallet;
 import com.fivefy.domain.wallet.enums.PointHistoryType;
@@ -39,7 +41,7 @@ public class CashOrderPersistenceService {
     private final WalletRepository walletRepository;
     private final PointHistoryRepository pointHistoryRepository;
     private final BillingAttemptPersistenceService billingAttemptPersistenceService;
-
+    private final SubscriptionRepository subscriptionRepository;
 
     /**
      * 환불은 DB 상태 변경만 담당
@@ -94,7 +96,8 @@ public class CashOrderPersistenceService {
             BillingKey billingKey,    // Long userId → BillingKey billingKey 로 변경
             String orderNumber,
             CashProductType productType,
-            PortoneBillingPaymentResponse pgResponse
+            PortoneBillingPaymentResponse pgResponse,
+            Subscription subscription
     ) {
         Long userId = billingKey.getUserId();  // 내부에서 꺼내서 사용
 
@@ -133,6 +136,10 @@ public class CashOrderPersistenceService {
         // 성공 기록 저장
         billingAttemptPersistenceService.saveSuccess(userId, billingKey.getId());
 
+        // 구독 날짜 갱신
+        subscription.renew();
+        subscriptionRepository.save(subscription);
+                
         log.info("[정기충전] DB 저장 완료 userId={}, orderNumber={}", userId, orderNumber);
     }
 }

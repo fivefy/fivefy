@@ -91,7 +91,8 @@ public class SubscriptionController {
         Subscription sub = subscriptionRepository
                 .findAllByPointOrderIdIn(pointOrderIds)
                 .stream()
-                .filter(s -> s.getPlanType() == SubscriptionPlanType.RECURRING
+                .filter(s -> (s.getPlanType() == SubscriptionPlanType.RECURRING
+                           || s.getPlanType() == SubscriptionPlanType.RECURRING_AUTO)
                           && s.getStatus() == SubscriptionStatus.ACTIVE)
                 .findFirst()
                 .orElseThrow(() -> new BusinessException(
