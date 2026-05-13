@@ -233,7 +233,6 @@ class TrackDetailCacheServiceTest {
                 "밤편지",
                 "가사",
                 "BALLAD",
-                "https://example.com/audio.mp3",
                 230L,
                 "feat. 10cm",
                 LocalDateTime.of(2026, 5, 1, 18, 0, 0)

@@ -18,6 +18,7 @@ java {
 ext {
     snippetsDir = file('build/generated-snippets')
     set('springAiVersion', '2.0.0-M2')
+    set('awsSdkVersion', '2.44.4')
 }
 
 configurations {
@@ -130,13 +131,15 @@ dependencies {
     // spring-dotenv : .env 읽어주기
     // implementation 'me.paulschwarz:spring-dotenv:4.0.0'
 
-    // 서버 상태 확인 (/actuator/health)
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    // AWS S3
+    implementation 'software.amazon.awssdk:s3'
+
 }
 
 dependencyManagement {
     imports {
         mavenBom "org.springframework.ai:spring-ai-bom:${springAiVersion}"
+        mavenBom "software.amazon.awssdk:bom:${awsSdkVersion}"
     }
 }
 

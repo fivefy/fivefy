@@ -24,7 +24,7 @@ UNION ALL SELECT 'billing_keys_invalid_user', COUNT(*) FROM billing_keys bk LEFT
 UNION ALL SELECT 'cash_orders_invalid_user', COUNT(*) FROM cash_orders co LEFT JOIN users u ON co.user_id = u.id WHERE u.id IS NULL
 UNION ALL SELECT 'point_orders_invalid_user', COUNT(*) FROM point_orders po LEFT JOIN users u ON po.user_id = u.id WHERE u.id IS NULL
 UNION ALL SELECT 'payments_invalid_user', COUNT(*) FROM payments p LEFT JOIN users u ON p.user_id = u.id WHERE u.id IS NULL
-UNION ALL SELECT 'subscriptions_invalid_user', COUNT(*) FROM subscriptions s LEFT JOIN users u ON s.user_id = u.id WHERE u.id IS NULL
+UNION ALL SELECT 'payments_invalid_cash_order', COUNT(*) FROM payments p LEFT JOIN cash_orders co ON p.cash_order_id = co.id WHERE co.id IS NULL
 UNION ALL SELECT 'subscriptions_invalid_point_order', COUNT(*) FROM subscriptions s LEFT JOIN point_orders po ON s.point_order_id = po.id WHERE po.id IS NULL
 UNION ALL SELECT 'artists_invalid_owner_user', COUNT(*) FROM artists a LEFT JOIN users u ON a.owner_user_id = u.id WHERE u.id IS NULL
 UNION ALL SELECT 'albums_invalid_artist', COUNT(*) FROM albums a LEFT JOIN artists ar ON a.artist_id = ar.id WHERE ar.id IS NULL
@@ -82,6 +82,14 @@ WHERE t.track_type = 'OFFICIAL_RELEASE'
         OR t.track_number IS NULL
     )
 
+UNION ALL SELECT 'tracks_invalid_audio_key_format', COUNT(*)
+FROM tracks t
+WHERE t.audio_key IS NULL
+   OR t.audio_key = ''
+   OR t.audio_key LIKE 'http://%'
+   OR t.audio_key LIKE 'https://%'
+   OR t.audio_key NOT LIKE 'tracks/audio/%.mp3'
+
 UNION ALL SELECT 'track_applications_official_release_album_artist_mismatch', COUNT(*)
 FROM track_applications ta
          JOIN albums a ON ta.album_id = a.id
@@ -108,6 +116,14 @@ WHERE ta.track_type = 'OFFICIAL_RELEASE'
         OR ta.track_number IS NULL
         OR ta.publish_delay_days IS NULL
     )
+
+UNION ALL SELECT 'track_applications_invalid_audio_key_format', COUNT(*)
+FROM track_applications ta
+WHERE ta.audio_key IS NULL
+   OR ta.audio_key = ''
+   OR ta.audio_key LIKE 'http://%'
+   OR ta.audio_key LIKE 'https://%'
+   OR ta.audio_key NOT LIKE 'tracks/audio/%.mp3'
 
 UNION ALL SELECT 'track_applications_pending_invalid_review_fields', COUNT(*)
 FROM track_applications ta

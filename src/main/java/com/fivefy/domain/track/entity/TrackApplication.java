@@ -59,8 +59,8 @@ public class TrackApplication extends BaseEntity {
     @Column(name = "genre", nullable = false, length = 100)
     private String genre;
 
-    @Column(name = "audio_url", nullable = false, length = 255)
-    private String audioUrl;
+    @Column(name = "audio_key", nullable = false, length = 255)
+    private String audioKey;
 
     @Column(name = "duration_sec", nullable = false)
     private Long durationSec;
@@ -100,7 +100,7 @@ public class TrackApplication extends BaseEntity {
             String title,
             String lyrics,
             String genre,
-            String audioUrl,
+            String audioKey,
             Long durationSec,
             String featuredArtistText,
             Integer publishDelayDays
@@ -109,7 +109,7 @@ public class TrackApplication extends BaseEntity {
         validateNonNull(trackType, "trackType");
         validateNonNull(title, "title");
         validateNonNull(genre, "genre");
-        validateNonNull(audioUrl, "audioUrl");
+        validateNonNull(audioKey, "audioKey");
 
         validatePublishDelayDays(publishDelayDays);
         validateDurationSec(durationSec);
@@ -124,7 +124,7 @@ public class TrackApplication extends BaseEntity {
         application.title = title;
         application.lyrics = lyrics;
         application.genre = genre;
-        application.audioUrl = audioUrl;
+        application.audioKey = audioKey;
         application.durationSec = durationSec;
         application.featuredArtistText = featuredArtistText;
         application.publishDelayDays = publishDelayDays;

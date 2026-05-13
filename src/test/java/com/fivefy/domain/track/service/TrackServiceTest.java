@@ -4,6 +4,7 @@ import com.fivefy.common.dto.response.PageResponse;
 import com.fivefy.common.dto.response.SliceResponse;
 import com.fivefy.common.enums.ApplicationStatus;
 import com.fivefy.common.exception.BusinessException;
+import com.fivefy.common.storage.AudioStorageService;
 import com.fivefy.domain.album.entity.Album;
 import com.fivefy.domain.album.enums.AlbumErrorCode;
 import com.fivefy.domain.album.repository.AlbumRepository;
@@ -27,6 +28,7 @@ import com.fivefy.domain.user.entity.User;
 import com.fivefy.domain.user.enums.UserErrorCode;
 import com.fivefy.domain.user.enums.UserRole;
 import com.fivefy.domain.user.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -40,11 +42,16 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.SliceImpl;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -67,6 +74,8 @@ import static org.mockito.Mockito.*;
  */
 @ExtendWith(MockitoExtension.class)
 class TrackServiceTest {
+
+    private static final String AUDIO_KEY = "tracks/audio/test.mp3";
 
     @Mock
     private TrackApplicationRepository trackApplicationRepository;
@@ -92,8 +101,40 @@ class TrackServiceTest {
     @Mock
     private TrackDetailCacheService trackDetailCacheService;
 
+    @Mock
+    private AudioStorageService audioStorageService;
+
+    @Mock
+    private TransactionTemplate transactionTemplate;
+
     @InjectMocks
     private TrackService trackService;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(audioStorageService.upload(any())).thenReturn(AUDIO_KEY);
+        lenient().when(transactionTemplate.execute(any()))
+                .thenAnswer(invocation -> {
+                    TransactionCallback<?> callback = invocation.getArgument(0);
+                    return callback.doInTransaction(mock(TransactionStatus.class));
+                });
+        lenient().doAnswer(invocation -> {
+                    Consumer<TransactionStatus> action = invocation.getArgument(0);
+                    action.accept(mock(TransactionStatus.class));
+                    return null;
+                })
+                .when(transactionTemplate)
+                .executeWithoutResult(any());
+    }
+
+    private MockMultipartFile audioFile() {
+        return new MockMultipartFile(
+                "audioFile",
+                "sample.mp3",
+                "audio/mpeg",
+                "audio".getBytes()
+        );
+    }
 
     @Nested
     @DisplayName("자유 창작 트랙 등록 신청 생성")
@@ -109,7 +150,6 @@ class TrackServiceTest {
                             "밤편지 AI 버전",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             210L
                     );
 
@@ -118,8 +158,7 @@ class TrackServiceTest {
 
             when(trackApplicationRepository.existsPendingFreeCreationApplication(
                     userId,
-                    request.title(),
-                    request.audioUrl()
+                    request.title()
             )).thenReturn(false);
 
             TrackApplication savedApplication = TrackApplication.create(
@@ -131,7 +170,7 @@ class TrackServiceTest {
                     request.title(),
                     request.lyrics(),
                     request.genre(),
-                    request.audioUrl(),
+                    AUDIO_KEY,
                     request.durationSec(),
                     null,
                     null
@@ -147,7 +186,7 @@ class TrackServiceTest {
                     .thenReturn(savedApplication);
 
             TrackApplicationResponse response =
-                    trackService.createFreeTrackApplication(userId, request);
+                    trackService.createFreeTrackApplication(userId, request, audioFile());
 
             assertThat(response.applicationId()).isEqualTo(1L);
             assertThat(response.trackType()).isEqualTo(TrackType.FREE_CREATION);
@@ -168,13 +207,12 @@ class TrackServiceTest {
                             "밤편지 AI 버전",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             210L
                     );
 
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> trackService.createFreeTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createFreeTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(UserErrorCode.ERR_USER_NOT_FOUND.getMessage());
         }
@@ -189,7 +227,6 @@ class TrackServiceTest {
                             "밤편지 AI 버전",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             210L
                     );
 
@@ -198,11 +235,10 @@ class TrackServiceTest {
 
             when(trackApplicationRepository.existsPendingFreeCreationApplication(
                     userId,
-                    request.title(),
-                    request.audioUrl()
+                    request.title()
             )).thenReturn(true);
 
-            assertThatThrownBy(() -> trackService.createFreeTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createFreeTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS.getMessage());
         }
@@ -217,7 +253,6 @@ class TrackServiceTest {
                             "밤편지 AI 버전",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             210L
                     );
 
@@ -226,16 +261,16 @@ class TrackServiceTest {
 
             when(trackApplicationRepository.existsPendingFreeCreationApplication(
                     userId,
-                    request.title(),
-                    request.audioUrl()
+                    request.title()
             )).thenReturn(false);
 
             when(trackApplicationRepository.saveAndFlush(any(TrackApplication.class)))
                     .thenThrow(new DataIntegrityViolationException("duplicate free creation application"));
 
-            assertThatThrownBy(() -> trackService.createFreeTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createFreeTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS.getMessage());
+            verify(audioStorageService).delete(AUDIO_KEY);
         }
     }
 
@@ -258,7 +293,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -313,7 +347,7 @@ class TrackServiceTest {
                     request.title(),
                     request.lyrics(),
                     request.genre(),
-                    request.audioUrl(),
+                    AUDIO_KEY,
                     request.durationSec(),
                     request.featuredArtistText(),
                     request.publishDelayDays()
@@ -329,7 +363,7 @@ class TrackServiceTest {
                     .thenReturn(savedApplication);
 
             TrackApplicationResponse response =
-                    trackService.createOfficialTrackApplication(userId, request);
+                    trackService.createOfficialTrackApplication(userId, request, audioFile());
 
             assertThat(response.applicationId()).isEqualTo(2L);
             assertThat(response.trackType()).isEqualTo(TrackType.OFFICIAL_RELEASE);
@@ -353,7 +387,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -361,7 +394,7 @@ class TrackServiceTest {
 
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(UserErrorCode.ERR_USER_NOT_FOUND.getMessage());
         }
@@ -380,7 +413,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -390,7 +422,7 @@ class TrackServiceTest {
             when(userRepository.findByIdAndDeletedAtIsNull(userId)).thenReturn(Optional.of(user));
             when(artistRepository.findById(artistId)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
         }
@@ -409,7 +441,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -431,7 +462,7 @@ class TrackServiceTest {
 
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(ArtistErrorCode.ERR_ARTIST_NOT_FOUND.getMessage());
         }
@@ -450,7 +481,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -471,7 +501,7 @@ class TrackServiceTest {
 
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(ArtistErrorCode.ERR_FORBIDDEN_ARTIST_ACCESS.getMessage());
         }
@@ -490,7 +520,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -512,7 +541,7 @@ class TrackServiceTest {
 
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_INACTIVE_ARTIST_CANNOT_REQUEST_OFFICIAL_RELEASE.getMessage());
         }
@@ -532,7 +561,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -554,7 +582,7 @@ class TrackServiceTest {
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
             when(albumRepository.findById(albumId)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(AlbumErrorCode.ERR_ALBUM_NOT_FOUND.getMessage());
         }
@@ -574,7 +602,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -607,7 +634,7 @@ class TrackServiceTest {
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
             when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(AlbumErrorCode.ERR_ALBUM_NOT_FOUND.getMessage());
         }
@@ -627,7 +654,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -659,7 +685,7 @@ class TrackServiceTest {
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
             when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_ALBUM_ARTIST_MISMATCH.getMessage());
         }
@@ -679,7 +705,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             8
@@ -711,7 +736,7 @@ class TrackServiceTest {
             when(artistRepository.findById(artistId)).thenReturn(Optional.of(artist));
             when(albumRepository.findById(albumId)).thenReturn(Optional.of(album));
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_INVALID_PUBLISH_DELAY_DAYS.getMessage());
         }
@@ -731,7 +756,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -770,7 +794,7 @@ class TrackServiceTest {
                     request.title()
             )).thenReturn(true);
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS.getMessage());
         }
@@ -790,7 +814,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -838,7 +861,7 @@ class TrackServiceTest {
                     request.title()
             )).thenReturn(true);
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_PROCESSED.getMessage());
         }
@@ -858,7 +881,6 @@ class TrackServiceTest {
                             "밤편지",
                             "가사",
                             "BALLAD",
-                            "https://example.com/audio.mp3",
                             230L,
                             "feat. 10cm",
                             3
@@ -908,9 +930,10 @@ class TrackServiceTest {
             when(trackApplicationRepository.saveAndFlush(any(TrackApplication.class)))
                     .thenThrow(new DataIntegrityViolationException("duplicate official release application"));
 
-            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request))
+            assertThatThrownBy(() -> trackService.createOfficialTrackApplication(userId, request, audioFile()))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(TrackApplicationErrorCode.ERR_TRACK_APPLICATION_ALREADY_EXISTS.getMessage());
+            verify(audioStorageService).delete(AUDIO_KEY);
         }
     }
 
@@ -1007,7 +1030,7 @@ class TrackServiceTest {
                     "밤편지 AI 버전",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     210L,
                     null,
                     null
@@ -1037,7 +1060,7 @@ class TrackServiceTest {
             assertThat(response.trackNumber()).isNull();
             assertThat(response.title()).isEqualTo("밤편지 AI 버전");
             assertThat(response.genre()).isEqualTo("BALLAD");
-            assertThat(response.audioUrl()).isEqualTo("https://example.com/audio.mp3");
+            assertThat(response.audioKey()).isEqualTo("tracks/audio/test.mp3");
             assertThat(response.durationSec()).isEqualTo(210L);
             assertThat(response.publishDelayDays()).isNull();
             assertThat(response.status()).isEqualTo(ApplicationStatus.PENDING);
@@ -1063,7 +1086,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     3
@@ -1115,7 +1138,7 @@ class TrackServiceTest {
                     "밤편지 AI 버전",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     210L,
                     null,
                     null
@@ -1225,7 +1248,7 @@ class TrackServiceTest {
                     "승인 대기 신청",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     210L,
                     null,
                     null
@@ -1286,7 +1309,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     0
@@ -1322,7 +1345,7 @@ class TrackServiceTest {
                     application.getTitle(),
                     application.getLyrics(),
                     application.getGenre(),
-                    application.getAudioUrl(),
+                    application.getAudioKey(),
                     application.getDurationSec(),
                     application.getFeaturedArtistText(),
                     null
@@ -1362,7 +1385,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     3
@@ -1398,7 +1421,7 @@ class TrackServiceTest {
                     application.getTitle(),
                     application.getLyrics(),
                     application.getGenre(),
-                    application.getAudioUrl(),
+                    application.getAudioKey(),
                     application.getDurationSec(),
                     application.getFeaturedArtistText(),
                     LocalDateTime.now().plusDays(3)
@@ -1450,7 +1473,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     0
@@ -1502,7 +1525,7 @@ class TrackServiceTest {
                     "밤편지 AI 버전",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     210L,
                     null,
                     null
@@ -1515,7 +1538,7 @@ class TrackServiceTest {
                     application.getTitle(),
                     application.getLyrics(),
                     application.getGenre(),
-                    application.getAudioUrl(),
+                    application.getAudioKey(),
                     application.getDurationSec()
             );
             ReflectionTestUtils.setField(savedTrack, "id", 1000L);
@@ -1550,7 +1573,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     0
@@ -1597,7 +1620,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     0
@@ -1640,7 +1663,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     0
@@ -1698,7 +1721,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     0
@@ -1749,7 +1772,7 @@ class TrackServiceTest {
                     "밤편지 AI 버전",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     210L,
                     null,
                     null
@@ -1787,7 +1810,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     3
@@ -1837,7 +1860,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     0
@@ -1886,7 +1909,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     null
@@ -1940,7 +1963,6 @@ class TrackServiceTest {
             assertThat(response.title()).isEqualTo("밤편지");
             assertThat(response.lyrics()).isEqualTo("가사");
             assertThat(response.genre()).isEqualTo("BALLAD");
-            assertThat(response.audioUrl()).isEqualTo("https://example.com/audio.mp3");
             assertThat(response.durationSec()).isEqualTo(230L);
             assertThat(response.featuredArtistText()).isEqualTo("feat. 10cm");
             assertThat(response.playCount()).isEqualTo(1200L);
@@ -1988,7 +2010,6 @@ class TrackServiceTest {
             assertThat(response.albumTitle()).isNull();
             assertThat(response.trackNumber()).isNull();
             assertThat(response.title()).isEqualTo("밤편지 AI 버전");
-            assertThat(response.audioUrl()).isEqualTo("https://example.com/audio-free.mp3");
             assertThat(response.durationSec()).isEqualTo(210L);
             assertThat(response.playCount()).isEqualTo(300L);
             assertThat(response.publishedAt()).isEqualTo(LocalDateTime.of(2026, 5, 2, 12, 0, 0));
@@ -2017,7 +2038,7 @@ class TrackServiceTest {
                     "밤편지 AI 버전",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     210L
             );
             ReflectionTestUtils.setField(track, "id", trackId);
@@ -2048,7 +2069,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     null
@@ -2078,7 +2099,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     null
@@ -2125,7 +2146,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     null
@@ -2167,7 +2188,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     null
@@ -2221,7 +2242,7 @@ class TrackServiceTest {
                     "캐시 이전 제목",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     210L
             );
             ReflectionTestUtils.setField(track, "id", trackId);
@@ -2243,7 +2264,6 @@ class TrackServiceTest {
                     "캐시된 제목",
                     "캐시된 가사",
                     "BALLAD",
-                    "https://example.com/cached-audio.mp3",
                     200L,
                     null,
                     LocalDateTime.of(2026, 5, 1, 18, 0, 0)
@@ -2268,7 +2288,6 @@ class TrackServiceTest {
             assertThat(response.trackId()).isEqualTo(trackId);
             assertThat(response.title()).isEqualTo("캐시된 제목");
             assertThat(response.lyrics()).isEqualTo("캐시된 가사");
-            assertThat(response.audioUrl()).isEqualTo("https://example.com/cached-audio.mp3");
             assertThat(response.durationSec()).isEqualTo(200L);
             assertThat(response.playCount()).isEqualTo(999L);
             assertThat(response.comments()).hasSize(1);
@@ -2295,7 +2314,7 @@ class TrackServiceTest {
                     "밤편지",
                     "가사",
                     "BALLAD",
-                    "https://example.com/audio.mp3",
+                    "tracks/audio/test.mp3",
                     230L,
                     "feat. 10cm",
                     null

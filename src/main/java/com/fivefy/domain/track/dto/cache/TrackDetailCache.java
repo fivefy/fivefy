@@ -19,7 +19,6 @@ public record TrackDetailCache(
         String title,
         String lyrics,
         String genre,
-        String audioUrl,
         Long durationSec,
         String featuredArtistText,
         LocalDateTime publishedAt
@@ -44,7 +43,6 @@ public record TrackDetailCache(
                 track.getTitle(),
                 track.getLyrics(),
                 track.getGenre(),
-                track.getAudioUrl(),
                 track.getDurationSec(),
                 track.getFeaturedArtistText(),
                 track.getPublishedAt()
