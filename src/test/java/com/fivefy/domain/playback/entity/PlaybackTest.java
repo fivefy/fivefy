@@ -374,4 +374,35 @@ class PlaybackTest {
                 .isInstanceOf(BusinessException.class)
                 .hasMessage(PlaybackErrorCode.INVALID_PLAYBACK_STATE.getMessage());
     }
+
+    @Test
+    @DisplayName("기존 playedDuration보다 작은 값이면 예외 발생")
+    void pause_invalid_playedDuration_decreased() {
+        // given
+        Playback playback =
+                Playback.create(1L, 10L, 1L, "session-1", "device-1");
+
+        ReflectionTestUtils.setField(playback, "playedDuration", 30);
+
+        // when & then
+        assertThatThrownBy(() -> playback.pause(10))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(PlaybackErrorCode.INVALID_PLAYBACK_STATE.getMessage());
+    }
+
+    @Test
+    @DisplayName("기존 playedDuration이 null이면 비교 검증을 수행하지 않는다")
+    void pausePlayedDurationNullSkipValidation() {
+        // given
+        Playback playback =
+                Playback.create(1L, 10L, 1L, "session-1", "device-1");
+
+        ReflectionTestUtils.setField(playback, "playedDuration", null);
+
+        // when
+        playback.pause(10);
+
+        // then
+        assertThat(playback.getPlayedDuration()).isEqualTo(10);
+    }
 }
