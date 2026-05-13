@@ -12,6 +12,8 @@ import com.fivefy.domain.playback.enums.PlaybackStatus;
 import com.fivefy.domain.playback.repository.PlaybackRepository;
 import com.fivefy.domain.playlisttrack.entity.PlaylistTrack;
 import com.fivefy.domain.playlisttrack.repository.PlaylistTrackRepository;
+import com.fivefy.domain.track.entity.Track;
+import com.fivefy.domain.track.repository.TrackRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -39,6 +41,20 @@ class PlaybackServiceTest {
     @Mock private PlaybackRepository playbackRepository;
     @Mock private PlaylistTrackRepository playlistTrackRepository;
     @Mock private AudioUrlService audioUrlService;
+    @Mock private TrackRepository trackRepository;
+
+    private void givenTrackAudioUrl(Long trackId) {
+        Track track = mock(Track.class);
+
+        given(trackRepository.findById(trackId))
+                .willReturn(Optional.of(track));
+
+        given(track.getAudioKey())
+                .willReturn("example.mp3");
+
+        given(audioUrlService.createAudioUrl("example.mp3"))
+                .willReturn("https://example.com/audio.mp3");
+    }
 
     @Nested
     @DisplayName("재생 시작")
@@ -68,8 +84,7 @@ class PlaybackServiceTest {
                     userId, 1L, 10L, "session-1"
             )).willReturn(Optional.empty());
             given(playbackRepository.save(any(Playback.class))).willReturn(playback);
-            given(audioUrlService.createAudioUrl("example.mp3"))
-                    .willReturn("https://example.com/audio.mp3");
+            givenTrackAudioUrl(10L);
 
             // when
             PlaybackResponse result = playbackService.play(userId, request);
@@ -119,8 +134,7 @@ class PlaybackServiceTest {
                     userId, 1L, 10L, "session-1"
             )).willReturn(Optional.of(playback));
             given(playbackRepository.save(any(Playback.class))).willReturn(playback);
-            given(audioUrlService.createAudioUrl("example.mp3"))
-                    .willReturn("https://example.com/audio.mp3");
+            givenTrackAudioUrl(10L);
 
             // when
             PlaybackResponse result = playbackService.play(userId, request);
@@ -153,8 +167,7 @@ class PlaybackServiceTest {
                     userId, 1L, 10L, "session-1"
             )).willReturn(Optional.of(stoppedPlayback));
             given(playbackRepository.save(any(Playback.class))).willReturn(newPlayback);
-            given(audioUrlService.createAudioUrl("example.mp3"))
-                    .willReturn("https://example.com/audio.mp3");
+            givenTrackAudioUrl(10L);
 
             // when
             PlaybackResponse result = playbackService.play(userId, request);
@@ -187,8 +200,7 @@ class PlaybackServiceTest {
                     userId, 1L, 10L, "session-1"
             )).willReturn(Optional.of(completedPlayback));
             given(playbackRepository.save(any(Playback.class))).willReturn(newPlayback);
-            given(audioUrlService.createAudioUrl("example.mp3"))
-                    .willReturn("https://example.com/audio.mp3");
+            givenTrackAudioUrl(10L);
 
             // when
             PlaybackResponse result = playbackService.play(userId, request);
@@ -221,8 +233,7 @@ class PlaybackServiceTest {
                     userId, 1L, 10L, "session-1"
             )).willReturn(Optional.of(skippedPlayback));
             given(playbackRepository.save(any(Playback.class))).willReturn(newPlayback);
-            given(audioUrlService.createAudioUrl("example.mp3"))
-                    .willReturn("https://example.com/audio.mp3");
+            givenTrackAudioUrl(10L);
 
             // when
             PlaybackResponse result = playbackService.play(userId, request);
@@ -296,8 +307,7 @@ class PlaybackServiceTest {
                     userId, 1L, 10L, "session-1"
             )).willReturn(Optional.of(existingPlayingPlayback));
             given(playbackRepository.save(any(Playback.class))).willReturn(newPlayback);
-            given(audioUrlService.createAudioUrl("example.mp3"))
-                    .willReturn("https://example.com/audio.mp3");
+            givenTrackAudioUrl(10L);
 
             // when
             PlaybackResponse result = playbackService.play(userId, request);
@@ -449,6 +459,48 @@ class PlaybackServiceTest {
             assertThatThrownBy(() -> playbackService.play(userId, request))
                     .isInstanceOf(BusinessException.class)
                     .hasMessage(PlaybackErrorCode.INVALID_PLAYBACK_STATE.getMessage());
+        }
+
+        @Test
+        @DisplayName("audioUrl 생성 시 트랙이 없으면 예외 발생")
+        void createAudioUrlTrackNotFound() {
+            // given
+            Long userId = 1L;
+
+            PlaybackPlayRequest request =
+                    new PlaybackPlayRequest(1L, 10L, "session-1", "device-1");
+
+            given(playlistTrackRepository.existsByPlaylistIdAndTrackId(1L, 10L))
+                    .willReturn(true);
+
+            given(playbackRepository.findTopByUserIdAndSessionIdAndStatusOrderByIdDesc(
+                    userId,
+                    "session-1",
+                    PlaybackStatus.PLAYING
+            )).willReturn(Optional.empty());
+
+            given(playbackRepository.findTopByUserIdAndPlaylistIdAndTrackIdAndSessionIdOrderByIdDesc(
+                    userId,
+                    1L,
+                    10L,
+                    "session-1"
+            )).willReturn(Optional.empty());
+
+            Playback playback =
+                    Playback.create(1L, 10L, userId, "session-1", "device-1");
+
+            given(playbackRepository.save(any(Playback.class)))
+                    .willReturn(playback);
+
+            given(trackRepository.findById(10L))
+                    .willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() ->
+                    playbackService.play(userId, request)
+            )
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessage(PlaybackErrorCode.PLAYBACK_TRACK_MISMATCH.getMessage());
         }
     }
 
@@ -623,8 +675,7 @@ class PlaybackServiceTest {
             given(playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(1L))
                     .willReturn(List.of(currentTrack, nextTrack));
             given(playbackRepository.save(any(Playback.class))).willReturn(nextPlayback);
-            given(audioUrlService.createAudioUrl("example.mp3"))
-                    .willReturn("https://example.com/audio.mp3");
+            givenTrackAudioUrl(20L);
 
             // when
             PlaybackResponse result = playbackService.skip(userId, request);
@@ -659,8 +710,7 @@ class PlaybackServiceTest {
             given(playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(1L))
                     .willReturn(List.of(firstTrack, lastTrack));
             given(playbackRepository.save(any(Playback.class))).willReturn(nextPlayback);
-            given(audioUrlService.createAudioUrl("example.mp3"))
-                    .willReturn("https://example.com/audio.mp3");
+            givenTrackAudioUrl(10L);
 
             // when
             PlaybackResponse result = playbackService.skip(userId, request);
@@ -775,8 +825,7 @@ class PlaybackServiceTest {
             given(playlistTrackRepository.findAllByPlaylistIdOrderByPositionAsc(1L))
                     .willReturn(List.of(currentTrack, nextTrack));
             given(playbackRepository.save(any(Playback.class))).willReturn(nextPlayback);
-            given(audioUrlService.createAudioUrl("example.mp3"))
-                    .willReturn("https://example.com/audio.mp3");
+            givenTrackAudioUrl(20L);
 
             // when
             PlaybackResponse result = playbackService.skip(userId, request);
