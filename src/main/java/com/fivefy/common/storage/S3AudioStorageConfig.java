@@ -14,20 +14,9 @@ import software.amazon.awssdk.services.s3.S3Client;
 public class S3AudioStorageConfig {
 
     @Bean
-    public S3Client s3Client(
-            AudioStorageProperties properties,
-            @Value("${cloud.aws.credentials.access-key}") String accessKey,
-            @Value("${cloud.aws.credentials.secret-key}") String secretKey
-    ) {
-
-        AwsBasicCredentials credentials =
-                AwsBasicCredentials.create(accessKey, secretKey);
-
+    public S3Client s3Client(AudioStorageProperties properties) {
         return S3Client.builder()
                 .region(Region.of(properties.region()))
-                .credentialsProvider(
-                        StaticCredentialsProvider.create(credentials)
-                )
                 .build();
     }
 }
