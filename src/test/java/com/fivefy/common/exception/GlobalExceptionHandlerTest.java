@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -31,6 +32,20 @@ class GlobalExceptionHandlerTest {
             assertThat(response.getBody().success()).isFalse();
             assertThat(response.getBody().status()).isEqualTo(MultipartErrorCode.ERR_MULTIPART_UPLOAD_SIZE_EXCEEDED.getHttpStatus());
             assertThat(response.getBody().message()).isEqualTo(MultipartErrorCode.ERR_MULTIPART_UPLOAD_SIZE_EXCEEDED.getMessage());
+        }
+
+        @Test
+        @DisplayName("multipart 필수 파트가 누락되면 400을 반환한다")
+        void handleMissingServletRequestPartException_success() {
+            ResponseEntity<BaseResponse<Void>> response = exceptionHandler.handleMissingServletRequestPartException(
+                    new MissingServletRequestPartException("audioFile")
+            );
+
+            assertThat(response.getStatusCode()).isEqualTo(MultipartErrorCode.ERR_MISSING_MULTIPART_PART.getHttpStatus());
+            assertThat(response.getBody()).isNotNull();
+            assertThat(response.getBody().success()).isFalse();
+            assertThat(response.getBody().status()).isEqualTo(MultipartErrorCode.ERR_MISSING_MULTIPART_PART.getHttpStatus());
+            assertThat(response.getBody().message()).isEqualTo(MultipartErrorCode.ERR_MISSING_MULTIPART_PART.getMessage());
         }
 
         @Test
