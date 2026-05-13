@@ -73,7 +73,8 @@ public class Subscription extends BaseEntity {
             subscription.expiryDate = planType.calculateExpiryDate(startDate);
             // 정기 구독 상태이면 다음 갱신일 1개월, 아니라면 null(구독 취소 된 상태. 남은 기간 이용 가능)
             subscription.nextBillingDate = planType.isAutoRenew()
-                    ? startDate.plusMonths(1)
+                    // 갱신일 1개월 + 그날 오전 9시
+                    ? startDate.plusMonths(1).toLocalDate().atTime(9, 0)
                     : null;
 
         return subscription;
@@ -143,7 +144,7 @@ public class Subscription extends BaseEntity {
 
     public void extendOneMonth() {
         this.expiryDate = this.expiryDate.plusMonths(1);
-        this.nextBillingDate = this.nextBillingDate.plusMonths(1);
+        this.nextBillingDate = this.expiryDate.toLocalDate().atTime(9, 0); // 1달 뒤 9시
     }
 
     /**
@@ -171,12 +172,12 @@ public class Subscription extends BaseEntity {
      *
      *     이후: startDate      = 4월 23일 19:07,
      *          expiryDate      = 6월 23일 19:07,
-     *          nextBillingDate = 6월 23일 00:00
+     *          nextBillingDate = 6월 23일 09:00 : 만료 전 체크
      */
     public void skipOneMonth() {
         if (this.expiryDate != null) {
             this.expiryDate = this.expiryDate.plusMonths(1);
-            this.nextBillingDate = this.expiryDate.toLocalDate().atStartOfDay();
+            this.nextBillingDate = this.expiryDate.toLocalDate().atTime(9, 0);
         }
     }
 }

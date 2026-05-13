@@ -22,11 +22,10 @@ import com.fivefy.domain.cashorder.enums.CashOrderStatus;
 import com.fivefy.domain.cashorder.enums.CashProductType;
 import com.fivefy.domain.cashorder.repository.CashOrderRepository;
 import com.fivefy.domain.payment.entity.Payment;
-import com.fivefy.domain.payment.entity.WebhookEvent;
 import com.fivefy.domain.payment.enums.PaymentErrorCode;
 import com.fivefy.domain.payment.repository.PaymentRepository;
-import com.fivefy.domain.payment.repository.WebhookEventRepository;
 import com.fivefy.domain.payment.service.WebhookEventService;
+import com.fivefy.domain.subscription.entity.Subscription;
 import com.fivefy.domain.wallet.entity.PointHistory;
 import com.fivefy.domain.wallet.entity.Wallet;
 import com.fivefy.domain.wallet.enums.PointHistoryType;
@@ -36,11 +35,9 @@ import com.fivefy.domain.wallet.repository.PointHistoryRepository;
 import com.fivefy.domain.wallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
-import org.springframework.dao.CannotAcquireLockException;
 
 import java.util.UUID;
 
@@ -352,7 +349,7 @@ public class CashOrderService {
      */
     @RedissonLock(key = "'wallet:' + #billingKey.userId")
     @Transactional
-    public void processRecurringCharge(BillingKey billingKey) {
+    public void processRecurringCharge(BillingKey billingKey, Subscription subscription) {
         Long userId = billingKey.getUserId();
         CashProductType productType = resolveRecurringProductType(userId);
         String orderNumber = "REC-" + UUID.randomUUID().toString().substring(0, 8);
@@ -398,7 +395,7 @@ public class CashOrderService {
 
         // 포트원 청구 성공 확정 후 DB 작업만 별도 트랜잭션으로
         cashOrderPersistenceService.saveRecurringChargeResult(
-                billingKey, orderNumber, productType, pgResponse
+                billingKey, orderNumber, productType, pgResponse, subscription
         );
 
         log.info("[정기충전] 완료 — userId={}, orderNumber={}, 충전P={}",

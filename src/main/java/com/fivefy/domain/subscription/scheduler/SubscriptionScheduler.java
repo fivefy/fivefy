@@ -42,7 +42,7 @@ public class SubscriptionScheduler {
 
         List<Subscription> targets = subscriptionRepository
                 .findAllByPlanTypeAndStatusAndNextBillingDateBefore(
-                        SubscriptionPlanType.RECURRING,
+                        SubscriptionPlanType.RECURRING_AUTO,
                         SubscriptionStatus.ACTIVE,
                         now
                 );

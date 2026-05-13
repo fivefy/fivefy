@@ -8,11 +8,20 @@ import com.fivefy.domain.billingkey.entity.BillingKey;
 import com.fivefy.domain.billingkey.repository.BillingKeyRepository;
 import com.fivefy.domain.billingkey.service.BillingKeyService;
 import com.fivefy.domain.cashorder.service.CashOrderService;
+import com.fivefy.domain.pointorder.entity.PointOrder;
+import com.fivefy.domain.pointorder.repository.PointOrderRepository;
+import com.fivefy.domain.subscription.entity.Subscription;
+import com.fivefy.domain.subscription.enums.SubscriptionErrorCode;
+import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
+import com.fivefy.domain.subscription.enums.SubscriptionStatus;
+import com.fivefy.domain.subscription.repository.SubscriptionRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/billing-keys")
@@ -22,6 +31,8 @@ public class BillingKeyController {
     private final BillingKeyService billingKeyService;
     private final BillingKeyRepository billingKeyRepository;
     private final CashOrderService cashOrderService;
+    private final PointOrderRepository pointOrderRepository;
+    private final SubscriptionRepository subscriptionRepository;
 
     /**
      * 카드(빌링키) 등록
@@ -72,8 +83,20 @@ public class BillingKeyController {
                         BillingKeyErrorCode.ERR_BILLING_KEY_ACTIVE_NOT_FOUND)
                 );
 
-        // 구독 여부 확인 없이 바로 카드 청구
-        cashOrderService.processRecurringCharge(billingKey);
+        List<Long> pointOrderIds = pointOrderRepository.findAllByUserId(userId)
+                .stream()
+                .map(PointOrder::getId)
+                .toList();
+
+        Subscription subscription = subscriptionRepository
+                .findByPointOrderIdInAndPlanTypeAndStatus(
+                        pointOrderIds,
+                        SubscriptionPlanType.RECURRING_AUTO,
+                        SubscriptionStatus.ACTIVE)
+                .orElseThrow(() -> new BusinessException(
+                        SubscriptionErrorCode.ERR_SUBSCRIPTION_NOT_FOUND));
+
+        cashOrderService.processRecurringCharge(billingKey, subscription);
 
         return ResponseEntity.ok("카드 청구 완료 — 지갑을 조회해서 포인트 충전을 확인하세요.");
     }
