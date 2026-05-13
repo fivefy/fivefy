@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.List;
@@ -47,6 +48,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<BaseResponse<Void>> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException e) {
         log.warn("업로드 용량 초과 : {}", e.getMessage());
         return toErrorResponse(MultipartErrorCode.ERR_MULTIPART_UPLOAD_SIZE_EXCEEDED);
+    }
+
+    // multipart 필수 파트 누락 예외 처리
+    @ExceptionHandler(MissingServletRequestPartException.class)
+        public ResponseEntity<BaseResponse<Void>> handleMissingServletRequestPartException(MissingServletRequestPartException e) {
+        log.warn("multipart 필수 파트 누락 : {}", e.getRequestPartName());
+        return toErrorResponse(MultipartErrorCode.ERR_MISSING_MULTIPART_PART);
     }
 
     // multipart 요청 형식 예외 처리
