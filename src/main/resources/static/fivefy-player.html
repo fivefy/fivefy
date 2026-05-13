@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fivefy Playback API 테스터</title>
+    <style>
+        :root {
+            --bg: #0f1115;
+            --panel: #181b22;
+            --border: #2a2f3a;
+            --text: #e6e9ef;
+            --muted: #8a93a6;
+            --primary: #4f8cff;
+            --primary-hover: #6aa0ff;
+            --danger: #ff5d6c;
+            --ok: #3ddc97;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple SD Gothic Neo", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 24px;
+        }
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+        h1 { font-size: 22px; margin: 0 0 4px; }
+        .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .card h2 {
+            font-size: 15px;
+            margin: 0 0 14px;
+            color: var(--muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .row {
+            display: grid;
+            grid-template-columns: 130px 1fr;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        label { font-size: 13px; color: var(--muted); }
+        input, textarea {
+            width: 100%;
+            padding: 9px 12px;
+            background: #11141a;
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+        input:focus, textarea:focus { outline: none; border-color: var(--primary); }
+        .buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        button:hover:not(:disabled) { background: var(--primary-hover); }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+        button.secondary { background: #2a2f3a; }
+        button.secondary:hover:not(:disabled) { background: #353b48; }
+        button.danger { background: var(--danger); }
+        audio {
+            width: 100%;
+            margin-top: 12px;
+        }
+        .status {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            padding: 10px 12px;
+            background: #11141a;
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 12px;
+        }
+        .status span b { color: var(--text); margin-left: 4px; }
+        .log {
+            background: #0a0c10;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 12px;
+            color: #c5cad4;
+            max-height: 240px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .log .err { color: var(--danger); }
+        .log .ok { color: var(--ok); }
+        .pill {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #2a2f3a;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Fivefy Playback API 테스터</h1>
+    <p class="subtitle">
+        <span class="pill">POST /api/playbacks/play</span>
+        audioUrl을 받아 <code>&lt;audio&gt;</code> 태그로 재생합니다.
+    </p>
+
+    <div class="card">
+        <h2>설정</h2>
+        <div class="row">
+            <label for="baseUrl">Base URL</label>
+            <input id="baseUrl" type="text" placeholder="https://api.fivefy.example.com" value="http://localhost:8080" />
+        </div>
+        <div class="row">
+            <label for="token">JWT Token</label>
+            <input id="token" type="text" placeholder="eyJhbGciOi..." />
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>재생 요청</h2>
+        <div class="row">
+            <label for="playlistId">playlistId</label>
+            <input id="playlistId" type="number" value="1" />
+        </div>
+        <div class="row">
+            <label for="trackId">trackId</label>
+            <input id="trackId" type="number" value="1" />
+        </div>
+        <div class="row">
+            <label for="sessionId">sessionId</label>
+            <input id="sessionId" type="text" />
+        </div>
+        <div class="row">
+            <label for="deviceId">deviceId</label>
+            <input id="deviceId" type="text" value="web-browser" />
+        </div>
+        <div class="buttons">
+            <button id="btnPlay">▶ 재생 시작</button>
+            <button id="btnPause" class="secondary" disabled>⏸ 일시정지</button>
+            <button id="btnResume" class="secondary" disabled>▶ 이어재생</button>
+            <button id="btnSkip" class="secondary" disabled>⏭ 건너뛰기</button>
+            <button id="btnStop" class="danger" disabled>⏹ 정지</button>
+        </div>
+
+        <audio id="player" controls preload="none"></audio>
+
+        <div class="status">
+            <span>playbackId:<b id="sPid">-</b></span>
+            <span>status:<b id="sStatus">-</b></span>
+            <span>currentTime:<b id="sTime">0</b>s</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>응답 로그</h2>
+        <div id="log" class="log">대기중...</div>
+    </div>
+</div>
+
+<script>
+    const $ = (id) => document.getElementById(id);
+    const logBox = $('log');
+    const audio = $('player');
+
+    let currentPlaybackId = null;
+
+    // 기본 sessionId 자동 생성
+    $('sessionId').value = 'sess-' + Math.random().toString(36).slice(2, 10);
+
+    function log(msg, type = '') {
+        const time = new Date().toLocaleTimeString();
+        const line = document.createElement('div');
+        if (type) line.className = type;
+        line.textContent = `[${time}] ${msg}`;
+        logBox.appendChild(line);
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    async function callApi(path, body) {
+        const baseUrl = $('baseUrl').value.replace(/\/$/, '');
+        const token = $('token').value.trim();
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        log(`→ POST ${path}\n${JSON.stringify(body, null, 2)}`);
+        const res = await fetch(baseUrl + path, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || json.success === false) {
+            log(`← ${res.status} ${JSON.stringify(json)}`, 'err');
+            throw new Error(json.message || `HTTP ${res.status}`);
+        }
+        log(`← ${res.status} ${JSON.stringify(json)}`, 'ok');
+        return json.data;
+    }
+
+    // 재생 시작
+    $('btnPlay').addEventListener('click', async () => {
+        try {
+            const data = await callApi('/api/playbacks/play', {
+                playlistId: Number($('playlistId').value),
+                trackId: Number($('trackId').value),
+                sessionId: $('sessionId').value,
+                deviceId: $('deviceId').value || null,
+            });
+
+            if (!data.audioUrl) {
+                log('audioUrl이 응답에 없습니다.', 'err');
+                return;
+            }
+            currentPlaybackId = data.id;
+            $('sPid').textContent = data.id;
+            $('sStatus').textContent = data.status;
+
+            // 🌟 [수정] CORS 정책 대응 및 미디어 강제 로드 설정
+            audio.crossOrigin = "anonymous";
+            audio.src = data.audioUrl;
+            audio.load(); // preload="none" 환경에서 소스를 강제로 연결함
+
+            // 🌟 [수정] 브라우저가 오디오 스트림을 해석할 수 있을 때 재생 시도
+            await new Promise((resolve, reject) => {
+                audio.oncanplay = resolve;
+                audio.onerror = () => reject(new Error(audio.error ? `MEDIA_ERR_${audio.error.code}` : '로드 실패'));
+            });
+
+            await audio.play();
+
+            $('btnPause').disabled = false;
+            $('btnSkip').disabled = false;
+            $('btnStop').disabled = false;
+            $('btnResume').disabled = true;
+        } catch (e) {
+            log('재생 실패: ' + e.message, 'err');
+            // 디버깅을 위해 상세 에러 객체 로그 출력
+            if (audio.error) {
+                log(`상세 에러 코드: ${audio.error.code} (1:중단, 2:네트워크, 3:디코딩, 4:포맷불가)`, 'err');
+            }
+        }
+    });
+
+    // 일시정지
+    $('btnPause').addEventListener('click', async () => {
+        if (!currentPlaybackId) return;
+        try {
+            audio.pause();
+            const data = await callApi('/api/playbacks/pause', {
+                id: currentPlaybackId,
+                playedDuration: Math.floor(audio.currentTime),
+            });
+            $('sStatus').textContent = data.status;
+            $('btnPause').disabled = true;
+            $('btnResume').disabled = false;
+        } catch (e) {
+            log('일시정지 실패: ' + e.message, 'err');
+        }
+    });
+
+    // 이어재생 (재생 API 재호출)
+    $('btnResume').addEventListener('click', async () => {
+        try {
+            await audio.play();
+            $('btnPause').disabled = false;
+            $('btnResume').disabled = true;
+        } catch (e) {
+            log('이어재생 실패: ' + e.message, 'err');
+        }
+    });
+
+    // 건너뛰기
+    $('btnSkip').addEventListener('click', async () => {
+        if (!currentPlaybackId) return;
+        try {
+            const data = await callApi('/api/playbacks/skip', {
+                id: currentPlaybackId,
+                playedDuration: Math.floor(audio.currentTime),
+            });
+            $('sStatus').textContent = data.status;
+            audio.pause();
+            audio.removeAttribute('src');
+            audio.load();
+            resetControls();
+        } catch (e) {
+            log('건너뛰기 실패: ' + e.message, 'err');
+        }
+    });
+
+    // 정지
+    $('btnStop').addEventListener('click', async () => {
+        if (!currentPlaybackId) return;
+        try {
+            const data = await callApi('/api/playbacks/stop', {
+                id: currentPlaybackId,
+                playedDuration: Math.floor(audio.currentTime),
+            });
+            $('sStatus').textContent = data.status;
+            audio.pause();
+            audio.removeAttribute('src');
+            audio.load();
+            resetControls();
+        } catch (e) {
+            log('정지 실패: ' + e.message, 'err');
+        }
+    });
+
+    function resetControls() {
+        currentPlaybackId = null;
+        $('sPid').textContent = '-';
+        $('btnPause').disabled = true;
+        $('btnResume').disabled = true;
+        $('btnSkip').disabled = true;
+        $('btnStop').disabled = true;
+    }
+
+    // 재생 시간 표시
+    audio.addEventListener('timeupdate', () => {
+        $('sTime').textContent = Math.floor(audio.currentTime);
+    });
+
+    // 곡 끝나면 자동 stop 호출
+    audio.addEventListener('ended', async () => {
+        if (!currentPlaybackId) return;
+        try {
+            const data = await callApi('/api/playbacks/stop', {
+                id: currentPlaybackId,
+                playedDuration: Math.floor(audio.duration || audio.currentTime),
+            });
+            $('sStatus').textContent = data.status;
+        } catch (e) {
+            log('자동 stop 실패: ' + e.message, 'err');
+        } finally {
+            resetControls();
+        }
+    });
+</script>
+</body>
+</html>
