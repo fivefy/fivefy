@@ -597,7 +597,10 @@
       if (state.token && state.selectedPlaylistId && !String(state.selectedPlaylistId).startsWith('demo')) {
         try {
           state.currentPlayback = data(await api('/api/playbacks/play', { method: 'POST', body: { playlistId: Number(state.selectedPlaylistId), trackId: Number(trackId), sessionId: state.sessionId, deviceId: navigator.userAgent.slice(0, 40) } }));
-          if (state.currentPlayback?.audioUrl) { $('audio').src = state.currentPlayback.audioUrl; $('audio').play().catch(() => {}); }
+          if (state.currentPlayback?.audioUrl) {
+              $('audio').src = state.currentPlayback.audioUrl;
+              $('audio').play().catch(() => {});
+          }
           log('playbackLog', `백엔드 재생 시작: playbackId=${state.currentPlayback?.id || '-'}`);
         } catch (e) { log('playbackLog', `백엔드 재생 실패: ${e.message}`); }
       }
