@@ -1249,6 +1249,263 @@ include::{snippets}/popular-chart-test-generate/http-response.adoc[]
 
 ---
 
+== Like API
+
+=== 좋아요 등록
+
+include::{snippets}/like-create/http-request.adoc[]
+include::{snippets}/like-create/request-fields.adoc[]
+include::{snippets}/like-create/http-response.adoc[]
+include::{snippets}/like-create/response-fields.adoc[]
+
+==== 에러 케이스 - targetId 누락
+
+include::{snippets}/like-create-invalid-targetId/http-request.adoc[]
+include::{snippets}/like-create-invalid-targetId/request-fields.adoc[]
+include::{snippets}/like-create-invalid-targetId/http-response.adoc[]
+include::{snippets}/like-create-invalid-targetId/response-fields.adoc[]
+
+==== 에러 케이스 - targetType 누락
+
+include::{snippets}/like-create-invalid-targetType/http-request.adoc[]
+include::{snippets}/like-create-invalid-targetType/request-fields.adoc[]
+include::{snippets}/like-create-invalid-targetType/http-response.adoc[]
+include::{snippets}/like-create-invalid-targetType/response-fields.adoc[]
+
+==== 에러 케이스 - 중복 좋아요
+
+include::{snippets}/like-create-duplicate/http-request.adoc[]
+include::{snippets}/like-create-duplicate/request-fields.adoc[]
+include::{snippets}/like-create-duplicate/http-response.adoc[]
+include::{snippets}/like-create-duplicate/response-fields.adoc[]
+
+---
+
+=== 좋아요 목록 조회
+
+include::{snippets}/like-list/http-request.adoc[]
+include::{snippets}/like-list/query-parameters.adoc[]
+include::{snippets}/like-list/http-response.adoc[]
+include::{snippets}/like-list/response-fields.adoc[]
+
+---
+
+=== 좋아요 취소
+
+include::{snippets}/like-delete/http-request.adoc[]
+include::{snippets}/like-delete/path-parameters.adoc[]
+include::{snippets}/like-delete/http-response.adoc[]
+include::{snippets}/like-delete/response-fields.adoc[]
+
+==== 에러 케이스 - 좋아요 없음
+
+include::{snippets}/like-delete-not-found/http-request.adoc[]
+include::{snippets}/like-delete-not-found/path-parameters.adoc[]
+include::{snippets}/like-delete-not-found/http-response.adoc[]
+include::{snippets}/like-delete-not-found/response-fields.adoc[]
+
+---
+
+== Follow API
+
+=== 팔로우 등록
+
+include::{snippets}/follow-create/http-request.adoc[]
+include::{snippets}/follow-create/request-fields.adoc[]
+include::{snippets}/follow-create/http-response.adoc[]
+include::{snippets}/follow-create/response-fields.adoc[]
+
+==== 에러 케이스 - 요청 검증 실패
+
+include::{snippets}/follow-create-invalid/http-request.adoc[]
+include::{snippets}/follow-create-invalid/request-fields.adoc[]
+include::{snippets}/follow-create-invalid/http-response.adoc[]
+include::{snippets}/follow-create-invalid/response-fields.adoc[]
+
+==== 에러 케이스 - 중복 팔로우
+
+include::{snippets}/follow-create-duplicate/http-request.adoc[]
+include::{snippets}/follow-create-duplicate/request-fields.adoc[]
+include::{snippets}/follow-create-duplicate/http-response.adoc[]
+include::{snippets}/follow-create-duplicate/response-fields.adoc[]
+
+---
+
+=== 팔로우 목록 조회
+
+include::{snippets}/follow-list/http-request.adoc[]
+include::{snippets}/follow-list/query-parameters.adoc[]
+include::{snippets}/follow-list/http-response.adoc[]
+include::{snippets}/follow-list/response-fields.adoc[]
+
+---
+
+=== 팔로우 취소
+
+include::{snippets}/follow-delete/http-request.adoc[]
+include::{snippets}/follow-delete/path-parameters.adoc[]
+include::{snippets}/follow-delete/http-response.adoc[]
+include::{snippets}/follow-delete/response-fields.adoc[]
+
+==== 에러 케이스 - 팔로우 없음
+
+include::{snippets}/follow-delete-not-found/http-request.adoc[]
+include::{snippets}/follow-delete-not-found/path-parameters.adoc[]
+include::{snippets}/follow-delete-not-found/http-response.adoc[]
+include::{snippets}/follow-delete-not-found/response-fields.adoc[]
+
+---
+
+=== 팔로우 알림 설정 토글
+
+include::{snippets}/follow-toggle-notification/http-request.adoc[]
+include::{snippets}/follow-toggle-notification/path-parameters.adoc[]
+include::{snippets}/follow-toggle-notification/http-response.adoc[]
+include::{snippets}/follow-toggle-notification/response-fields.adoc[]
+
+==== 에러 케이스 - 팔로우 없음
+
+include::{snippets}/follow-toggle-notification-not-found/http-request.adoc[]
+include::{snippets}/follow-toggle-notification-not-found/path-parameters.adoc[]
+include::{snippets}/follow-toggle-notification-not-found/http-response.adoc[]
+include::{snippets}/follow-toggle-notification-not-found/response-fields.adoc[]
+
+---
+
+== Search API
+
+=== 통합 검색
+
+include::{snippets}/search/http-request.adoc[]
+include::{snippets}/search/query-parameters.adoc[]
+include::{snippets}/search/http-response.adoc[]
+include::{snippets}/search/response-fields.adoc[]
+
+==== 에러 케이스 - 공백 키워드
+
+include::{snippets}/search-blank-keyword/http-request.adoc[]
+include::{snippets}/search-blank-keyword/query-parameters.adoc[]
+include::{snippets}/search-blank-keyword/http-response.adoc[]
+include::{snippets}/search-blank-keyword/response-fields.adoc[]
+
+---
+
+=== 최근 검색 기록 조회
+
+include::{snippets}/search-histories-get/http-request.adoc[]
+include::{snippets}/search-histories-get/http-response.adoc[]
+include::{snippets}/search-histories-get/response-fields.adoc[]
+
+---
+
+=== 최근 검색 기록 전체 삭제
+
+include::{snippets}/search-histories-delete-all/http-request.adoc[]
+include::{snippets}/search-histories-delete-all/http-response.adoc[]
+include::{snippets}/search-histories-delete-all/response-fields.adoc[]
+
+---
+
+=== 최근 검색 기록 개별 삭제
+
+include::{snippets}/search-histories-delete-one/http-request.adoc[]
+include::{snippets}/search-histories-delete-one/query-parameters.adoc[]
+include::{snippets}/search-histories-delete-one/http-response.adoc[]
+include::{snippets}/search-histories-delete-one/response-fields.adoc[]
+
+---
+
+== Notification API
+
+=== 실시간 알림 구독 (SSE)
+
+include::{snippets}/notification-subscribe/http-request.adoc[]
+include::{snippets}/notification-subscribe/request-headers.adoc[]
+include::{snippets}/notification-subscribe/http-response.adoc[]
+
+NOTE: 응답은 `text/event-stream` 스트리밍 형식으로 전송됩니다. 별도의 응답 바디 스키마는 제공되지 않습니다.
+
+---
+
+=== 알림 목록 조회
+
+include::{snippets}/notification-list/http-request.adoc[]
+include::{snippets}/notification-list/query-parameters.adoc[]
+include::{snippets}/notification-list/http-response.adoc[]
+include::{snippets}/notification-list/response-fields.adoc[]
+
+---
+
+=== 읽지 않은 알림 수 조회
+
+include::{snippets}/notification-unread-count/http-request.adoc[]
+include::{snippets}/notification-unread-count/http-response.adoc[]
+include::{snippets}/notification-unread-count/response-fields.adoc[]
+
+---
+
+=== 알림 읽음 처리
+
+include::{snippets}/notification-read/http-request.adoc[]
+include::{snippets}/notification-read/path-parameters.adoc[]
+include::{snippets}/notification-read/http-response.adoc[]
+include::{snippets}/notification-read/response-fields.adoc[]
+
+==== 에러 케이스 - 알림 없음
+
+include::{snippets}/notification-read-not-found/http-request.adoc[]
+include::{snippets}/notification-read-not-found/path-parameters.adoc[]
+include::{snippets}/notification-read-not-found/http-response.adoc[]
+include::{snippets}/notification-read-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 권한 없음
+
+include::{snippets}/notification-read-unauthorized/http-request.adoc[]
+include::{snippets}/notification-read-unauthorized/path-parameters.adoc[]
+include::{snippets}/notification-read-unauthorized/http-response.adoc[]
+include::{snippets}/notification-read-unauthorized/response-fields.adoc[]
+
+---
+
+=== 전체 알림 읽음 처리
+
+include::{snippets}/notification-read-all/http-request.adoc[]
+include::{snippets}/notification-read-all/http-response.adoc[]
+include::{snippets}/notification-read-all/response-fields.adoc[]
+
+---
+
+=== 알림 삭제
+
+include::{snippets}/notification-delete/http-request.adoc[]
+include::{snippets}/notification-delete/path-parameters.adoc[]
+include::{snippets}/notification-delete/http-response.adoc[]
+include::{snippets}/notification-delete/response-fields.adoc[]
+
+==== 에러 케이스 - 알림 없음
+
+include::{snippets}/notification-delete-not-found/http-request.adoc[]
+include::{snippets}/notification-delete-not-found/path-parameters.adoc[]
+include::{snippets}/notification-delete-not-found/http-response.adoc[]
+include::{snippets}/notification-delete-not-found/response-fields.adoc[]
+
+==== 에러 케이스 - 권한 없음
+
+include::{snippets}/notification-delete-unauthorized/http-request.adoc[]
+include::{snippets}/notification-delete-unauthorized/path-parameters.adoc[]
+include::{snippets}/notification-delete-unauthorized/http-response.adoc[]
+include::{snippets}/notification-delete-unauthorized/response-fields.adoc[]
+
+---
+
+=== 전체 알림 삭제
+
+include::{snippets}/notification-delete-all/http-request.adoc[]
+include::{snippets}/notification-delete-all/http-response.adoc[]
+include::{snippets}/notification-delete-all/response-fields.adoc[]
+
+---
+
 == 도메인 API
 
 === 기능
