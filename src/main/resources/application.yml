@@ -24,7 +24,7 @@ storage:
   audio:
     # local 기본 실행은 로컬 디스크 저장소 사용
     # 실제 S3 업로드를 테스트하려면 개인 application-local.yml에서 type=s3 및 bucket을 재정의
-    type: local
+    type: s3
     # storage.audio.type=s3인 경우 bucket 미설정 시 시작 단계에서 실패
     bucket: ${AUDIO_S3_BUCKET:}
     region: ${AWS_REGION:ap-northeast-2}
