@@ -244,6 +244,7 @@ class LikeControllerTest extends RestDocsSupport {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("좋아요 취소 성공"))
+                    .andExpect(jsonPath("$.data").doesNotExist())
                     .andDo(document("like-delete",
                             pathParameters(
                                     parameterWithName("likeId").description("취소할 좋아요 ID")
@@ -265,6 +266,7 @@ class LikeControllerTest extends RestDocsSupport {
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.message").value(
                             LikeErrorCode.ERR_LIKE_NOT_FOUND.getMessage()))
+                    .andExpect(jsonPath("$.data").doesNotExist())
                     .andDo(document("like-delete-not-found",
                             pathParameters(
                                     parameterWithName("likeId").description("취소할 좋아요 ID")

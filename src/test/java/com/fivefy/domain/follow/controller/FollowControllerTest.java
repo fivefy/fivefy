@@ -195,6 +195,7 @@ class FollowControllerTest extends RestDocsSupport {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("팔로우 취소 성공"))
+                    .andExpect(jsonPath("$.data").doesNotExist())
                     .andDo(document("follow-delete",
                             pathParameters(
                                     parameterWithName("artistId").description("취소할 아티스트 ID")
@@ -216,6 +217,7 @@ class FollowControllerTest extends RestDocsSupport {
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.message").value(
                             FollowErrorCode.ERR_FOLLOW_NOT_FOUND.getMessage()))
+                    .andExpect(jsonPath("$.data").doesNotExist())
                     .andDo(document("follow-delete-not-found",
                             pathParameters(
                                     parameterWithName("artistId").description("취소할 아티스트 ID")

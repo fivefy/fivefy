@@ -201,6 +201,7 @@ class SearchControllerTest extends RestDocsSupport {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("최근 검색 기록 전체 삭제 성공"))
+                    .andExpect(jsonPath("$.data").doesNotExist())
                     .andDo(document("search-histories-delete-all",
                             responseFields(
                                     baseSuccessResponseFields()
@@ -226,6 +227,7 @@ class SearchControllerTest extends RestDocsSupport {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("최근 검색 기록 삭제 성공"))
+                    .andExpect(jsonPath("$.data").doesNotExist())
                     .andDo(document("search-histories-delete-one",
                             queryParameters(
                                     parameterWithName("keyword").description("삭제할 검색 키워드")

@@ -275,6 +275,7 @@ class NotificationControllerTest extends RestDocsSupport {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("알림 삭제 성공"))
+                    .andExpect(jsonPath("$.data").doesNotExist())
                     .andDo(document("notification-delete",
                             pathParameters(
                                     parameterWithName("notificationId").description("삭제할 알림 ID")
@@ -296,6 +297,7 @@ class NotificationControllerTest extends RestDocsSupport {
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.message").value(
                             NotificationErrorCode.ERR_NOTIFICATION_NOT_FOUND.getMessage()))
+                    .andExpect(jsonPath("$.data").doesNotExist())
                     .andDo(document("notification-delete-not-found",
                             pathParameters(
                                     parameterWithName("notificationId").description("삭제할 알림 ID")
@@ -317,6 +319,7 @@ class NotificationControllerTest extends RestDocsSupport {
                     .andExpect(status().isForbidden())
                     .andExpect(jsonPath("$.message").value(
                             NotificationErrorCode.ERR_NOTIFICATION_UNAUTHORIZED.getMessage()))
+                    .andExpect(jsonPath("$.data").doesNotExist())
                     .andDo(document("notification-delete-unauthorized",
                             pathParameters(
                                     parameterWithName("notificationId").description("삭제할 알림 ID")
@@ -343,6 +346,7 @@ class NotificationControllerTest extends RestDocsSupport {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("전체 알림 삭제 성공"))
+                    .andExpect(jsonPath("$.data").doesNotExist())
                     .andDo(document("notification-delete-all",
                             responseFields(
                                     baseSuccessResponseFields()
