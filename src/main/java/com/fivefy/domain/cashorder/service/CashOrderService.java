@@ -22,11 +22,10 @@ import com.fivefy.domain.cashorder.enums.CashOrderStatus;
 import com.fivefy.domain.cashorder.enums.CashProductType;
 import com.fivefy.domain.cashorder.repository.CashOrderRepository;
 import com.fivefy.domain.payment.entity.Payment;
-import com.fivefy.domain.payment.entity.WebhookEvent;
 import com.fivefy.domain.payment.enums.PaymentErrorCode;
 import com.fivefy.domain.payment.repository.PaymentRepository;
-import com.fivefy.domain.payment.repository.WebhookEventRepository;
 import com.fivefy.domain.payment.service.WebhookEventService;
+import com.fivefy.domain.subscription.entity.Subscription;
 import com.fivefy.domain.wallet.entity.PointHistory;
 import com.fivefy.domain.wallet.entity.Wallet;
 import com.fivefy.domain.wallet.enums.PointHistoryType;
@@ -36,11 +35,9 @@ import com.fivefy.domain.wallet.repository.PointHistoryRepository;
 import com.fivefy.domain.wallet.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
-import org.springframework.dao.CannotAcquireLockException;
 
 import java.util.UUID;
 
@@ -83,6 +80,13 @@ public class CashOrderService {
 
         CashProductType productType = request.productType();
 
+        // 150P 제한 체크
+        if (productType == CashProductType.PRODUCT_3
+                && cashOrderRepository.existsByUserIdAndProductTypeAndStatus(
+                        userId, CashProductType.PRODUCT_3, CashOrderStatus.SUCCESS)) {
+            throw new BusinessException(CashOrderErrorCode.ERR_FREE_CASH_PRODUCT_ALREADY_USED);
+        }
+        
         // 포트원 SDK에 넘길 주문 식별자 (포트원이 이 값을 paymentId로 사용)
         String orderNumber = "ORD-" + UUID.randomUUID().toString().substring(0, 8);
 
@@ -91,6 +95,13 @@ public class CashOrderService {
         // PENDING 상태로 저장 — webhookId는 웹훅 수신 시 채워짐
         CashOrder cashOrder = CashOrder.create(userId, productType, orderNumber);
         cashOrderRepository.save(cashOrder);
+
+        // 150P 주문 기록
+        if (productType == CashProductType.PRODUCT_3) {
+            completeFreeCashOrder(cashOrder);
+            log.info("[CashOrder] 150P 맛보기 포인트 지급 완료 userId={}, orderNumber={}", userId, orderNumber);
+            return new CashOrderPurchaseResponse(orderNumber);
+        }
 
         log.info("[CashOrder] 주문 생성 완료 userId={}, orderNumber={}", userId, orderNumber);
 
@@ -277,6 +288,47 @@ public class CashOrderService {
         log.info("[Webhook] 결제 확정 완료 orderNumber={}, pgPaymentId={}", cashOrder.getOrderNumber(), pgPaymentId);
     }
 
+    // 150P 체크
+    private void completeFreeCashOrder(CashOrder cashOrder) {
+            String freeWebhookId = "FREE-" + cashOrder.getOrderNumber();
+            cashOrder.success(freeWebhookId);
+
+            Payment payment = Payment.create(
+                    cashOrder,
+                    cashOrder.getOrderNumber(),
+                    freeWebhookId
+            );
+            payment.complete();
+            paymentRepository.save(payment);
+
+            Wallet wallet = walletRepository.findByUserId(cashOrder.getUserId())
+                    .orElseThrow(() -> new BusinessException(WalletErrorCode.ERR_WALLET_NOT_FOUND));
+            wallet.chargeBalance(cashOrder.getPointAmount());
+
+            pointHistoryRepository.save(PointHistory.create(
+                    wallet.getId(),
+                    PointType.PAID,
+                    PointHistoryType.CHARGE,
+                    cashOrder.getPointAmount(),
+                    wallet.getBalance(),
+                    "150P 맛보기 포인트 지급 (계정당 1회)",
+                    cashOrder.getId(),
+                    null
+            ));
+        }
+
+        // 빌링키 이용 정기 결제 확인용
+        private CashProductType resolveRecurringProductType(Long userId) {
+            boolean initialProductAlreadyCharged = cashOrderRepository.existsByUserIdAndProductTypeAndStatus(
+                    userId,
+                    CashProductType.PRODUCT_4,
+                    CashOrderStatus.SUCCESS
+            );
+
+            return initialProductAlreadyCharged
+                    ? CashProductType.PRODUCT_4_RECURRING
+                    : CashProductType.PRODUCT_4;
+        }
 
 
     /**
@@ -285,7 +337,7 @@ public class CashOrderService {
      *
      * 포트원에 빌링키로 카드 청구 (1,000원)
      * 청구 성공 시 CashOrder(SUCCESS) + Payment 생성
-     * 지갑에 포인트 충전 (1,500P) + PointHistory 기록
+     * 지갑에 포인트 충전 + PointHistory 기록
      * 실패 시 BillingKey 비활성화 (카드 만료/한도 초과 등)
      *
      * 실패/성공 지점마다 BillingAttempt 기록
@@ -297,9 +349,9 @@ public class CashOrderService {
      */
     @RedissonLock(key = "'wallet:' + #billingKey.userId")
     @Transactional
-    public void processRecurringCharge(BillingKey billingKey) {
+    public void processRecurringCharge(BillingKey billingKey, Subscription subscription) {
         Long userId = billingKey.getUserId();
-        CashProductType productType = CashProductType.PRODUCT_4_RECURRING;
+        CashProductType productType = resolveRecurringProductType(userId);
         String orderNumber = "REC-" + UUID.randomUUID().toString().substring(0, 8);
 
         log.info("[정기충전] 시작 userId={}, orderNumber={}", userId, orderNumber);
@@ -343,7 +395,7 @@ public class CashOrderService {
 
         // 포트원 청구 성공 확정 후 DB 작업만 별도 트랜잭션으로
         cashOrderPersistenceService.saveRecurringChargeResult(
-                billingKey, orderNumber, productType, pgResponse
+                billingKey, orderNumber, productType, pgResponse, subscription
         );
 
         log.info("[정기충전] 완료 — userId={}, orderNumber={}, 충전P={}",

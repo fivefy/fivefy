@@ -130,6 +130,17 @@ class TrackApplicationControllerTest extends RestDocsSupport {
         }
 
         @Test
+        @DisplayName("오디오 파일 없이 생성 요청 시 400 반환")
+        void createFreeTrackApplication_fail_withoutAudioFile() throws Exception {
+            mockMvc.perform(multipart("/api/track-applications/free-creations")
+                            .file(freeRequestPart("오디오 파일"))
+                            .with(csrf().asHeader())
+                            .contentType(MediaType.MULTIPART_FORM_DATA))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value("필수 multipart 항목(request 또는 audioFile)이 누락되었습니다"));
+        }
+
+        @Test
         @DisplayName("중복 신청 시 409 반환")
         void createFreeTrackApplication_fail_whenAlreadyExists() throws Exception {
             given(trackService.createFreeTrackApplication(any(), any(FreeTrackApplicationCreateRequest.class), any()))

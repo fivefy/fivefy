@@ -75,7 +75,10 @@ public class CashOrderScheduler {
             try {
                 billingKeyRepository.findByUserIdAndActiveTrue(userId)
                         .ifPresentOrElse(
-                                billingKey -> cashOrderService.processRecurringCharge(billingKey),
+                                billingKey -> cashOrderService.processRecurringCharge(
+                                        billingKey,
+                                        subscription
+                                ),
                                 () -> log.warn("[정기충전 스케줄러] 빌링키 없음 — userId={}",
                                         userId)
                         );

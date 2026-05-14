@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public enum SubscriptionPlanType {
     FREE(0L,  "3일 체험"),                       // 무료(1회)     : 다음 갱신일 없음
-    RECURRING(50L, "정기 구독"),                 // 포인트 단건    : 다음 갱신일 없음
+    RECURRING(50L, "구독"),                 // 포인트 단건    : 다음 갱신일 없음
     RECURRING_AUTO(50L, "정기 구독 (카드 자동)"); // 카드 자동      : 다음 갱신일 있음
 
     private final Long price;

@@ -1,0 +1,1229 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fivefy Music</title>
+  <script src="https://cdn.portone.io/v2/browser-sdk.js" defer></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101114;
+      --side: #030304;
+      --panel: #17181d;
+      --panel-2: #202127;
+      --line: rgba(255,255,255,.09);
+      --line-purple: rgba(173,92,255,.34);
+      --text: #f7f7fb;
+      --muted: #a9a8b5;
+      --dim: #74717e;
+      --accent: #b96cff;
+      --accent-2: #8f5cff;
+      --green: #00e676;
+      --red: #ff3d57;
+      --gold: #ffd166;
+      --cover: linear-gradient(135deg, #b96cff, #0d1020 55%), radial-gradient(circle at 70% 20%, rgba(255,255,255,.5), transparent 26%);
+      --shadow: 0 28px 90px rgba(0,0,0,.42);
+      font-family: Inter, Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--text); overflow: hidden; }
+    button, input, select { font: inherit; }
+    button { border: 0; cursor: pointer; color: inherit; }
+
+    .app { display: grid; grid-template-columns: 378px minmax(0, 1fr); height: 100vh; }
+    .sidebar { background: var(--side); padding: 34px 18px 24px 32px; display: flex; flex-direction: column; gap: 28px; }
+    .logo { font-size: 36px; font-weight: 900; letter-spacing: -.04em; }
+    .nav { display: grid; gap: 10px; }
+    .nav button { display: grid; grid-template-columns: 42px 1fr; align-items: center; width: 100%; padding: 16px 18px; border-radius: 10px; background: transparent; color: #b7b6c4; font-size: 23px; text-align: left; }
+    .nav button.active { background: #292a2e; color: #fff; font-weight: 800; }
+    .ico { width: 32px; height: 32px; display: grid; place-items: center; color: currentColor; }
+    .ico svg { width: 31px; height: 31px; fill: none; stroke: currentColor; stroke-width: 2.3; stroke-linecap: round; stroke-linejoin: round; }
+    .playlist-nav { margin-top: 34px; display: grid; gap: 16px; }
+    .side-title { display: flex; justify-content: space-between; color: #d8d4e2; font-size: 21px; }
+    .mini-list { display: grid; gap: 10px; }
+    .mini-list button { padding: 10px 0; background: transparent; color: #b9b7c5; display: flex; gap: 14px; align-items: center; font-size: 20px; text-align: left; }
+    .mini-list button:hover, .mini-list button.active { color: #fff; }
+    .auth-card { margin-top: auto; border: 1px solid var(--line); background: #111216; border-radius: 18px; padding: 16px; display: grid; gap: 10px; }
+    .auth-card strong { font-size: 18px; }
+    .auth-card span { color: var(--muted); font-size: 14px; line-height: 1.5; }
+
+    .main { overflow: auto; padding: 28px 36px 128px 48px; position: relative; }
+    .topbar { display: flex; gap: 18px; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; padding: 8px 0 22px; background: linear-gradient(180deg, var(--bg) 70%, rgba(16,17,20,0)); }
+    .search { flex: 1; max-width: 760px; display: flex; gap: 10px; align-items: center; background: #24252b; border: 1px solid var(--line); border-radius: 999px; padding: 12px 18px; }
+    .search input { flex: 1; border: 0; outline: 0; background: transparent; color: #fff; font-size: 17px; }
+    .toolbar { display: flex; gap: 10px; align-items: center; }
+    .pill { border: 1px solid var(--line); background: #202127; border-radius: 999px; padding: 10px 14px; color: #d8d4e2; font-weight: 700; }
+    .primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: white; box-shadow: 0 12px 30px rgba(143,92,255,.28); }
+    .danger { background: rgba(255,61,87,.14); color: #ffb3bf; border-color: rgba(255,61,87,.25); }
+    .ghost { background: transparent; border: 1px solid var(--line); color: #ddd8ea; }
+
+    section.view { display: none; animation: fade .25s ease; }
+    section.view.active { display: block; }
+    @keyframes fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+    .hero { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 24px; align-items: stretch; }
+    .hero-panel { position: relative; overflow: hidden; border-radius: 30px; padding: 34px; min-height: 290px; background: radial-gradient(circle at 20% 15%, rgba(185,108,255,.5), transparent 38%), linear-gradient(135deg, #231331, #131417 64%); box-shadow: var(--shadow); }
+    .hero-panel h1 { margin: 0; font-size: clamp(44px, 6vw, 78px); line-height: .93; letter-spacing: -.07em; }
+    .hero-panel p { max-width: 620px; color: #d8c9eb; font-size: 18px; line-height: 1.65; }
+    .cover-stack { position: absolute; right: 42px; bottom: 28px; width: 180px; aspect-ratio: 1; border-radius: 28px; background: var(--cover); transform: rotate(-7deg); box-shadow: 0 30px 70px rgba(0,0,0,.45); }
+    .cover-stack::before { content: ''; position: absolute; inset: -18px; border-radius: 34px; border: 1px solid rgba(255,255,255,.12); transform: rotate(12deg); }
+
+    .panel { border: 1px solid var(--line); background: var(--panel); border-radius: 26px; padding: 22px; box-shadow: 0 18px 60px rgba(0,0,0,.18); }
+    .panel h2, .section-head h2 { margin: 0; font-size: 34px; letter-spacing: -.04em; }
+    .panel p { color: var(--muted); line-height: 1.55; }
+    .section-head { margin: 46px 0 22px; display: flex; align-items: end; justify-content: space-between; }
+    .section-head a { color: var(--muted); text-decoration: none; font-size: 18px; }
+
+    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .metric { background: #1c1d23; border: 1px solid var(--line); border-radius: 22px; padding: 20px; }
+    .metric span { color: var(--muted); }
+    .metric strong { display: block; margin-top: 10px; font-size: 34px; }
+
+    .recommend-list { display: grid; gap: 18px; }
+    .recommend { display: grid; grid-template-columns: 96px 1fr auto; gap: 22px; align-items: center; min-height: 112px; border: 1px solid var(--line-purple); border-radius: 20px; padding: 18px 24px; background: linear-gradient(90deg, rgba(94,31,130,.25), rgba(23,24,29,.86)); }
+    .art { width: 72px; height: 72px; border-radius: 10px; background: var(--cover); background-size: cover; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+    .recommend h3, .track-meta h3 { margin: 0 0 6px; font-size: 24px; }
+    .muted { color: var(--muted); }
+    .ai-note { color: #c889ff; margin-top: 6px; font-size: 18px; }
+
+    .chart { display: grid; gap: 8px; max-width: 760px; }
+    .chart-row, .playlist-row { display: grid; grid-template-columns: 54px 40px 76px 1fr auto; align-items: center; gap: 14px; padding: 10px 18px; border-radius: 16px; }
+    .chart-row:hover, .playlist-row:hover { background: #22232a; }
+    .rank { font-size: 26px; font-weight: 900; text-align: center; }
+    .trend.up { color: var(--green); } .trend.down { color: var(--red); } .trend.same { color: var(--dim); }
+    .track-meta h3 { font-size: 23px; }
+    .track-meta p { margin: 0; color: var(--muted); font-size: 19px; }
+
+    .split { display: grid; grid-template-columns: 390px minmax(0, 1fr); gap: 22px; align-items: start; }
+    .form { display: grid; gap: 12px; }
+    .field label { display: block; margin: 0 0 6px; color: var(--muted); font-weight: 800; }
+    .field input, .field select { width: 100%; border: 1px solid var(--line); outline: 0; background: #111216; color: white; border-radius: 14px; padding: 13px 14px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+    .product-grid, .playlist-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .product, .playlist-card { background: #1d1e24; border: 1px solid var(--line); border-radius: 20px; padding: 18px; display: grid; gap: 10px; text-align: left; }
+    .product.active, .playlist-card.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px rgba(185,108,255,.4); }
+    .product strong, .playlist-card strong { font-size: 22px; }
+    .product small, .playlist-card small { color: var(--muted); line-height: 1.5; }
+
+    .video-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: stretch; }
+    .stage { position: relative; min-height: 420px; border-radius: 28px; overflow: hidden; border: 1px solid var(--line-purple); background: #07070a; }
+    canvas { width: 100%; height: 100%; display: block; }
+    .stage-overlay { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; background: radial-gradient(circle, transparent 30%, rgba(0,0,0,.34)); }
+    .now-cover { width: 210px; height: 210px; border-radius: 28px; background: var(--cover); box-shadow: 0 30px 80px rgba(0,0,0,.5); animation: float 4s ease-in-out infinite; }
+    @keyframes float { 50% { transform: translateY(-10px) rotate(2deg); } }
+    .player { display: grid; gap: 16px; }
+    audio { width: 100%; }
+    .log { max-height: 190px; overflow: auto; background: #101116; border: 1px solid var(--line); border-radius: 16px; padding: 12px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; color: #d7c8ff; font-size: 12px; white-space: pre-wrap; }
+
+    .modal-backdrop { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.72); display: none; place-items: center; padding: 24px; }
+    .modal-backdrop.open { display: grid; }
+    .modal { width: min(520px, 100%); background: #18191f; border: 1px solid var(--line); border-radius: 26px; padding: 24px; box-shadow: var(--shadow); }
+    .modal h2 { margin: 0 0 14px; font-size: 34px; }
+    .toast { position: fixed; right: 28px; bottom: 108px; z-index: 60; display: grid; gap: 10px; }
+    .toast div { background: #24252d; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 14px; padding: 12px 14px; min-width: 280px; box-shadow: var(--shadow); }
+
+    .bottom-player { position: fixed; left: 378px; right: 0; bottom: 0; z-index: 20; height: 92px; background: rgba(10,10,12,.92); backdrop-filter: blur(20px); border-top: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 18px; align-items: center; padding: 12px 32px; }
+    .now { display: flex; gap: 14px; align-items: center; min-width: 0; }
+    .now .art { width: 64px; height: 64px; }
+    .now h3 { margin: 0; font-size: 18px; } .now p { margin: 4px 0 0; color: var(--muted); }
+
+    .guide-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .guide-card { border: 1px solid var(--line); background: #1d1e24; border-radius: 18px; padding: 16px; }
+    .guide-card h3 { margin: 0 0 8px; font-size: 20px; }
+    .guide-card ol { margin: 0; padding-left: 20px; color: var(--muted); line-height: 1.7; }
+    .api-layout { display: grid; grid-template-columns: 420px minmax(0, 1fr); gap: 18px; align-items: start; }
+    .api-list { display: grid; gap: 8px; max-height: 620px; overflow: auto; padding-right: 4px; }
+    .api-item { width: 100%; text-align: left; background: #1d1e24; border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+    .api-item.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px rgba(185,108,255,.35); }
+    .api-method { display: inline-flex; min-width: 58px; justify-content: center; border-radius: 999px; padding: 4px 8px; margin-right: 8px; font-weight: 900; font-size: 12px; background: rgba(185,108,255,.18); color: #d9b4ff; }
+    .api-path { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; color: #f1eef8; font-size: 13px; }
+    .api-meta { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .api-textarea { min-height: 180px; resize: vertical; width: 100%; border: 1px solid var(--line); outline: 0; background: #111216; color: white; border-radius: 14px; padding: 13px 14px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+    .api-response { min-height: 260px; max-height: 520px; overflow: auto; white-space: pre-wrap; word-break: break-word; background: #101116; border: 1px solid var(--line); border-radius: 16px; padding: 14px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; color: #d7c8ff; font-size: 12px; line-height: 1.55; }
+    .method-get { background: rgba(0,230,118,.12); color: #8affbd; }
+    .method-post { background: rgba(185,108,255,.18); color: #ddb9ff; }
+    .method-patch { background: rgba(255,209,102,.15); color: #ffe2a3; }
+    .method-delete { background: rgba(255,61,87,.15); color: #ffacb8; }
+
+    @media (max-width: 1160px) { .app { grid-template-columns: 100px 1fr; } .sidebar { padding: 24px 14px; } .logo, .nav span, .playlist-nav, .auth-card { display: none; } .nav button { grid-template-columns: 1fr; place-items: center; } .bottom-player { left: 100px; } .hero, .video-wrap, .split, .api-layout { grid-template-columns: 1fr; } .cards, .product-grid, .playlist-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 720px) { body { overflow: auto; } .app { display: block; height: auto; } .sidebar { position: sticky; top: 0; z-index: 30; flex-direction: row; overflow-x: auto; } .nav { display: flex; } .main { padding: 20px 16px 128px; } .topbar, .bottom-player { left: 0; grid-template-columns: 1fr; height: auto; } .hero-panel h1 { font-size: 46px; } .cards, .product-grid, .playlist-grid, .guide-grid { grid-template-columns: 1fr; } .chart-row, .playlist-row { grid-template-columns: 42px 28px 58px 1fr; } .chart-row .actions, .playlist-row .actions { grid-column: 1 / -1; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="logo">Music</div>
+      <nav class="nav" aria-label="주요 메뉴">
+        <button class="active" data-view="home"><span class="ico"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9"/><path d="M9 20v-6h6v6"/></svg></span><span>홈</span></button>
+        <button data-view="search"><span class="ico"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></span><span>검색</span></button>
+        <button data-view="library"><span class="ico"><svg viewBox="0 0 24 24"><path d="M4 19V5"/><path d="M8 19V5"/><path d="m12 19-2-14"/><path d="m18 19-4-14"/></svg></span><span>보관함</span></button>
+        <button data-view="billing"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg></span><span>구독</span></button>
+        <button data-view="pgtest"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 15h4"/><path d="M3 10h18"/></svg></span><span>PG 테스트</span></button>
+        <button data-view="apilab"><span class="ico"><svg viewBox="0 0 24 24"><path d="M8 9 4 12l4 3"/><path d="m16 9 4 3-4 3"/><path d="m14 5-4 14"/></svg></span><span>전체 API</span></button>
+      </nav>
+      <div class="playlist-nav">
+        <div class="side-title"><span>플레이리스트</span><button class="ghost" id="quickCreatePlaylist">+</button></div>
+        <div class="mini-list" id="sidePlaylists"></div>
+      </div>
+      <div class="auth-card">
+        <strong id="sideUser">로그인이 필요합니다</strong>
+        <span id="sideUserHint">로그인하면 지갑, 구독, 플레이리스트와 재생 기록을 동기화합니다.</span>
+        <button class="pill primary" id="openAuth">로그인 / 회원가입</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="search">
+          <span>⌕</span>
+          <input id="globalSearch" placeholder="노래, 아티스트, 분위기 검색" />
+        </div>
+        <div class="toolbar">
+          <button class="pill ghost" id="refreshApp">새로고침</button>
+          <button class="pill primary" id="authToggle">로그인</button>
+        </div>
+      </header>
+
+      <section id="home" class="view active">
+        <div class="hero">
+          <div class="hero-panel">
+            <h1>듣고, 결제하고,<br>영상으로 재생하세요.</h1>
+            <p>Fivefy 백엔드 API와 연결되는 실제 앱 화면입니다. 로그인 후 포인트 충전, 구독 구매, 플레이리스트 생성/선택, 음악 재생과 비주얼 영상을 사용할 수 있습니다.</p>
+            <div class="actions"><button class="pill primary" data-view-link="library">플레이리스트 열기</button><button class="pill ghost" data-view-link="billing">구독/포인트 결제</button></div>
+            <div class="cover-stack"></div>
+          </div>
+          <div class="panel">
+            <h2>내 계정</h2>
+            <p id="profileSummary">로그인하면 프로필과 지갑 정보가 표시됩니다.</p>
+            <div class="cards" style="grid-template-columns:1fr; margin-top:18px">
+              <div class="metric"><span>보유 포인트</span><strong id="walletBalance">-</strong></div>
+              <div class="metric"><span>구독 상태</span><strong id="subscriptionState">-</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-head"><h2>AI 추천</h2><a href="#" id="loadMood">다시 추천</a></div>
+        <div class="recommend-list" id="recommendations"></div>
+
+        <div class="section-head"><h2>인기 차트 TOP 100</h2><a href="#" id="loadCharts">전체보기</a></div>
+        <div class="chart" id="chartList"></div>
+      </section>
+
+      <section id="search" class="view">
+        <div class="section-head"><h2>검색</h2><span class="muted">검색 결과에서 바로 재생하거나 플레이리스트에 담을 수 있습니다.</span></div>
+        <div class="split">
+          <div class="panel form">
+            <div class="field"><label>키워드</label><input id="searchKeyword" value="chill" /></div>
+            <button class="pill primary" id="runSearch">검색하기</button>
+            <button class="pill ghost" id="runMoodSearch">무드 AI 검색</button>
+          </div>
+          <div class="panel"><div class="chart" id="searchResults"></div></div>
+        </div>
+      </section>
+
+      <section id="library" class="view">
+        <div class="section-head"><h2>보관함</h2><span class="muted">플레이리스트를 선택하고 노래를 재생하면 영상이 켜집니다.</span></div>
+        <div class="split">
+          <div class="panel form">
+            <h2>플레이리스트</h2>
+            <div class="playlist-grid" id="playlistGrid" style="grid-template-columns:1fr"></div>
+            <div class="field"><label>새 플레이리스트 이름</label><input id="playlistTitle" value="감성 충전" /></div>
+            <div class="field"><label>설명</label><input id="playlistDescription" value="오늘 듣고 싶은 음악" /></div>
+            <button class="pill primary" id="createPlaylist">플레이리스트 만들기</button>
+            <button class="pill ghost" id="loadTracks">공개 트랙 불러오기</button>
+          </div>
+          <div class="panel">
+            <div class="video-wrap">
+              <div class="stage">
+                <canvas id="visualizer"></canvas>
+                <div class="stage-overlay"><div class="now-cover"></div></div>
+              </div>
+              <div class="player">
+                <h2 id="nowTitle">재생할 음악을 선택하세요</h2>
+                <p class="muted" id="nowArtist">플레이리스트 트랙 또는 공개 트랙을 선택할 수 있습니다.</p>
+                <audio id="audio" controls></audio>
+                <div class="actions">
+                  <button class="pill primary" id="toggleVideo">영상 켜기</button>
+                  <button class="pill ghost" id="pausePlayback" disabled>일시정지</button>
+                  <button class="pill ghost" id="resumePlayback" disabled>이어재생</button>
+                  <button class="pill ghost" id="skipPlayback" disabled>건너뛰기</button>
+                  <button class="pill danger" id="stopPlayback" disabled>정지</button>
+                </div>
+                <div class="log" id="playbackLog">재생 로그가 여기에 표시됩니다.</div>
+              </div>
+            </div>
+            <div class="section-head"><h2 id="selectedPlaylistTitle">선택한 플레이리스트</h2><button class="pill ghost" id="refreshPlaylistTracks">트랙 새로고침</button></div>
+            <div class="chart" id="playlistTracks"></div>
+            <div class="section-head"><h2>공개 트랙</h2><span class="muted">+ 버튼으로 선택한 플레이리스트에 추가</span></div>
+            <div class="chart" id="publicTracks"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="billing" class="view">
+        <div class="section-head"><h2>포인트 / 구독 결제</h2><span class="muted">포인트 충전은 포트원 SDK와 백엔드 주문 API를 사용합니다.</span></div>
+        <div class="split">
+          <div class="panel form">
+            <h2>포트원 설정</h2>
+            <div class="field"><label>Store ID</label><input id="storeId" placeholder="store-xxxxxxxx" /></div>
+            <div class="field"><label>Channel Key</label><input id="channelKey" placeholder="channel-key-xxxxxxxx" /></div>
+            <button class="pill ghost" id="savePortone">결제 설정 저장</button>
+            <div class="log" id="billingLog">결제 로그가 여기에 표시됩니다.</div>
+          </div>
+          <div class="panel">
+            <h2>포인트 충전</h2>
+            <div class="product-grid" id="productGrid" style="margin:18px 0"></div>
+            <button class="pill primary" id="buyPoints">선택한 포인트 결제</button>
+            <div class="section-head"><h2>구독 플랜</h2><button class="pill ghost" id="refreshBilling">상태 조회</button></div>
+            <div class="product-grid" id="subscriptionGrid"></div>
+            <div class="actions" style="margin-top:16px"><button class="pill danger" id="cancelSubscription">구독 취소</button></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="pgtest" class="view">
+        <div class="section-head"><h2>PG 테스트 센터</h2><span class="muted">포인트 충전, 환불, 빌링키, 자동결제 스케줄러 테스트를 한 화면에서 실행합니다.</span></div>
+        <div class="guide-grid">
+          <div class="guide-card"><h3>포인트 충전</h3><ol><li>로그인합니다.</li><li>구독 화면에서 Store ID / Channel Key를 저장합니다.</li><li>상품을 선택하고 결제 요청을 누릅니다.</li><li>PortOne 결제 완료 후 웹훅 처리 뒤 지갑을 조회합니다.</li></ol></div>
+          <div class="guide-card"><h3>자동결제 테스트</h3><ol><li>빌링키용 Store ID / Channel Key를 입력합니다.</li><li>카카오페이 또는 카드 빌링키를 등록합니다.</li><li>카드 청구 테스트로 포인트를 충전합니다.</li><li>결제일 당기기 후 구독료 차감 테스트를 실행합니다.</li></ol></div>
+        </div>
+        <div class="split" style="margin-top:18px">
+          <div class="panel form">
+            <h2>PG 설정</h2>
+            <div class="field"><label>Store ID (일반결제)</label><input id="pgStoreId" placeholder="store-xxxxxxxx" /></div>
+            <div class="field"><label>Channel Key (일반결제)</label><input id="pgChannelKey" placeholder="channel-key-xxxxxxxx" /></div>
+            <div class="field"><label>Store ID (빌링키)</label><input id="billingStoreId" placeholder="store-xxxxxxxx" /></div>
+            <div class="field"><label>Channel Key (빌링키)</label><input id="billingChannelKey" placeholder="channel-key-xxxxxxxx" /></div>
+            <button class="pill ghost" id="savePgConfig">PG 설정 저장</button>
+            <div class="field"><label>환불/조회용 Order Number</label><input id="pgOrderNumber" placeholder="ORD-xxxxxxxx" /></div>
+            <div class="field"><label>Billing Key DB ID</label><input id="pgBillingKeyId" placeholder="숫자 ID" /></div>
+          </div>
+          <div class="panel form">
+            <h2>실행</h2>
+            <div class="product-grid" id="pgProductGrid"></div>
+            <div class="actions"><button class="pill primary" id="pgPay">포인트 결제</button><button class="pill danger" id="pgRefund">포인트 환불</button><button class="pill ghost" id="pgWallet">지갑 조회</button><button class="pill ghost" id="pgPointHistory">포인트 내역</button></div>
+            <div class="actions"><button class="pill primary" id="pgKakaoBilling">카카오페이 빌링키 등록</button><button class="pill primary" id="pgCardBilling">카드 빌링키 등록</button><button class="pill danger" id="pgDeactivateBilling">빌링키 해지</button></div>
+            <div class="actions"><button class="pill ghost" id="pgChargeNow">① 카드 청구 지금 실행</button><button class="pill ghost" id="pgSkipMonth">결제일 당기기</button><button class="pill ghost" id="pgRecurringNow">② 구독료 차감 지금 실행</button><button class="pill ghost" id="pgPayments">카드 결제 내역</button></div>
+            <div class="actions"><button class="pill ghost" id="sseSubscribe">🔔 알림 SSE 구독</button><button class="pill ghost" id="sseClose">구독 종료</button><pre class="api-response" id="sseLog">알림 대기 중...</pre></div>
+              <pre class="api-response" id="pgResult">테스트 결과가 여기에 표시됩니다.</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="apilab" class="view">
+        <div class="section-head"><h2>프로젝트 전체 API</h2><span class="muted">왼쪽에서 기능을 선택하고, 오른쪽의 경로/본문을 상황에 맞게 수정한 뒤 실행하세요.</span></div>
+        <div class="guide-grid">
+          <div class="guide-card"><h3>기본 사용법</h3><ol><li>먼저 로그인해서 JWT를 저장합니다.</li><li>목록에서 API를 선택합니다.</li><li><code>{trackId}</code> 같은 path variable을 실제 ID로 바꿉니다.</li><li>필요하면 JSON Body를 수정하고 실행합니다.</li></ol></div>
+          <div class="guide-card"><h3>권한/파일 업로드</h3><ol><li><code>/api/admin/**</code>는 ADMIN 권한 토큰이 필요합니다.</li><li>트랙 신청의 multipart API는 request JSON과 audioFile을 같이 보냅니다.</li><li>SSE API는 브라우저 스트림 응답을 텍스트로 표시합니다.</li><li>웹훅은 PortOne 서버가 호출하는 API라 수동 실행은 테스트용입니다.</li></ol></div>
+        </div>
+        <div class="api-layout" style="margin-top:18px">
+          <div class="panel form">
+            <h2>API Catalog</h2>
+            <div class="field"><label>검색</label><input id="apiSearch" placeholder="예: playlist, payment, admin" /></div>
+            <div class="field"><label>도메인</label><select id="apiDomain"><option value="ALL">전체</option></select></div>
+            <div class="api-list" id="apiList"></div>
+          </div>
+          <div class="panel form">
+            <h2 id="apiTitle">API를 선택하세요</h2>
+            <p class="muted" id="apiHowto">각 기능을 수행하기 위한 단계가 표시됩니다.</p>
+            <div class="row"><div class="field"><label>Method</label><select id="apiMethod"><option>GET</option><option>POST</option><option>PATCH</option><option>DELETE</option></select></div><div class="field"><label>Endpoint</label><input id="apiEndpoint" value="/api/tracks" /></div></div>
+            <div class="field"><label>JSON Body / request Part</label><textarea class="api-textarea" id="apiBody" spellcheck="false"></textarea></div>
+            <div class="field"><label>Multipart file (필요한 API만)</label><input id="apiFile" type="file" /></div>
+            <div class="actions">
+                <button class="pill primary" id="apiRun">API 실행</button>
+                <button class="pill ghost" id="apiCopyCurl">curl 복사</button>
+                <button class="pill ghost" id="apiFormatBody">JSON 정렬</button>
+            </div>
+            <div class="field"><label>챗봇 메시지</label><input id="chatInput" placeholder="내 취향에 맞는 음악 추천해줘" /></div>
+            <div class="actions">
+                <button class="pill primary" id="chatSend">챗봇 전송</button>
+            </div>
+            <pre class="api-response" id="chatLog">챗봇 응답이 여기에 표시됩니다.</pre>
+            <pre class="api-response" id="apiResponse">응답이 여기에 표시됩니다.</pre>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="bottom-player">
+    <div class="now"><div class="art"></div><div><h3 id="bottomTitle">Fivefy Player</h3><p id="bottomArtist">아직 재생 중인 곡이 없습니다</p></div></div>
+    <button class="pill primary" id="bottomVideo">영상 보기</button>
+    <button class="pill ghost" data-view-link="library">보관함</button>
+  </div>
+
+  <div class="modal-backdrop" id="authModal">
+    <div class="modal form">
+      <h2>Fivefy 로그인</h2>
+      <div class="field"><label>서버 주소</label><input id="baseUrl" value="http://localhost:8080" /></div>
+      <div class="field"><label>이메일</label><input id="email" type="email" value="test@test.com" /></div>
+      <div class="field"><label>비밀번호</label><input id="password" type="password" value="Test1234!" /></div>
+      <div class="field"><label>회원가입 이름</label><input id="name" value="테스트" /></div>
+      <div class="actions"><button class="pill primary" id="login">로그인</button><button class="pill ghost" id="signup">회원가입</button><button class="pill danger" id="logout">로그아웃</button><button class="pill ghost" id="closeAuth">닫기</button></div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const state = {
+      token: localStorage.getItem('fivefy.accessToken') || '',
+      baseUrl: localStorage.getItem('fivefy.baseUrl') || 'http://localhost:8080',
+      user: null,
+      wallet: null,
+      subscriptions: [],
+      playlists: [],
+      selectedPlaylistId: null,
+      playlistTracks: [],
+      publicTracks: [],
+      chartTracks: [],
+      selectedProduct: 'PRODUCT_2',
+      currentPlayback: null,
+      currentTrack: null,
+      videoOn: true,
+      sessionId: localStorage.getItem('fivefy.sessionId') || crypto.randomUUID()
+    };
+    localStorage.setItem('fivefy.sessionId', state.sessionId);
+
+    // 데모 트랙 없음 — 실제 트랙은 사용자가 등록 신청 후 관리자 승인 시 생성됩니다.
+    const products = [
+      { type: 'PRODUCT_1', label: '1,000P', cash: 1000, points: 1000, desc: '기본 충전' },
+      { type: 'PRODUCT_2', label: '2,500P', cash: 2000, points: 2500, desc: '보너스 포인트 포함' },
+      { type: 'PRODUCT_3', label: '150P', cash: 0, points: 150, desc: '테스트 무료 상품' },
+      { type: 'PRODUCT_4', label: '4,500P', cash: 3000, points: 4500, desc: '정기구독 최초 3개월' }
+    ];
+    const plans = [
+      { planType: 'FREE', title: '3일 체험', price: '0P', desc: '처음 사용자를 위한 무료 체험' },
+      { planType: 'RECURRING', title: '월 구독', price: '50P', desc: '보유 포인트로 1개월 이용' },
+      { planType: 'RECURRING_AUTO', title: '자동 구독', price: '50P', desc: '카드 자동 결제로 매월 갱신' }
+    ];
+
+    const $ = (id) => document.getElementById(id);
+    const data = (payload) => payload?.data ?? payload;
+    const list = (payload) => data(payload)?.content ?? data(payload) ?? [];
+    const cover = (id = 1) => `linear-gradient(135deg, hsl(${(id * 47) % 360} 75% 52%), #0d1020 55%), radial-gradient(circle at 70% 20%, #fff8, transparent 26%)`;
+
+    document.documentElement.style.setProperty('--cover', cover(6));
+
+    function apiUrl(path) { return state.baseUrl.replace(/\/$/, '') + path; }
+    async function api(path, options = {}) {
+      const headers = { Accept: 'application/json', ...(options.headers || {}) };
+      if (state.token) headers.Authorization = `Bearer ${state.token}`;
+      if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+      const res = await fetch(apiUrl(path), { credentials: 'include', ...options, headers, body: options.body === undefined ? undefined : JSON.stringify(options.body) });
+      const text = await res.text();
+      let payload = text;
+      try { payload = text ? JSON.parse(text) : null; } catch (_) {}
+      if (!res.ok) throw new Error(payload?.message || payload?.error || `HTTP ${res.status}`);
+      return payload;
+    }
+
+    function toast(message, type = 'info') {
+      const el = document.createElement('div');
+      el.textContent = message;
+      if (type === 'error') el.style.borderLeftColor = 'var(--red)';
+      if (type === 'success') el.style.borderLeftColor = 'var(--green)';
+      $('toast').appendChild(el);
+      setTimeout(() => el.remove(), 4200);
+    }
+    function log(id, message) { $(id).textContent = `[${new Date().toLocaleTimeString()}] ${message}\n` + $(id).textContent; }
+    function formatDuration(sec) { if (!sec) return '--:--'; return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; }
+    function trackName(t) { return t?.title || `Track #${t?.trackId || t?.id || '-'}`; }
+    function artistName(t) { return t?.artistName || t?.artist || t?.albumTitle || 'Fivefy Artist'; }
+    function trackIdOf(t) { return t?.trackId ?? t?.id; }
+
+    function switchView(view) {
+      document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === view));
+      document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+    }
+
+    function renderAuth() {
+      $('baseUrl').value = state.baseUrl;
+      $('authToggle').textContent = state.token ? '내 계정' : '로그인';
+      $('sideUser').textContent = state.user?.name || (state.token ? '로그인됨' : '로그인이 필요합니다');
+      $('sideUserHint').textContent = state.user?.email || (state.token ? '프로필을 불러오는 중입니다.' : '로그인하면 앱 기능을 모두 사용할 수 있습니다.');
+      $('profileSummary').textContent = state.user ? `${state.user.name}님, 오늘도 Fivefy에서 좋은 음악을 즐겨보세요. (${state.user.email})` : '로그인하면 프로필과 지갑 정보가 표시됩니다.';
+    }
+
+    function renderWallet() {
+      $('walletBalance').textContent = state.wallet ? `${state.wallet.totalBalance?.toLocaleString() ?? 0}P` : '-';
+      const active = state.subscriptions.find(s => ['ACTIVE', 'FREE'].includes(s.status));
+      $('subscriptionState').textContent = active ? `${active.planType} · ${active.status}` : '미구독';
+    }
+
+    function renderRecommendations() {
+      const recs = state.chartTracks.slice(0, 3);
+      if (!recs.length) {
+        $('recommendations').innerHTML = `<div class="muted" style="padding:18px 0">재생 기록이 쌓이면 AI 추천이 표시됩니다.</div>`;
+        return;
+      }
+      $('recommendations').innerHTML = recs.map((t, i) => `
+        <div class="recommend">
+          <div class="art" style="background:${cover(trackIdOf(t) || i)}"></div>
+          <div><h3>${trackName(t)}</h3><div class="muted">${artistName(t)}</div><div class="ai-note">✧ ${['최근 들은 음악과 비슷한 분위기입니다','저녁 시간대에 자주 듣는 장르입니다','편안한 분위기의 트랙을 추천합니다'][i]}</div></div>
+          <button class="pill primary" data-play-track="${trackIdOf(t)}">재생</button>
+        </div>`).join('');
+    }
+
+    async function runCurrentRequest() {
+    function row(t, index, options = {}) {
+      const id = trackIdOf(t);
+      const trend = index % 3 === 0 ? 'same' : index % 2 ? 'up' : 'down';
+      const mark = trend === 'up' ? '↗' : trend === 'down' ? '↘' : '-';
+      return `<div class="chart-row">
+        <div class="rank">${index + 1}</div><div class="trend ${trend}">${mark}</div>
+        <div class="art" style="background:${cover(id || index)}"></div>
+        <div class="track-meta"><h3>${trackName(t)}</h3><p>${artistName(t)} · ${formatDuration(t.durationSec)}</p></div>
+        <div class="actions"><button class="pill primary" data-play-track="${id}">재생</button>${options.add ? `<button class="pill ghost" data-add-track="${id}">+</button>` : ''}</div>
+      </div>`;
+    }
+
+    function renderCharts() {
+      if (!state.chartTracks.length) {
+        $('chartList').innerHTML = `<div class="muted" style="padding:18px 0">아직 인기 차트 데이터가 없습니다. 재생 기록이 쌓이면 업데이트됩니다.</div>`;
+      } else {
+        $('chartList').innerHTML = state.chartTracks.slice(0, 8).map((t, i) => row(t, i)).join('');
+      }
+      renderRecommendations();
+    }
+
+    function renderPlaylists() {
+      const playlists = state.playlists;
+      if (!state.selectedPlaylistId && playlists.length) state.selectedPlaylistId = playlists[0]?.id;
+      $('sidePlaylists').innerHTML = playlists.length
+        ? playlists.map(p => `<button class="${String(p.id) === String(state.selectedPlaylistId) ? 'active' : ''}" data-select-playlist="${p.id}"><span>♬</span>${p.title}</button>`).join('')
+        : `<span class="muted" style="font-size:13px">플레이리스트 없음</span>`;
+      $('playlistGrid').innerHTML = playlists.length
+        ? playlists.map(p => `<button class="playlist-card ${String(p.id) === String(state.selectedPlaylistId) ? 'active' : ''}" data-select-playlist="${p.id}"><strong>${p.title}</strong><small>${p.description || '설명 없음'}</small></button>`).join('')
+        : `<div class="muted" style="font-size:13px;padding:8px 0">아래에서 플레이리스트를 만들어보세요.</div>`;
+      const selected = playlists.find(p => String(p.id) === String(state.selectedPlaylistId));
+      $('selectedPlaylistTitle').textContent = selected ? selected.title : '선택한 플레이리스트';
+    }
+
+    function renderPlaylistTracks() {
+      if (!state.playlistTracks.length) {
+        $('playlistTracks').innerHTML = `<div class="muted" style="padding:12px 0;font-size:14px">이 플레이리스트에 트랙이 없습니다.<br>아래 공개 트랙에서 + 버튼으로 추가하세요.</div>`;
+        return;
+      }
+      $('playlistTracks').innerHTML = state.playlistTracks.map((pt, i) => {
+        const t = state.publicTracks.find(x => String(trackIdOf(x)) === String(pt.trackId)) || pt;
+        return row({ ...t, trackId: pt.trackId || trackIdOf(t) }, i);
+      }).join('');
+    }
+
+    function renderPublicTracks() {
+      if (!state.publicTracks.length) {
+        $('publicTracks').innerHTML = `<div class="muted" style="padding:12px 0;font-size:14px">등록된 공개 트랙이 없습니다.<br>트랙 등록 신청 후 관리자 승인을 받으면 표시됩니다.</div>`;
+        return;
+      }
+      $('publicTracks').innerHTML = state.publicTracks.map((t, i) => row(t, i, { add: true })).join('');
+    }
+
+    function renderProducts() {
+      $('productGrid').innerHTML = products.map(p => `<button class="product ${state.selectedProduct === p.type ? 'active' : ''}" data-product="${p.type}"><strong>${p.label}</strong><small>${p.cash.toLocaleString()}원 · ${p.desc}</small></button>`).join('');
+      $('subscriptionGrid').innerHTML = plans.map(p => `<button class="product" data-plan="${p.planType}"><strong>${p.title}</strong><small>${p.price} · ${p.desc}</small></button>`).join('');
+    }
+
+    async function refreshProfile() {
+      if (!state.token) return;
+      try { state.user = data(await api('/api/users/me')); } catch (e) { toast(`프로필 조회 실패: ${e.message}`, 'error'); }
+      renderAuth();
+    }
+    async function refreshWallet() {
+      if (!state.token) return;
+      try { state.wallet = await api('/api/me/wallets'); } catch (e) { state.wallet = null; }
+      try { state.subscriptions = await api('/api/me/subscriptions'); } catch (e) { state.subscriptions = []; }
+      renderWallet();
+    }
+    async function loadPlaylists() {
+      if (!state.token) { renderPlaylists(); return; }
+      try { state.playlists = list(await api('/api/playlists?page=0&size=50')); } catch (e) { toast(`플레이리스트 조회 실패: ${e.message}`, 'error'); }
+      renderPlaylists();
+    }
+    async function loadPlaylistTracks() {
+      if (!state.token || !state.selectedPlaylistId) { renderPlaylistTracks(); return; }
+      try { state.playlistTracks = data(await api(`/api/playlists/${state.selectedPlaylistId}/tracks`)) || []; } catch (e) { toast(`플레이리스트 트랙 조회 실패: ${e.message}`, 'error'); }
+      renderPlaylistTracks();
+    }
+    async function loadPublicTracks() {
+      try { state.publicTracks = list(await api('/api/tracks?page=0&size=30')); } catch (e) { state.publicTracks = []; }
+      renderPublicTracks();
+    }
+    async function loadCharts() {
+      try {
+        setStatus('요청 중...');
+        const method = $('method').value;
+        const endpoint = $('endpoint').value;
+        const body = method === 'GET' ? undefined : getBodyValue();
+        const result = await request(method, endpoint, body);
+        $('response').textContent = pretty(result);
+        setStatus(`${result.status} ${result.statusText}`, result.ok ? 'ok' : 'error');
+      } catch (error) {
+        $('response').textContent = error.stack || error.message;
+        setStatus('요청 실패', 'error');
+      }
+    }
+        const chart = data(await api('/api/popular-charts/top100')) || [];
+        state.chartTracks = await Promise.all(chart.slice(0, 8).map(async c => {
+          const existing = state.publicTracks.find(t => String(trackIdOf(t)) === String(c.trackId));
+          if (existing) return existing;
+          try { return data(await api(`/api/tracks/${c.trackId}`)); } catch { return { trackId: c.trackId, title: `Track #${c.trackId}`, artistName: `TOP ${c.rank}`, playCount: c.playCount }; }
+        }));
+      } catch (e) { state.chartTracks = []; }
+      renderCharts();
+    }
+    async function refreshAll() { renderAuth(); renderProducts(); await refreshProfile(); await refreshWallet(); await loadPublicTracks(); await loadPlaylists(); await loadPlaylistTracks(); await loadCharts(); }
+
+    async function login() {
+      state.baseUrl = $('baseUrl').value.trim();
+      localStorage.setItem('fivefy.baseUrl', state.baseUrl);
+      const payload = data(await api('/api/users/login', { method: 'POST', body: { email: $('email').value, password: $('password').value } }));
+      state.token = payload.accessToken;
+      localStorage.setItem('fivefy.accessToken', state.token);
+      $('authModal').classList.remove('open');
+      toast('로그인되었습니다.', 'success');
+      await refreshAll();
+    }
+    async function signup() {
+      state.baseUrl = $('baseUrl').value.trim();
+      localStorage.setItem('fivefy.baseUrl', state.baseUrl);
+      await api('/api/users/signup', { method: 'POST', body: { name: $('name').value, email: $('email').value, password: $('password').value } });
+      toast('회원가입이 완료되었습니다. 로그인해주세요.', 'success');
+    }
+    function logout() { state.token = ''; state.user = null; localStorage.removeItem('fivefy.accessToken'); renderAuth(); toast('로그아웃되었습니다.'); }
+
+    async function createPlaylist() {
+      const payload = data(await api('/api/playlists', { method: 'POST', body: { title: $('playlistTitle').value, description: $('playlistDescription').value } }));
+      state.selectedPlaylistId = payload.id;
+      toast('플레이리스트를 만들었습니다.', 'success');
+      await loadPlaylists(); await loadPlaylistTracks();
+    }
+    async function addTrack(trackId) {
+      if (!state.token || !state.selectedPlaylistId) { toast('로그인 후 플레이리스트를 선택하세요.', 'error'); return; }
+      await api(`/api/playlists/${state.selectedPlaylistId}/tracks`, { method: 'POST', body: { trackId: Number(trackId) } });
+      toast('플레이리스트에 추가했습니다.', 'success');
+      await loadPlaylistTracks();
+    }
+
+    async function playTrack(trackId) {
+      const track = state.publicTracks.find(t => String(trackIdOf(t)) === String(trackId)) || state.chartTracks.find(t => String(trackIdOf(t)) === String(trackId)) || { trackId, title: `Track #${trackId}` };
+      state.currentTrack = track;
+      document.documentElement.style.setProperty('--cover', cover(trackId));
+      $('nowTitle').textContent = trackName(track);
+      $('nowArtist').textContent = artistName(track);
+      $('bottomTitle').textContent = trackName(track);
+      $('bottomArtist').textContent = artistName(track);
+
+      // ── 1. 로그인 체크 ──────────────────────────────────────────────
+      if (!state.token) {
+        toast('로그인이 필요합니다.', 'error');
+        $('authModal').classList.add('open');
+        return;
+      }
+
+      // ── 2. 실제 플레이리스트 확보 ────────────────────────────────────
+      // 플레이리스트 없으면 먼저 로드 시도
+      if (!state.selectedPlaylistId) {
+        if (!state.playlists.length) await loadPlaylists();
+        if (!state.playlists.length) {
+          toast('재생하려면 먼저 플레이리스트를 만들어주세요.', 'error');
+          switchView('library');
+          return;
+        }
+        state.selectedPlaylistId = state.playlists[0].id;
+        renderPlaylists();
+      }
+
+      log('playbackLog', `재생 요청: ${trackName(track)} → 플레이리스트 #${state.selectedPlaylistId}`);
+      switchView('library');
+      state.videoOn = true;
+      startVisualizer();
+
+      // ── 3. 플레이리스트에 트랙 자동 추가 ───────────────────────────
+      // /api/playbacks/play 는 playlist_track 행이 있어야 audioUrl 을 반환한다.
+      // 이미 존재하면 서버가 409/오류를 반환하므로 조용히 무시한다.
+      try {
+        await api(`/api/playlists/${state.selectedPlaylistId}/tracks`, {
+          method: 'POST',
+          body: { trackId: Number(trackId) }
+        });
+        log('playbackLog', '플레이리스트에 트랙 추가 완료');
+      } catch (_) {
+        log('playbackLog', '트랙이 이미 플레이리스트에 존재하거나 추가 불가 (재생 계속 시도)');
+      }
+
+      // ── 4. 재생 API 호출 + 오디오 로드 (fivefy-player.html 패턴) ────
+      try {
+        state.currentPlayback = data(await api('/api/playbacks/play', {
+          method: 'POST',
+          body: {
+            playlistId: Number(state.selectedPlaylistId),
+            trackId: Number(trackId),
+            sessionId: state.sessionId,
+            deviceId: navigator.userAgent.slice(0, 40)
+          }
+        }));
+
+        if (!state.currentPlayback?.audioUrl) {
+          log('playbackLog', '⚠️ audioUrl 없음 — 구독 활성화 여부를 확인하세요.');
+          toast('audioUrl이 없습니다. 구독이 활성화되어 있는지 확인하세요.', 'error');
+          return;
+        }
+
+        const audio = $('audio');
+        audio.pause();
+        audio.currentTime = 0;
+
+        // [fivefy-player] CORS 대응
+        audio.crossOrigin = 'anonymous';
+        audio.src = state.currentPlayback.audioUrl;
+        audio.load();
+
+        log('playbackLog', `audioUrl 연결: ${state.currentPlayback.audioUrl}`);
+
+        // [fivefy-player] canplay 시점에 재생
+        await new Promise((resolve, reject) => {
+          audio.oncanplay = resolve;
+          audio.onerror = () => reject(new Error(
+            audio.error ? `MEDIA_ERR_${audio.error.code} (1:중단 2:네트워크 3:디코딩 4:포맷불가)` : '로드 실패'
+          ));
+        });
+
+        await audio.play();
+        log('playbackLog', `▶ 재생 시작 — playbackId=${state.currentPlayback.id}`);
+
+        $('pausePlayback').disabled = false;
+        $('skipPlayback').disabled = false;
+        $('stopPlayback').disabled = false;
+        $('resumePlayback').disabled = true;
+
+        await loadPlaylistTracks(); // 트랙 목록 갱신
+      } catch (e) {
+        log('playbackLog', `재생 실패: ${e.message}`);
+        if ($('audio').error) {
+          log('playbackLog', `상세: MEDIA_ERR_${$('audio').error.code} (1:중단 2:네트워크 3:디코딩 4:포맷불가)`);
+        }
+        toast(`재생 실패: ${e.message}`, 'error');
+      }
+    }
+    async function pausePlayback() {
+      const audio = $('audio');
+      audio.pause();
+      if (state.currentPlayback?.id) {
+        try {
+          const res = data(await api('/api/playbacks/pause', { method: 'POST', body: { id: state.currentPlayback.id, playedDuration: Math.floor(audio.currentTime || 0) } }));
+          log('playbackLog', `일시정지: status=${res?.status || '-'}`);
+        } catch (e) { log('playbackLog', `일시정지 API 실패: ${e.message}`); }
+      }
+      // [fivefy-player] 버튼 상태: 일시정지 ↔ 이어재생 토글
+      $('pausePlayback').disabled = true;
+      $('resumePlayback').disabled = false;
+      log('playbackLog', '일시정지했습니다.');
+    }
+
+    // [fivefy-player] 이어재생: pause 이후 audio.play() 재호출
+    async function resumePlayback() {
+      try {
+        await $('audio').play();
+        $('pausePlayback').disabled = false;
+        $('resumePlayback').disabled = true;
+        log('playbackLog', '이어재생합니다.');
+      } catch (e) {
+        log('playbackLog', `이어재생 실패: ${e.message}`);
+      }
+    }
+
+    // [fivefy-player] 건너뛰기: skip API 호출 후 오디오 초기화
+    async function skipPlayback() {
+      const audio = $('audio');
+      if (state.currentPlayback?.id) {
+        try {
+          const res = data(await api('/api/playbacks/skip', { method: 'POST', body: { id: state.currentPlayback.id, playedDuration: Math.floor(audio.currentTime || 0) } }));
+          log('playbackLog', `건너뛰기: status=${res?.status || '-'}`);
+        } catch (e) { log('playbackLog', `건너뛰기 API 실패: ${e.message}`); }
+      }
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+      state.currentPlayback = null;
+      $('pausePlayback').disabled = true;
+      $('resumePlayback').disabled = true;
+      $('skipPlayback').disabled = true;
+      $('stopPlayback').disabled = true;
+      log('playbackLog', '건너뛰었습니다.');
+    }
+
+    async function stopPlayback() {
+      const audio = $('audio');
+      // [fivefy-player] 정지 전에 currentTime을 캡처 (pause() 이후에는 0으로 리셋되므로)
+      const playedDuration = Math.floor(audio.currentTime || 0);
+      audio.pause();
+      audio.currentTime = 0;
+      state.videoOn = false;
+      if (state.currentPlayback?.id) {
+        try {
+          const res = data(await api('/api/playbacks/stop', { method: 'POST', body: { id: state.currentPlayback.id, playedDuration } }));
+          log('playbackLog', `정지: status=${res?.status || '-'}`);
+        } catch (e) { log('playbackLog', `정지 API 실패: ${e.message}`); }
+      }
+      state.currentPlayback = null;
+      $('pausePlayback').disabled = true;
+      $('resumePlayback').disabled = true;
+      $('skipPlayback').disabled = true;
+      $('stopPlayback').disabled = true;
+      log('playbackLog', '정지했습니다.');
+    }
+
+    async function runSearch(mood = false) {
+      const keyword = $('searchKeyword').value || $('globalSearch').value || 'chill';
+      switchView('search');
+      try {
+        let tracks;
+        if (mood) {
+          const res = data(await api('/api/ai/search/mood', { method: 'POST', body: { query: keyword, limit: 12, mode: 'BALANCED' } }));
+          tracks = res?.tracks || res?.content || res?.results || [];
+        } else {
+          const res = data(await api(`/api/search?keyword=${encodeURIComponent(keyword)}&page=0&size=12`));
+          tracks = res?.tracks?.content || [];
+        }
+        if (tracks.length) {
+          $('searchResults').innerHTML = tracks.map((t, i) => row({ ...t, trackId: t.trackId || t.id }, i, { add: true })).join('');
+        } else {
+          $('searchResults').innerHTML = `<div class="muted" style="padding:18px 0">검색 결과가 없습니다.</div>`;
+        }
+      } catch (e) { toast(`검색 실패: ${e.message}`, 'error'); $('searchResults').innerHTML = `<div class="muted" style="padding:18px 0">검색 실패: ${e.message}</div>`; }
+    }
+
+    async function buyPoints() {
+      if (!state.token) { toast('먼저 로그인하세요.', 'error'); return; }
+      const product = products.find(p => p.type === state.selectedProduct);
+      try {
+        log('billingLog', `주문 생성: ${product.label}`);
+        const order = await api('/api/v1/cash-orders/purchase', { method: 'POST', body: { productType: product.type } });
+        const orderNumber = order.orderNumber || order.data?.orderNumber;
+        if (!orderNumber) throw new Error('orderNumber가 응답에 없습니다.');
+
+        if (product.cash === 0) {
+          // ── 무료 상품: PG 없이 즉시 포인트 지급 ──────────────────────
+          // 백엔드가 cash=0 주문을 자동 완료 처리하므로 PortOne 호출 불필요
+          log('billingLog', `✅ 무료 포인트 지급 완료\n상품: ${product.label}\norderNumber: ${orderNumber}`);
+          toast(`${product.label} 무료 충전 완료! (계정 1회 한정)`, 'success');
+        } else {
+          // ── 유료 상품: PortOne PG 결제창 호출 ─────────────────────────
+          const storeId = $('storeId').value.trim();
+          const channelKey = $('channelKey').value.trim();
+          if (window.PortOne && storeId && channelKey) {
+            const res = await PortOne.requestPayment({
+              storeId, channelKey,
+              paymentId: orderNumber,
+              orderName: `Fivefy ${product.label}`,
+              totalAmount: product.cash,
+              currency: 'KRW',
+              payMethod: 'CARD',
+              customer: { fullName: state.user?.name || 'Fivefy User', email: state.user?.email || $('email').value }
+            });
+            if (res.code) throw new Error(res.message);
+            log('billingLog', `포트원 결제 완료: ${orderNumber}`);
+            toast('결제 완료. 웹훅 처리 후 포인트가 반영됩니다.', 'success');
+          } else {
+            log('billingLog', `orderNumber 발급: ${orderNumber}\nStore ID / Channel Key를 입력하면 PortOne 결제창이 열립니다.`);
+            toast('주문번호 발급 완료. Store ID·Channel Key를 입력하면 결제창이 열립니다.', 'success');
+          }
+        }
+        await refreshWallet();
+      } catch (e) { log('billingLog', `실패: ${e.message}`); toast(`실패: ${e.message}`, 'error'); }
+    }
+    async function buyPlan(planType) {
+      try { const sub = await api('/api/me/point-orders/purchases', { method: 'POST', body: { planType } }); log('billingLog', `구독 구매 완료: ${JSON.stringify(sub)}`); toast('구독 구매가 완료되었습니다.', 'success'); await refreshWallet(); } catch (e) { toast(`구독 구매 실패: ${e.message}`, 'error'); }
+    }
+    async function cancelSubscription() { try { await api('/api/me/subscriptions', { method: 'DELETE' }); toast('구독을 취소했습니다.', 'success'); await refreshWallet(); } catch (e) { toast(`구독 취소 실패: ${e.message}`, 'error'); } }
+
+    let raf;
+    function startVisualizer() {
+      const canvas = $('visualizer'); const ctx = canvas.getContext('2d');
+      const resize = () => { canvas.width = canvas.clientWidth * devicePixelRatio; canvas.height = canvas.clientHeight * devicePixelRatio; };
+      resize(); cancelAnimationFrame(raf);
+      const draw = (time = 0) => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const w = canvas.width, h = canvas.height;
+        const grad = ctx.createLinearGradient(0, 0, w, h); grad.addColorStop(0, '#15081f'); grad.addColorStop(1, '#020204'); ctx.fillStyle = grad; ctx.fillRect(0, 0, w, h);
+        for (let i = 0; i < 54; i++) {
+          const x = (i / 53) * w; const amp = Math.sin(time / 420 + i * .42) * .5 + .5; const bh = (80 + amp * 190) * devicePixelRatio;
+          ctx.fillStyle = `hsla(${(i * 9 + time / 28) % 360}, 82%, 62%, .72)`; ctx.fillRect(x, h / 2 - bh / 2, Math.max(4, w / 90), bh);
+        }
+        ctx.beginPath(); ctx.arc(w * .5, h * .5, (150 + Math.sin(time / 600) * 18) * devicePixelRatio, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(185,108,255,.55)'; ctx.lineWidth = 3 * devicePixelRatio; ctx.stroke();
+        if (state.videoOn) raf = requestAnimationFrame(draw);
+      };
+      draw();
+    }
+
+
+    const apiEndpoints = [
+      { d:'Auth', m:'POST', p:'/api/users/signup', h:'회원가입: 이름/이메일/비밀번호 입력 후 실행', b:{ name:'테스트', email:'test@test.com', password:'Test1234!' } },
+      { d:'Auth', m:'POST', p:'/api/users/login', h:'로그인: 성공하면 상단 로그인 모달을 쓰는 것이 토큰 저장에 가장 편합니다.', b:{ email:'test@test.com', password:'Test1234!' } },
+      { d:'Auth', m:'POST', p:'/api/users/reissue', h:'refreshToken 쿠키가 있을 때 accessToken 재발급', b:null },
+      { d:'Auth', m:'POST', p:'/api/users/logout', h:'로그인 후 실행하면 refreshToken 쿠키를 만료합니다.', b:null },
+      { d:'Auth', m:'GET', p:'/api/users/me', h:'로그인 후 내 프로필 조회', b:null },
+      { d:'Auth', m:'PATCH', p:'/api/users/me', h:'로그인 후 내 프로필 수정', b:{ name:'새이름' } },
+      { d:'Auth', m:'DELETE', p:'/api/users/me', h:'비밀번호 확인 후 회원 탈퇴', b:{ password:'Test1234!' } },
+      { d:'Track', m:'GET', p:'/api/tracks?page=0&size=20', h:'공개 트랙 목록 조회', b:null },
+      { d:'Track', m:'GET', p:'/api/tracks/{trackId}', h:'{trackId}를 실제 트랙 ID로 변경 후 상세 조회', b:null },
+      { d:'Track', m:'POST', p:'/api/tracks/{trackId}/comments', h:'트랙 댓글 작성', b:{ content:'좋은 곡이에요' } },
+      { d:'Track', m:'GET', p:'/api/tracks/{trackId}/comments?page=0&size=20', h:'트랙 댓글 목록 조회', b:null },
+      { d:'Track', m:'PATCH', p:'/api/tracks/{trackId}/comments/{commentId}', h:'댓글 수정', b:{ content:'수정한 댓글입니다' } },
+      { d:'Track', m:'DELETE', p:'/api/tracks/{trackId}/comments/{commentId}', h:'댓글 삭제', b:null },
+      { d:'Track Application', m:'POST', p:'/api/track-applications/free-creations', h:'multipart: request JSON과 audioFile을 같이 보냅니다.', b:{ title:'자유 창작곡', lyrics:'가사', genre:'INDIE', durationSec:180, featuredArtistText:'' }, multipart:true },
+      { d:'Track Application', m:'POST', p:'/api/track-applications/official-releases', h:'multipart: request JSON과 audioFile을 같이 보냅니다. artistId/albumId는 실제 값으로 변경하세요.', b:{ artistId:1, albumId:1, title:'정식 발매곡', lyrics:'가사', genre:'POP', durationSec:210, trackNumber:1, featuredArtistText:'' }, multipart:true },
+      { d:'Track Application', m:'GET', p:'/api/track-applications/me', h:'내 트랙 등록 신청 목록 조회', b:null },
+      { d:'Track Application', m:'GET', p:'/api/track-applications/{applicationId}', h:'트랙 등록 신청 상세 조회', b:null },
+      { d:'Track Application', m:'GET', p:'/api/admin/track-applications?status=PENDING&page=0&size=10', h:'관리자: 트랙 신청 목록 조회', b:null },
+      { d:'Track Application', m:'POST', p:'/api/admin/track-applications/{applicationId}/approve', h:'관리자: 트랙 신청 승인', b:null },
+      { d:'Track Application', m:'POST', p:'/api/admin/track-applications/{applicationId}/reject', h:'관리자: 트랙 신청 거절', b:{ reason:'승인 조건을 충족하지 못했습니다' } },
+      { d:'Album', m:'POST', p:'/api/album-applications', h:'앨범 등록 신청', b:{ artistId:1, title:'새 앨범', description:'앨범 설명', releaseDate:'2026-05-13' } },
+      { d:'Album', m:'GET', p:'/api/album-applications/me', h:'내 앨범 신청 목록 조회', b:null },
+      { d:'Album', m:'GET', p:'/api/album-applications/{applicationId}', h:'앨범 신청 상세 조회', b:null },
+      { d:'Album', m:'GET', p:'/api/admin/album-applications?status=PENDING&page=0&size=10', h:'관리자: 앨범 신청 목록 조회', b:null },
+      { d:'Album', m:'POST', p:'/api/admin/album-applications/{applicationId}/approve', h:'관리자: 앨범 신청 승인', b:null },
+      { d:'Album', m:'POST', p:'/api/admin/album-applications/{applicationId}/reject', h:'관리자: 앨범 신청 거절', b:{ reason:'반려 사유' } },
+      { d:'Album', m:'GET', p:'/api/albums/{albumId}', h:'앨범 상세 조회', b:null },
+      { d:'Album', m:'GET', p:'/api/artists/{artistId}/albums?page=0&size=20', h:'아티스트별 앨범 목록 조회', b:null },
+      { d:'Artist', m:'POST', p:'/api/artist-applications', h:'아티스트 등록 신청', b:{ name:'아티스트명', bio:'소개' } },
+      { d:'Artist', m:'GET', p:'/api/artist-applications/me', h:'내 아티스트 신청 조회', b:null },
+      { d:'Artist', m:'GET', p:'/api/admin/artist-applications?status=PENDING&page=0&size=10', h:'관리자: 아티스트 신청 목록 조회', b:null },
+      { d:'Artist', m:'GET', p:'/api/artist-applications/{applicationId}', h:'아티스트 신청 상세 조회', b:null },
+      { d:'Artist', m:'POST', p:'/api/admin/artist-applications/{applicationId}/approve', h:'관리자: 아티스트 신청 승인', b:null },
+      { d:'Artist', m:'POST', p:'/api/admin/artist-applications/{applicationId}/reject', h:'관리자: 아티스트 신청 거절', b:{ reason:'반려 사유' } },
+      { d:'Artist', m:'GET', p:'/api/my/artists', h:'내 아티스트 목록 조회', b:null },
+      { d:'Artist', m:'GET', p:'/api/artists/{artistId}', h:'아티스트 상세 조회', b:null },
+      { d:'Artist', m:'PATCH', p:'/api/artists/{artistId}', h:'아티스트 프로필 수정', b:{ name:'새 아티스트명', bio:'새 소개' } },
+      { d:'Artist', m:'DELETE', p:'/api/artists/{artistId}', h:'아티스트 삭제', b:null },
+      { d:'Artist', m:'PATCH', p:'/api/artists/{artistId}/activate', h:'아티스트 활성화', b:null },
+      { d:'Artist', m:'PATCH', p:'/api/artists/{artistId}/deactivate', h:'아티스트 비활성화', b:null },
+      { d:'Playlist', m:'POST', p:'/api/playlists', h:'플레이리스트 생성', b:{ title:'새 플레이리스트', description:'설명' } },
+      { d:'Playlist', m:'GET', p:'/api/playlists?page=0&size=20', h:'내 플레이리스트 목록 조회', b:null },
+      { d:'Playlist', m:'GET', p:'/api/playlists/{playlistId}', h:'플레이리스트 상세 조회', b:null },
+      { d:'Playlist', m:'PATCH', p:'/api/playlists/{playlistId}', h:'플레이리스트 수정', b:{ title:'수정 제목', description:'수정 설명' } },
+      { d:'Playlist', m:'DELETE', p:'/api/playlists/{playlistId}', h:'플레이리스트 삭제', b:null },
+      { d:'Playlist Track', m:'POST', p:'/api/playlists/{playlistId}/tracks', h:'플레이리스트에 트랙 추가 — {playlistId}를 실제 ID로 교체', b:{ trackId:1 } },
+      { d:'Playlist Track', m:'GET', p:'/api/playlists/{playlistId}/tracks', h:'플레이리스트 트랙 목록 조회 — {playlistId} 교체', b:null },
+      { d:'Playlist Track', m:'PATCH', p:'/api/playlists/{playlistId}/tracks/index', h:'플레이리스트 트랙 순서 변경 — position은 1부터 시작', b:{ trackId:1, position:1 } },
+      { d:'Playlist Track', m:'DELETE', p:'/api/playlists/{playlistId}/tracks/{trackId}', h:'플레이리스트에서 트랙 제거 — {playlistId}/{trackId} 교체', b:null },
+      { d:'Playback', m:'POST', p:'/api/playbacks/play', h:'재생 시작: playlistId/trackId/sessionId 필요 — playlistId·sessionId·deviceId는 앱 상태값으로 자동 채워집니다', b:{ playlistId:1, trackId:1, sessionId:'web-session', deviceId:'browser' } },
+      { d:'Playback', m:'POST', p:'/api/playbacks/pause', h:'재생 일시정지: 현재 재생 중인 playback id 입력', b:{ id:1, playedDuration:30 } },
+      { d:'Playback', m:'POST', p:'/api/playbacks/stop', h:'재생 정지: 현재 재생 중인 playback id 입력', b:{ id:1, playedDuration:120 } },
+      { d:'Playback', m:'POST', p:'/api/playbacks/skip', h:'곡 건너뛰기: 현재 재생 중인 playback id 입력', b:{ id:1, playedDuration:15 } },
+      { d:'Playback', m:'GET', p:'/api/me/playback-history?page=0&size=20', h:'내 재생 기록 조회', b:null },
+      { d:'Like', m:'POST', p:'/api/likes', h:'좋아요 등록', b:{ targetType:'TRACK', targetId:1 } },
+      { d:'Like', m:'GET', p:'/api/likes?page=0&size=20', h:'좋아요 목록 조회', b:null },
+      { d:'Like', m:'DELETE', p:'/api/likes/{likeId}', h:'좋아요 삭제', b:null },
+      { d:'Follow', m:'POST', p:'/api/follows', h:'아티스트 팔로우', b:{ artistId:1 } },
+      { d:'Follow', m:'GET', p:'/api/follows?page=0&size=20', h:'팔로우 목록 조회', b:null },
+      { d:'Follow', m:'DELETE', p:'/api/follows/{artistId}', h:'팔로우 취소', b:null },
+      { d:'Follow', m:'PATCH', p:'/api/follows/{artistId}/notifications', h:'팔로우 알림 설정 변경', b:{ enabled:true } },
+      { d:'Search', m:'GET', p:'/api/search?keyword=chill&page=0&size=20', h:'통합 검색', b:null },
+      { d:'Search', m:'GET', p:'/api/search-histories', h:'검색 기록 조회', b:null },
+      { d:'Search', m:'DELETE', p:'/api/search-histories', h:'검색 기록 전체 삭제', b:null },
+      { d:'Search', m:'DELETE', p:'/api/search-histories/recent', h:'최근 검색 기록 삭제', b:{ keyword:'chill' } },
+      { d:'Chart', m:'GET', p:'/api/popular-charts/top100', h:'인기 차트 TOP 100 조회', b:null },
+      { d:'Chart', m:'POST', p:'/test/popular-charts/generate', h:'테스트: 인기 차트 생성', b:null },
+      { d:'Wallet', m:'GET', p:'/api/me/wallets', h:'내 지갑 잔액 조회', b:null },
+      { d:'Wallet', m:'GET', p:'/api/me/wallets/histories', h:'포인트 내역 조회', b:null },
+      { d:'Payment', m:'GET', p:'/api/v1/payments', h:'내 카드 결제 내역 조회', b:null },
+      { d:'Payment', m:'GET', p:'/api/v1/payments/{paymentId}', h:'카드 결제 단건 조회', b:null },
+      { d:'Cash Order', m:'POST', p:'/api/v1/cash-orders/purchase', h:'포인트 충전 주문 생성 후 PortOne 결제창 호출', b:{ productType:'PRODUCT_2' } },
+      { d:'Cash Order', m:'POST', p:'/api/v1/cash-orders/refund', h:'충전 주문 환불', b:{ orderNumber:'ORD-xxxxxxxx', reason:'테스트 환불' } },
+      { d:'Billing Key', m:'POST', p:'/api/v1/billing-keys', h:'PortOne SDK에서 받은 billingKeyId를 서버에 저장', b:{ billingKeyId:'billing-key-from-portone' } },
+      { d:'Billing Key', m:'DELETE', p:'/api/v1/billing-keys/{billingKeyId}', h:'빌링키 DB ID로 카드 해지', b:null },
+      { d:'Billing Key', m:'POST', p:'/api/v1/billing-keys/test-charge', h:'테스트: 등록 카드 즉시 청구', b:null },
+      { d:'Subscription', m:'POST', p:'/api/me/point-orders/purchases', h:'구독 구매: FREE / RECURRING / RECURRING_AUTO', b:{ planType:'RECURRING' } },
+      { d:'Subscription', m:'GET', p:'/api/me/subscriptions', h:'내 구독 조회', b:null },
+      { d:'Subscription', m:'DELETE', p:'/api/me/subscriptions', h:'구독 취소', b:null },
+      { d:'Subscription', m:'POST', p:'/api/me/subscriptions/test-recurring', h:'테스트: 구독료 포인트 차감 즉시 실행', b:null },
+      { d:'Subscription', m:'POST', p:'/api/me/subscriptions/test-skip-month', h:'테스트: 다음 결제일 1개월 당기기', b:null },
+      { d:'AI', m:'GET', p:'/api/ai/recommendations?limit=10', h:'AI 추천 조회', b:null },
+      { d:'AI', m:'POST', p:'/api/ai/search/mood', h:'무드 기반 AI 검색', b:{ query:'퇴근길에 듣기 좋은 노래', limit:10, mode:'BALANCED' } },
+      { d:'AI', m:'POST', p:'/api/ai/playlists/generate', h:'AI 플레이리스트 생성', b:{ prompt:'비 오는 밤 인디', seedTrackIds:[], size:10, diversityLambda:0.7 } },
+      { d:'AI', m:'POST', p:'/api/admin/ai/embedding/tracks/run', h:'관리자: 트랙 임베딩 배치 실행', b:null },
+      { d:'AI', m:'POST', p:'/api/admin/ai/embedding/lyrics/run', h:'관리자: 가사 임베딩 배치 실행', b:null },
+      { d:'Chat', m:'POST', p:'/api/ai/chat/messages', h:'SSE 채팅 메시지 전송', b:{ message:'내 취향에 맞는 음악 추천해줘' } },
+      { d:'Notification', m:'GET', p:'/api/notifications/subscribe', h:'SSE 알림 구독', b:null },
+      { d:'Notification', m:'GET', p:'/api/notifications', h:'알림 목록 조회', b:null },
+      { d:'Notification', m:'GET', p:'/api/notifications/unread-count', h:'읽지 않은 알림 수 조회', b:null },
+      { d:'Notification', m:'PATCH', p:'/api/notifications/{notificationId}/read', h:'알림 읽음 처리', b:null },
+      { d:'Notification', m:'PATCH', p:'/api/notifications/read-all', h:'모든 알림 읽음 처리', b:null },
+      { d:'Notification', m:'DELETE', p:'/api/notifications/{notificationId}', h:'알림 삭제', b:null },
+      { d:'Notification', m:'DELETE', p:'/api/notifications', h:'알림 전체 삭제', b:null },
+      { d:'Webhook', m:'POST', p:'/api/webhook/portone', h:'PortOne 웹훅 수신 API. 보통 직접 호출하지 않습니다.', b:{ type:'Transaction.Paid', data:{ paymentId:'ORD-xxxxxxxx', transactionId:'tx-xxxxxxxx' } } }
+    ];
+
+    let selectedApi = apiEndpoints[0];
+    let selectedPgProduct = products[1];
+
+    function prettyJson(value) { return value == null ? '' : JSON.stringify(value, null, 2); }
+    function showResult(id, value) { $(id).textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2); }
+
+    function renderPgProducts() {
+      $('pgProductGrid').innerHTML = products.map(p => `<button class="product ${selectedPgProduct.type === p.type ? 'active' : ''}" data-pg-product="${p.type}"><strong>${p.label}</strong><small>${p.cash.toLocaleString()}원 · ${p.points.toLocaleString()}P · ${p.desc}</small></button>`).join('');
+    }
+
+    async function pgPay() {
+      if (!state.token) { toast('먼저 로그인하세요.', 'error'); return; }
+      try {
+        const product = selectedPgProduct;
+        const order = await api('/api/v1/cash-orders/purchase', { method:'POST', body:{ productType:product.type } });
+        const orderNumber = order.orderNumber || order.data?.orderNumber;
+        if (!orderNumber) throw new Error('orderNumber가 응답에 없습니다.');
+        $('pgOrderNumber').value = orderNumber;
+        const storeId = $('pgStoreId').value.trim() || $('storeId').value.trim();
+        const channelKey = $('pgChannelKey').value.trim() || $('channelKey').value.trim();
+        if (window.PortOne && storeId && channelKey && product.cash > 0) {
+          const res = await PortOne.requestPayment({ storeId, channelKey, paymentId:orderNumber, orderName:`포인트 충전 ${product.label}`, totalAmount:product.cash, currency:'KRW', payMethod:'CARD', customer:{ fullName:state.user?.name || '테스트유저', email:state.user?.email || $('email').value, phoneNumber:'01000001234' } });
+          if (res.code) throw new Error(res.message);
+          showResult('pgResult', { message:'결제 완료. 웹훅 처리 후 지갑에서 포인트를 확인하세요.', orderNumber });
+        } else {
+          showResult('pgResult', { message:'주문번호 발급 완료. Store ID/Channel Key를 입력하면 PortOne 결제창까지 호출합니다.', orderNumber });
+        }
+        await refreshWallet();
+      } catch (e) { showResult('pgResult', `결제 실패: ${e.message}`); toast(`결제 실패: ${e.message}`, 'error'); }
+    }
+
+    async function pgRefund() {
+      try { const orderNumber = $('pgOrderNumber').value.trim(); if (!orderNumber) throw new Error('Order Number를 입력하세요.'); showResult('pgResult', await api('/api/v1/cash-orders/refund', { method:'POST', body:{ orderNumber, reason:'테스트 환불' } })); await refreshWallet(); }
+      catch (e) { showResult('pgResult', `환불 실패: ${e.message}`); }
+    }
+
+    async function pgRegisterBilling(payMethod) {
+      if (!state.token) { toast('먼저 로그인하세요.', 'error'); return; }
+      try {
+        const storeId = $('billingStoreId').value.trim() || $('pgStoreId').value.trim();
+        const channelKey = $('billingChannelKey').value.trim();
+        if (!window.PortOne) throw new Error('PortOne SDK가 로드되지 않았습니다.');
+        if (!storeId || !channelKey) throw new Error('빌링키용 Store ID와 Channel Key를 입력하세요.');
+        const options = { storeId, channelKey, billingKeyMethod: payMethod === 'KAKAOPAY' ? 'EASY_PAY' : 'CARD', issueName:'Fivefy 정기구독', customer:{ fullName:state.user?.name || '테스트유저', email:state.user?.email || $('email').value, phoneNumber:'01000001234' } };
+        if (payMethod === 'KAKAOPAY') options.easyPay = { easyPayProvider:'KAKAOPAY' };
+        const issue = await PortOne.requestIssueBillingKey(options);
+        if (issue.code) throw new Error(issue.message);
+        const saved = await api('/api/v1/billing-keys', { method:'POST', body:{ billingKeyId: issue.billingKey } });
+        $('pgBillingKeyId').value = saved.id || saved.data?.id || '';
+        showResult('pgResult', saved);
+      } catch (e) { showResult('pgResult', `빌링키 등록 실패: ${e.message}`); }
+    }
+
+    async function pgDeactivateBilling() {
+      try { const id = $('pgBillingKeyId').value.trim(); if (!id) throw new Error('Billing Key DB ID를 입력하세요.'); await api(`/api/v1/billing-keys/${id}`, { method:'DELETE' }); showResult('pgResult', { message:'빌링키 해지 완료' }); }
+      catch (e) { showResult('pgResult', `빌링키 해지 실패: ${e.message}`); }
+    }
+
+    async function pgQuick(path, method = 'GET') {
+      try { showResult('pgResult', await api(path, { method })); await refreshWallet(); }
+      catch (e) { showResult('pgResult', `실행 실패: ${e.message}`); }
+    }
+
+    function syncPgConfig() {
+      const c = { pgStoreId:$('pgStoreId').value, pgChannelKey:$('pgChannelKey').value, billingStoreId:$('billingStoreId').value, billingChannelKey:$('billingChannelKey').value };
+      localStorage.setItem('fivefy.pg', JSON.stringify(c));
+      $('storeId').value = c.pgStoreId || $('storeId').value;
+      $('channelKey').value = c.pgChannelKey || $('channelKey').value;
+      toast('PG 설정을 저장했습니다.', 'success');
+    }
+
+    function renderApiDomains() {
+      const domains = [...new Set(apiEndpoints.map(e => e.d))].sort();
+      $('apiDomain').innerHTML = '<option value="ALL">전체</option>' + domains.map(d => `<option value="${d}">${d}</option>`).join('');
+    }
+
+    function renderApiList() {
+      const q = $('apiSearch').value.trim().toLowerCase();
+      const d = $('apiDomain').value;
+      const filtered = apiEndpoints.filter(e => (d === 'ALL' || e.d === d) && (`${e.d} ${e.m} ${e.p} ${e.h}`).toLowerCase().includes(q));
+      $('apiList').innerHTML = filtered.map((e, i) => {
+        const idx = apiEndpoints.indexOf(e);
+        return `<button class="api-item ${e === selectedApi ? 'active' : ''}" data-api-index="${idx}"><span class="api-method method-${e.m.toLowerCase()}">${e.m}</span><span class="api-path">${e.p}</span><span class="api-meta">${e.d} · ${e.h}</span></button>`;
+      }).join('');
+    }
+
+    // 현재 앱 상태값을 API body 에 자동 주입
+    function resolveApiBody(raw) {
+      if (!raw) return null;
+      const resolved = { ...raw };
+      const realPlaylistId = state.selectedPlaylistId ? Number(state.selectedPlaylistId) : 1;
+      if ('playlistId' in resolved)  resolved.playlistId  = realPlaylistId;
+      if ('sessionId'  in resolved)  resolved.sessionId   = state.sessionId;
+      if ('deviceId'   in resolved)  resolved.deviceId    = 'browser';
+      return resolved;
+    }
+
+    function selectApi(index) {
+      selectedApi = apiEndpoints[index];
+      $('apiTitle').textContent = `${selectedApi.d} · ${selectedApi.m} ${selectedApi.p}`;
+      $('apiHowto').textContent = selectedApi.h;
+      $('apiMethod').value = selectedApi.m;
+      $('apiEndpoint').value = selectedApi.p;
+      $('apiBody').value = prettyJson(resolveApiBody(selectedApi.b));
+      $('apiResponse').textContent = selectedApi.multipart ? 'multipart API입니다. request JSON을 입력하고 파일을 선택한 뒤 실행하세요.' : '실행 결과가 여기에 표시됩니다.';
+      renderApiList();
+    }
+
+    async function runApiLab() {
+      const method = $('apiMethod').value;
+      const path = $('apiEndpoint').value.trim();
+      const bodyText = $('apiBody').value.trim();
+      try {
+        let res;
+        if (selectedApi?.multipart) {
+          const form = new FormData();
+          form.append('request', new Blob([bodyText || '{}'], { type:'application/json' }));
+          const file = $('apiFile').files[0];
+          if (file) form.append('audioFile', file);
+          const headers = { Accept:'application/json' };
+          if (state.token) headers.Authorization = `Bearer ${state.token}`;
+          const response = await fetch(apiUrl(path), { method, headers, body: form, credentials:'include' });
+          const text = await response.text();
+          try { res = text ? JSON.parse(text) : null; } catch { res = text; }
+          if (!response.ok) throw new Error(typeof res === 'string' ? res : (res?.message || `HTTP ${response.status}`));
+        } else {
+          const body = bodyText ? JSON.parse(bodyText) : undefined;
+          res = await api(path, { method, body: method === 'GET' ? undefined : body });
+        }
+        showResult('apiResponse', res);
+      } catch (e) { showResult('apiResponse', `API 실행 실패: ${e.message}`); }
+    }
+
+    function copyCurl() {
+      const method = $('apiMethod').value;
+      const path = $('apiEndpoint').value.trim();
+      const body = $('apiBody').value.trim();
+      const token = state.token ? " -H 'Authorization: Bearer " + state.token + "'" : '';
+      const content = body && method !== 'GET' ? " -H 'Content-Type: application/json' -d '" + body.replace(/'/g, "'\\''") + "'" : '';
+      const curl = `curl -X ${method}${token}${content} '${apiUrl(path)}'`;
+      navigator.clipboard?.writeText(curl).then(() => toast('curl을 복사했습니다.', 'success')).catch(() => showResult('apiResponse', curl));
+    }
+
+
+    document.addEventListener('click', async (e) => {
+      const view = e.target.closest('[data-view]')?.dataset.view || e.target.closest('[data-view-link]')?.dataset.viewLink;
+      if (view) switchView(view);
+      const playlist = e.target.closest('[data-select-playlist]')?.dataset.selectPlaylist;
+      if (playlist) { state.selectedPlaylistId = playlist; renderPlaylists(); await loadPlaylistTracks(); }
+      const product = e.target.closest('[data-product]')?.dataset.product;
+      if (product) { state.selectedProduct = product; renderProducts(); }
+      const plan = e.target.closest('[data-plan]')?.dataset.plan;
+      if (plan) buyPlan(plan);
+      const play = e.target.closest('[data-play-track]')?.dataset.playTrack;
+      if (play) playTrack(play);
+      const add = e.target.closest('[data-add-track]')?.dataset.addTrack;
+      if (add) addTrack(add);
+      const pgProduct = e.target.closest('[data-pg-product]')?.dataset.pgProduct;
+      if (pgProduct) { selectedPgProduct = products.find(p => p.type === pgProduct) || selectedPgProduct; renderPgProducts(); }
+      const apiIndex = e.target.closest('[data-api-index]')?.dataset.apiIndex;
+      if (apiIndex !== undefined) selectApi(Number(apiIndex));
+    });
+
+    $('openAuth').onclick = $('authToggle').onclick = () => $('authModal').classList.add('open');
+    $('closeAuth').onclick = () => $('authModal').classList.remove('open');
+    $('login').onclick = () => login().catch(e => toast(`로그인 실패: ${e.message}`, 'error'));
+    $('signup').onclick = () => signup().catch(e => toast(`회원가입 실패: ${e.message}`, 'error'));
+    $('logout').onclick = logout;
+    $('refreshApp').onclick = refreshAll;
+    $('loadCharts').onclick = (e) => { e.preventDefault(); loadCharts(); };
+    $('loadMood').onclick = (e) => { e.preventDefault(); runSearch(true); };
+    $('runSearch').onclick = () => runSearch(false);
+    $('runMoodSearch').onclick = () => runSearch(true);
+    $('globalSearch').addEventListener('keydown', e => { if (e.key === 'Enter') { $('searchKeyword').value = e.target.value; runSearch(false); } });
+    $('createPlaylist').onclick = () => createPlaylist().catch(e => toast(`생성 실패: ${e.message}`, 'error'));
+    $('quickCreatePlaylist').onclick = () => { switchView('library'); $('playlistTitle').focus(); };
+    $('loadTracks').onclick = loadPublicTracks;
+    $('refreshPlaylistTracks').onclick = loadPlaylistTracks;
+    $('toggleVideo').onclick = $('bottomVideo').onclick = () => { state.videoOn = !state.videoOn; if (state.videoOn) startVisualizer(); $('toggleVideo').textContent = state.videoOn ? '영상 끄기' : '영상 켜기'; switchView('library'); };
+    $('pausePlayback').onclick = pausePlayback;
+    $('resumePlayback').onclick = resumePlayback;
+    $('skipPlayback').onclick = skipPlayback;
+    $('stopPlayback').onclick = stopPlayback;
+
+    // [fivefy-player] 곡이 끝나면 자동으로 stop API 호출
+    $('audio').addEventListener('ended', async () => {
+      if (!state.currentPlayback?.id) return;
+      const audio = $('audio');
+      try {
+        const res = data(await api('/api/playbacks/stop', { method: 'POST', body: { id: state.currentPlayback.id, playedDuration: Math.floor(audio.duration || audio.currentTime || 0) } }));
+        log('playbackLog', `재생 완료, 자동 정지: status=${res?.status || '-'}`);
+      } catch (e) { log('playbackLog', `자동 정지 실패: ${e.message}`); }
+      finally {
+        state.currentPlayback = null;
+        $('pausePlayback').disabled = true;
+        $('resumePlayback').disabled = true;
+        $('skipPlayback').disabled = true;
+        $('stopPlayback').disabled = true;
+      }
+    });
+    $('buyPoints').onclick = buyPoints;
+    $('refreshBilling').onclick = refreshWallet;
+    $('cancelSubscription').onclick = cancelSubscription;
+    $('savePortone').onclick = () => { localStorage.setItem('fivefy.portone', JSON.stringify({ storeId: $('storeId').value, channelKey: $('channelKey').value })); toast('결제 설정을 저장했습니다.', 'success'); };
+    $('savePgConfig').onclick = syncPgConfig;
+    $('pgPay').onclick = pgPay;
+    $('pgRefund').onclick = pgRefund;
+    $('pgWallet').onclick = () => pgQuick('/api/me/wallets');
+    $('pgPointHistory').onclick = () => pgQuick('/api/me/wallets/histories');
+    $('pgKakaoBilling').onclick = () => pgRegisterBilling('KAKAOPAY');
+    $('pgCardBilling').onclick = () => pgRegisterBilling('CARD');
+    $('pgDeactivateBilling').onclick = pgDeactivateBilling;
+    $('pgChargeNow').onclick = () => pgQuick('/api/v1/billing-keys/test-charge', 'POST');
+    $('pgSkipMonth').onclick = () => pgQuick('/api/me/subscriptions/test-skip-month', 'POST');
+    $('pgRecurringNow').onclick = () => pgQuick('/api/me/subscriptions/test-recurring', 'POST');
+    $('pgPayments').onclick = () => pgQuick('/api/v1/payments');
+    let sseEmitter = null;
+    $('sseSubscribe').onclick = () => {
+      if (sseEmitter) sseEmitter.close();
+      sseEmitter = new EventSource('/api/notifications/subscribe', { withCredentials: true });
+      sseEmitter.addEventListener('notification', e => {
+        log('sseLog', `[알림] ${e.data}`);
+      });
+      sseEmitter.onopen = () => log('sseLog', 'SSE 연결됨');
+      sseEmitter.onerror = () => log('sseLog', 'SSE 연결 끊김');
+    };
+    $('sseClose').onclick = () => { if (sseEmitter) { sseEmitter.close(); log('sseLog', 'SSE 종료'); } };
+    $('apiSearch').addEventListener('input', renderApiList);
+    $('apiDomain').addEventListener('change', renderApiList);
+    $('apiRun').onclick = runApiLab;
+    $('chatSend').onclick = async () => {
+      const message = $('chatInput').value.trim();
+      if (!message) return;
+      $('chatLog').textContent = '응답 대기 중...\n';
+      try {
+        const res = await fetch('/api/ai/chat/messages', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.token}` },
+          body: JSON.stringify({ sessionId: state.sessionId, message })
+        });
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          $('chatLog').textContent += decoder.decode(value);
+        }
+      } catch (e) { $('chatLog').textContent = `실패: ${e.message}`; }
+    };
+    $('apiCopyCurl').onclick = copyCurl;
+    $('apiFormatBody').onclick = () => { try { $('apiBody').value = prettyJson(JSON.parse($('apiBody').value || '{}')); } catch (e) { toast('JSON 형식 오류입니다.', 'error'); } };
+
+    const savedPortone = JSON.parse(localStorage.getItem('fivefy.portone') || '{}');
+    $('storeId').value = savedPortone.storeId || '';
+    $('channelKey').value = savedPortone.channelKey || '';
+    const savedPg = JSON.parse(localStorage.getItem('fivefy.pg') || '{}');
+    $('pgStoreId').value = savedPg.pgStoreId || savedPortone.storeId || '';
+    $('pgChannelKey').value = savedPg.pgChannelKey || savedPortone.channelKey || '';
+    $('billingStoreId').value = savedPg.billingStoreId || '';
+    $('billingChannelKey').value = savedPg.billingChannelKey || '';
+    renderPgProducts();
+    renderApiDomains();
+    selectApi(0);
+    refreshAll();
+    startVisualizer();
+  </script>
+</body>
+</html>

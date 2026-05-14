@@ -43,6 +43,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(ASYNC).permitAll()
                         .requestMatchers(
+                                "/",
+                                "/index.html",
                                 "/api/users/signup",
                                 "/api/users/login",
                                 "/api/users/reissue",
