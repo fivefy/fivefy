@@ -213,11 +213,6 @@ com.fivefy
 - Hibernate 7 QueryDSL 의 `MATCH AGAINST` 미지원 우회 — EntityManager 네이티브 쿼리
 - Elasticsearch 는 MVP 이후로 보류
 
-### 👍 좋아요 · 팔로우
-
-- **다형성 좋아요** : Track / Album 공통 처리 (`targetId + targetType`)
-- **고아 객체 정리** : `TrackDeletedEvent` / `AlbumDeletedEvent` 이벤트 기반 + `@TransactionalEventListener` 롤백 보장
-
 ### 🤖 AI 추천
 
 - **재생 이력 기반 트랙 추천** (Spring AI)
@@ -408,7 +403,6 @@ feat: 트랙 재생 권한 체크 Redis 캐싱 적용
 | Application 동시 승인 시 엔티티 중복 생성 위험 | **`PESSIMISTIC_WRITE`** 승인/거절 경로에만 `findByIdForUpdate` |
 | Application 생성 시 TOCTOU (CodeRabbit 지적) | **Generated Column + UNIQUE** + `saveAndFlush` 로 즉시 unique 충돌 감지 |
 | 승인 결과 엔티티 중복 생성 가능성 | **`application_id` UNIQUE** 최종 방어선 |
-| Like 다형성 구조로 FK CASCADE 적용 불가 | **이벤트 기반 처리** (`TrackDeletedEvent` / `AlbumDeletedEvent`) + `@TransactionalEventListener` 롤백 보장 |
 
 **검증** : 동시 10건 요청 → 1건 201 / 9건 409 / DB row 1건 / 500 응답 0건
 

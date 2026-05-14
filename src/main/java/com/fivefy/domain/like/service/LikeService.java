@@ -28,8 +28,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-// TODO: Track/Album 삭제 시 연관 Like 삭제 처리 필요 / 방안: 이벤트 방식
-
 @Service
 @RequiredArgsConstructor
 public class LikeService {
