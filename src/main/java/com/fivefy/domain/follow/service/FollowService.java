@@ -35,7 +35,7 @@ public class FollowService {
     @Transactional
     public FollowCreateResponse createFollow(Long userId, Long artistId) {
         User user = getUser(userId);
-        Artist artist = getArtist(artistId);
+        Artist artist = findNotDeletedArtist(artistId);
         // 중복 검증
         if (followRepository.existsByUserIdAndArtistId(userId, artistId)) {
             throw new BusinessException(FollowErrorCode.ERR_FOLLOW_ALREADY_EXISTS);
@@ -90,9 +90,15 @@ public class FollowService {
                 .orElseThrow(() -> new BusinessException(UserErrorCode.ERR_USER_NOT_FOUND));
     }
 
-    private Artist getArtist(Long artistId) {
-        return artistRepository.findById(artistId)
+    private Artist findNotDeletedArtist(Long artistId) {
+        Artist artist = artistRepository.findById(artistId)
                 .orElseThrow(() -> new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND));
+
+        if (artist.isDeleted()) {
+            throw new BusinessException(ArtistErrorCode.ERR_ARTIST_NOT_FOUND);
+        }
+
+        return artist;
     }
 
     // 권한 체크
