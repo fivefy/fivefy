@@ -84,9 +84,6 @@ dependencies {
     implementation 'org.flywaydb:flyway-mysql'
     implementation 'org.flywaydb:flyway-database-postgresql'
 
-    // kafka
-    implementation 'org.springframework.kafka:spring-kafka'
-
     // h2
     testImplementation 'com.h2database:h2'
 
