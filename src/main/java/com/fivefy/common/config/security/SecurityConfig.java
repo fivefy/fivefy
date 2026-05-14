@@ -47,15 +47,19 @@ public class SecurityConfig {
                                 "/api/users/login",
                                 "/api/users/reissue",
                                 "/api/popular-charts/**",
+                                "/api/tracks/{trackId}/play",
                                 "/test/**",
                                 "/api/portone/config",
                                 "/api/webhook/portone",
+                                "/tracks/audio/**",
                                 "/actuator/health" // 서버 연결 확인
                         ).permitAll()
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/albums/{albumId}",
                                 "/api/artists/{artistId}/albums",
+                                "/api/artists/{artistId}",
+                                "/api/search",
                                 "/api/tracks/{trackId}",
                                 "/api/tracks",
                                 "/api/tracks/{trackId}/comments"
