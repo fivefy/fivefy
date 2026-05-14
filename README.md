@@ -1,7 +1,7 @@
 # 🎵 음악 구독 서비스
 
 > YouTube Music 을 벤치마킹한 **AI 기반 음악 스트리밍 구독 서비스**
-> Spring Boot 4.0.5 · Java 17 · MySQL 8.4 · PostgreSQL + pgvector · Redis · Kafka 3.7 · Spring AI 2.0.0-M2 (Ollama · Claude)
+> Spring Boot 4.0.5 · Java 17 · MySQL 8.4 · PostgreSQL + pgvector · Redis · RabbitMQ 3 · Spring AI 2.0.0-M2 (Ollama · Claude)
 
 ---
 
@@ -70,7 +70,7 @@
 ![Flyway](https://img.shields.io/badge/Flyway-CC0200?style=flat&logo=flyway&logoColor=white)
 
 ### Message Queue
-![Kafka](https://img.shields.io/badge/Apache_Kafka_3.7-231F20?style=flat&logo=apachekafka&logoColor=white)
+![RabbitMQ](https://img.shields.io/badge/RabbitMQ_3-FF6600?style=flat&logo=rabbitmq&logoColor=white)
 
 ### AI / Resilience
 ![Ollama](https://img.shields.io/badge/Ollama-000000?style=flat&logo=ollama&logoColor=white)
@@ -145,8 +145,8 @@ com.fivefy
    └─ notification
          ├─ 단건: @TransactionalEventListener(AFTER_COMMIT)
          │         → Outbox(MySQL) → Worker(@SchedulerLock) → SSE
-         └─ 대량: Kafka (3-broker, RF=2)
-                 ├─ Topics: notification.send · playback.event (3 partitions)
+         └─ 대량: RabbitMQ (Direct Exchange + DLQ + Retry Queue)
+                 ├─ Queue: notification.publish.track (concurrency 5-10)
                  └─ 다중 Consumer → bulk INSERT + SSE
                                 ↓
                        [AWS S3] 음원 · Presigned URL · CloudFront
@@ -204,7 +204,7 @@ com.fivefy
 - **3단계 진화** :
     1. `@TransactionalEventListener(AFTER_COMMIT) + @Async` — 정합성 확보
     2. **Outbox 패턴** — DB 영속화로 메모리 큐 유실 해소 (단건)
-    3. **Kafka 청크 fan-out** — 대량 알림 처리량 확보 (10만 팔로워 알림 118초 → 12초)
+    3. **RabbitMQ 청크 fan-out** — 대량 알림 처리량 확보 (10만 팔로워 알림 118초 → 12초)
 - **통신 방식 분리** : 알림은 단방향 **SSE**, 채팅은 양방향 **WebSocket**
 
 ### 🔎 검색
@@ -233,7 +233,7 @@ com.fivefy
 <details>
 <summary>ERD 이미지 보기</summary>
 
-<img width="800" height="600" alt="Spring 최종 프로젝트" src="https://github.com/user-attachments/assets/f72c54bf-8ac5-40cb-9135-a0649d8c6d48" />
+<img width="800" height="600" alt="Spring 최종 프로젝트" src="https://github.com/user-attachments/assets/f72c54bf-8ac5-40cb-9135-a0649d8c6d48" />
 
 </details>
 
@@ -294,20 +294,14 @@ touch .env
 touch application-local.yml
 # .env, application-local.yml 파일에 실제 값 입력
 
-# 3. 인프라 컨테이너 실행 (Kafka + Redis)
+# 3. 인프라 컨테이너 실행 (RabbitMQ + Redis)
 docker compose up -d
 
-# 4. Kafka 토픽 생성 (최초 1회)
-docker exec kafka-1 kafka-topics.sh --bootstrap-server localhost:9092 \
-  --create --topic notification.send --partitions 3 --replication-factor 2
-docker exec kafka-1 kafka-topics.sh --bootstrap-server localhost:9092 \
-  --create --topic playback.event --partitions 3 --replication-factor 2
-
-# 5. DB 초기화 (Flyway 가 마이그레이션 자동 적용)
+# 4. DB 초기화 (Flyway 가 마이그레이션 자동 적용)
 #    필요 시 seed 데이터:
 #    smoke / test / local / dev scale 분리되어 있음
 
-# 6. 애플리케이션 실행
+# 5. 애플리케이션 실행
 ./gradlew bootRun --args='--spring.profiles.active=local'
 ```
 
@@ -316,10 +310,8 @@ docker exec kafka-1 kafka-topics.sh --bootstrap-server localhost:9092 \
 | 서비스 | 포트 |
 |---|---|
 | Spring Boot | 8080 |
-| Kafka Broker 1 | 9092 |
-| Kafka Broker 2 | 9093 |
-| Kafka Broker 3 | 9094 |
-| Kafka UI | 8088 |
+| RabbitMQ | 5672 |
+| RabbitMQ Management | 15672 |
 | Redis | 6379 |
 | RedisInsight | 5540 |
 | MySQL | 3306 |
@@ -343,10 +335,10 @@ main ← stage ← dev ← feature/{도메인}-{기능명}
 ### CI / CD 파이프라인
 
 - **CI** (`.github/workflows/ci.yml`) — PR → `dev/stage/main` 트리거
-  - 서비스 컨테이너 : Redis 7.4 + MySQL 8.4 + PostgreSQL 16
-  - JDK 21 Temurin + Gradle 캐시 + `./gradlew build`
-  - 실패 시 PR 자동 코멘트 (`❌ 빌드/테스트 실패`)
-  - Test report 아티팩트 업로드
+    - 서비스 컨테이너 : Redis 7.4 + MySQL 8.4 + PostgreSQL 16
+    - JDK 21 Temurin + Gradle 캐시 + `./gradlew build`
+    - 실패 시 PR 자동 코멘트 (`❌ 빌드/테스트 실패`)
+    - Test report 아티팩트 업로드
 - **CD** (`.github/workflows/cd.yml`) — 배포 자동화
 - **CodeRabbit** (`.coderabbit.yml`) — 자동 코드 리뷰 (다층 방어선·인덱스 정책의 출발점)
 
@@ -391,7 +383,7 @@ feat: 트랙 재생 권한 체크 Redis 캐싱 적용
 | 문제 | 해결 |
 |---|---|
 | `@Async` 메모리 큐로 인한 알림 유실 (서버 재시작 / 스레드풀 포화 / 리스너 예외) | **Outbox 패턴 도입** — 비즈니스 트랜잭션과 같은 트랜잭션으로 PENDING 영속화, ShedLock + REQUIRES_NEW + 1분 후 retry / 최대 3회 |
-| 10만 팔로워 대상 발매 알림 단일 워커로 ≈17분 예상 | **RabbitMQ 청크 fan-out** ([실제 구현] Kafka 로 전환) — 청크 단위 다중 Consumer 병렬 처리 |
+| 10만 팔로워 대상 발매 알림 단일 워커로 ≈17분 예상 | **RabbitMQ 청크 fan-out** — 청크 단위 다중 Consumer 병렬 처리 (Direct Exchange + DLQ + Retry Queue) |
 | `JdbcTemplate.batchUpdate` 가 명목상 batch 였던 함정 (단건 INSERT 1,000번) | **`rewriteBatchedStatements=true`** MySQL JDBC 옵션 활성화 — 단일 round-trip multi-value INSERT 로 청크 처리 시간 6.7배 단축 |
 | Page 기반 페이지네이션의 불필요한 count 쿼리 | **Slice 기반 전환** — `LIMIT + 1` 전략 |
 
