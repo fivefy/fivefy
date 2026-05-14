@@ -11,7 +11,8 @@ public record AudioStorageProperties(
         String bucket,
         String region,
         String prefix,
-        String localRoot
+        String localRoot,
+        String publicBaseUrl
 ) {
     public String normalizedPrefix() {
         if (prefix == null || prefix.isBlank()) {
@@ -29,6 +30,15 @@ public record AudioStorageProperties(
 
         String normalized = localRoot.replaceAll("/+$", "");
         return normalized.isBlank() ? "build/audio-storage" : normalized;
+    }
+
+    public String normalizedPublicBaseUrl() {
+        if (publicBaseUrl == null || publicBaseUrl.isBlank()) {
+            return "http://localhost:8080";
+        }
+
+        String normalized = publicBaseUrl.replaceAll("/+$", "");
+        return normalized.isBlank() ? "http://localhost:8080" : normalized;
     }
 
     @AssertTrue(message = "S3 오디오 저장소 bucket 설정은 필수입니다")
