@@ -122,7 +122,8 @@ class LocalAudioStorageServiceTest {
                 null,
                 null,
                 prefix,
-                tempDir.toString()
+                tempDir.toString(),
+                "http://localhost:8080"
         );
     }
 

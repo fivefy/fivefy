@@ -97,6 +97,7 @@ class S3AudioStorageServiceTest {
                 "fivefy-audio",
                 "ap-northeast-2",
                 "tracks/audio",
+                null,
                 null
         );
     }
