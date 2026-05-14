@@ -6,6 +6,7 @@ import com.fivefy.domain.playback.dto.request.PlaybackPlayRequest;
 import com.fivefy.domain.playback.dto.request.PlaybackSkipRequest;
 import com.fivefy.domain.playback.dto.request.PlaybackStopRequest;
 import com.fivefy.domain.playback.dto.response.PlaybackResponse;
+import com.fivefy.domain.playback.dto.response.TrackPlayResponse;
 import com.fivefy.domain.playback.service.PlaybackService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,17 @@ import java.util.List;
 public class PlaybackController {
 
     private final PlaybackService playbackService;
+
+    @PostMapping("/tracks/{trackId}/play")
+    public ResponseEntity<BaseResponse<TrackPlayResponse>> playTrack(
+            @PathVariable Long trackId
+    ) {
+        TrackPlayResponse response = playbackService.playTrack(trackId);
+
+        return ResponseEntity.ok(
+                BaseResponse.success(HttpStatus.OK, "트랙 재생 URL 발급 성공", response)
+        );
+    }
 
     @PostMapping("/playbacks/play")
     public ResponseEntity<BaseResponse<PlaybackResponse>> play(

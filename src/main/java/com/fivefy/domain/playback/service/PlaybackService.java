@@ -6,6 +6,7 @@ import com.fivefy.domain.playback.dto.request.PlaybackPlayRequest;
 import com.fivefy.domain.playback.dto.request.PlaybackSkipRequest;
 import com.fivefy.domain.playback.dto.request.PlaybackStopRequest;
 import com.fivefy.domain.playback.dto.response.PlaybackResponse;
+import com.fivefy.domain.playback.dto.response.TrackPlayResponse;
 import com.fivefy.domain.playback.entity.Playback;
 import com.fivefy.domain.playback.enums.PlaybackErrorCode;
 import com.fivefy.domain.playback.enums.PlaybackStatus;
@@ -13,6 +14,7 @@ import com.fivefy.domain.playback.repository.PlaybackRepository;
 import com.fivefy.domain.playlisttrack.entity.PlaylistTrack;
 import com.fivefy.domain.playlisttrack.repository.PlaylistTrackRepository;
 import com.fivefy.domain.track.entity.Track;
+import com.fivefy.domain.track.enums.TrackErrorCode;
 import com.fivefy.domain.track.repository.TrackRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,6 +31,17 @@ public class PlaybackService {
     private final PlaylistTrackRepository playlistTrackRepository;
     private final AudioUrlService audioUrlService;
     private final TrackRepository trackRepository;
+
+    @Transactional
+    public TrackPlayResponse playTrack(Long trackId) {
+        Track track = trackRepository.findById(trackId)
+                .orElseThrow(() -> new BusinessException(TrackErrorCode.ERR_TRACK_NOT_FOUND));
+
+        track.increasePlayCount();
+        String audioUrl = audioUrlService.createAudioUrl(track.getAudioKey());
+
+        return new TrackPlayResponse(track.getId(), audioUrl, track.getPlayCount());
+    }
 
     @Transactional
     public PlaybackResponse play(Long userId, PlaybackPlayRequest request) {
