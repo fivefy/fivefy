@@ -29,7 +29,7 @@ services:
     volumes:
       - redis_data:/data
     networks:
-      - kafka-net
+      - app-net
 
   # --------------------------
   # RedisInsight
@@ -42,7 +42,7 @@ services:
     depends_on:
       - redis
     networks:
-      - kafka-net
+      - app-net
 
 volumes:
   redis_data:
