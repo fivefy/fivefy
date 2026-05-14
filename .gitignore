@@ -57,3 +57,8 @@ pull.sh
 logs/
 ### output ###
 scripts/seed/output/
+
+### frontend ###
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
