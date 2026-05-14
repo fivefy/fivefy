@@ -16,6 +16,7 @@ class AudioStoragePropertiesTest {
                 "bucket",
                 "ap-northeast-2",
                 "/",
+                null,
                 null
         );
 
@@ -30,7 +31,8 @@ class AudioStoragePropertiesTest {
                 null,
                 null,
                 "tracks/audio",
-                "/"
+                "/",
+                "http://localhost:8080"
         );
 
         assertThat(properties.normalizedLocalRoot()).isEqualTo("build/audio-storage");
