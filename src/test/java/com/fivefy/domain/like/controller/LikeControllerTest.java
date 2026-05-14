@@ -3,7 +3,6 @@ package com.fivefy.domain.like.controller;
 import com.fivefy.common.config.security.JwtUtil;
 import com.fivefy.common.docs.RestDocsSupport;
 import com.fivefy.common.exception.BusinessException;
-import com.fivefy.common.filter.LastActiveAtFilter;
 import com.fivefy.domain.like.dto.request.LikeCreateRequest;
 import com.fivefy.domain.like.dto.response.LikeCreateResponse;
 import com.fivefy.domain.like.dto.response.LikeGetResponse;
