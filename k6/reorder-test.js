@@ -6,6 +6,10 @@ const BASE_URL = 'http://localhost:8080';
 // cmd에서 ACCESS_TOKEN으로 넘겨받기
 const ACCESS_TOKEN = __ENV.ACCESS_TOKEN;
 
+if (!ACCESS_TOKEN) {
+    throw new Error('ACCESS_TOKEN is required');
+}
+
 export const options = {
     vus: 100,
     iterations: 10000,
