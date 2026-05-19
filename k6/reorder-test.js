@@ -34,8 +34,10 @@ export default function () {
         params
     );
 
-    console.log(response.status);
-    console.log(response.body);
+    if (response.status !== 200) {
+        console.log(`status: ${response.status}`);
+        console.log(response.body);
+    }
 
     check(response, {
         'status is 200': (r) => r.status === 200,
