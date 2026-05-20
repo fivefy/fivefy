@@ -333,7 +333,7 @@ public class CashOrderService {
 
     /**
      * 정기 포인트 자동 충전 (빌링키 청구)
-     * RecurringChargeScheduler에서 매월 1일 오전 8시 호출
+     * RecurringChargeScheduler에서 매월 오전 8시 01분 호출
      *
      * 포트원에 빌링키로 카드 청구 (1,000원)
      * 청구 성공 시 CashOrder(SUCCESS) + Payment 생성

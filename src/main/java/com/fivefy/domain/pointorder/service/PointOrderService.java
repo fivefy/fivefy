@@ -142,7 +142,7 @@ public class PointOrderService {
 
     /**
      * 정기 구독(RECURRING) 자동 결제 처리
-     * RecurringPaymentScheduler에서 호출 (매월 09:00)
+     * RecurringPaymentScheduler에서 호출 (매월 09:01)
      * 매월 50P 차감 → nextBillingDate, expiryDate +1개월
      * 잔액 부족 시 구독 만료
      *

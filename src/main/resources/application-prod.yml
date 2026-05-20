@@ -86,9 +86,9 @@ portone:
 
 ### 운영 ###
 scheduler:
-  # 포인트 충전(Cashorder-payment)             : 매월 8시 실행
+  # 포인트 충전(Cashorder-payment)             : 매일 8시 01분 실행
   charge-cron: ${CHARGE_CRON}
-  # 구독 패키지 구매(PointOrder-Subscription)  : 매월 9시 실행
+  # 구독 패키지 구매(PointOrder-Subscription)  : 매일 9시 01분 실행
   subscription-cron: ${SUBSCRIPTION_CRON}
 
 resilience4j:
