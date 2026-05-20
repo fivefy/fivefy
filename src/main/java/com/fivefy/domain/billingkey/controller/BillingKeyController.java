@@ -69,7 +69,7 @@ public class BillingKeyController {
      * [테스트 전용] 빌링키 카드 청구 수동 실행
      * POST /api/v1/billing-keys/test-charge
      *
-     * 스케줄러(매월 1일 08:00)를 기다리지 않고 즉시 실행.
+     * 스케줄러(매일 08:01)를 기다리지 않고 즉시 실행.
      * 로그인한 유저의 활성 빌링키로 포트원에 카드 청구 → 포인트 충전.
      * 테스트 완료 후 이 메서드는 삭제할 것.
      */
@@ -96,7 +96,7 @@ public class BillingKeyController {
                 .orElseThrow(() -> new BusinessException(
                         SubscriptionErrorCode.ERR_SUBSCRIPTION_NOT_FOUND));
 
-        cashOrderService.processRecurringCharge(billingKey, subscription);
+        cashOrderService.processRecurringCharge(billingKey);
 
         return ResponseEntity.ok("카드 청구 완료 — 지갑을 조회해서 포인트 충전을 확인하세요.");
     }

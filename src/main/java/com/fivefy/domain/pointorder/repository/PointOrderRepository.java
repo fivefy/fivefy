@@ -1,7 +1,9 @@
 package com.fivefy.domain.pointorder.repository;
 
 import com.fivefy.domain.pointorder.entity.PointOrder;
+import com.fivefy.domain.subscription.entity.Subscription;
 import com.fivefy.domain.subscription.enums.SubscriptionPlanType;
+import com.fivefy.domain.subscription.enums.SubscriptionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

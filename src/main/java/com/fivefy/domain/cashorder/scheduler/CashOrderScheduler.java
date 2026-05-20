@@ -1,5 +1,6 @@
 package com.fivefy.domain.cashorder.scheduler;
 
+import com.fivefy.domain.billingkey.entity.BillingKey;
 import com.fivefy.domain.billingkey.repository.BillingKeyRepository;
 import com.fivefy.domain.cashorder.service.CashOrderService;
 import com.fivefy.domain.pointorder.entity.PointOrder;
@@ -30,66 +31,68 @@ public class CashOrderScheduler {
 
     /**
      * 정기 포인트 자동 충전 (빌링키 카드 청구)
-     * 매월 1일 08:00 — 구독 결제 스케줄러(09:00)보다 1시간 먼저 실행
-     * 대상: RECURRING + ACTIVE + nextBillingDate 지난 구독 보유 유저
+     * 매일 08:01 — 구독 결제 스케줄러(09:01)보다 1시간 먼저 실행
+     *
+     * 대상:
+     * - 활성 빌링키
+     * - nextChargeDate <= now
+     * - ACTIVE 상태의 RECURRING_AUTO 구독 보유 사용자
      */
     @Scheduled(cron = "${scheduler.charge-cron}")
     public void processRecurringCharges() {
         LocalDateTime now = LocalDateTime.now();
         log.info("[정기충전 스케줄러] 실행 시작 — {}", now);
 
-        // 카드 자동 청구 대상은 RECURRING_AUTO만
-        List<Subscription> targets = subscriptionRepository
-                .findAllByPlanTypeAndStatusAndNextBillingDateBefore(
-                        SubscriptionPlanType.RECURRING_AUTO,
-                        SubscriptionStatus.ACTIVE,
-                        now
-                );
+        List<BillingKey> billingKeys =
+                billingKeyRepository.findAllByActiveTrueAndNextChargeDateLessThanEqual(now);
 
-        log.info("[정기충전 스케줄러] 대상 구독 수: {}", targets.size());
-
-
-        // PointOrder 일괄 조회로 N+1 방지
-        List<Long> pointOrderIds = targets.stream()
-               .map(Subscription::getPointOrderId)
-               .distinct()
-               .toList();
-        Map<Long, Long> pointOrderToUserId = pointOrderRepository.findAllById(pointOrderIds)
-               .stream()
-               .collect(Collectors.toMap(PointOrder::getId, PointOrder::getUserId));
+        log.info("[정기충전 스케줄러] 대상 빌링키 수: {}", billingKeys.size());
 
         int successCount = 0;
         int failCount = 0;
+        int skipCount = 0;
 
-        for (Subscription subscription : targets) {
-            // PointOrder를 일괄 조회로 개선 필요
-            Long userId = pointOrderToUserId.get(subscription.getPointOrderId());
-
-            if (userId == null) {
-                log.error("[정기충전 스케줄러] PointOrder 조회 실패 — subscriptionId={}",
-                        subscription.getId());
-                failCount++;
-                continue;
-            }
+        for (BillingKey billingKey : billingKeys) {
+            Long userId = billingKey.getUserId();
 
             try {
-                billingKeyRepository.findByUserIdAndActiveTrue(userId)
-                        .ifPresentOrElse(
-                                billingKey -> cashOrderService.processRecurringCharge(
-                                        billingKey,
-                                        subscription
-                                ),
-                                () -> log.warn("[정기충전 스케줄러] 빌링키 없음 — userId={}",
-                                        userId)
-                        );
+                List<PointOrder> pointOrders = pointOrderRepository.findAllByUserId(userId);
+
+                if (pointOrders.isEmpty()) {
+                    log.warn("[정기충전 스케줄러] PointOrder 없음 — userId={}", userId);
+                    skipCount++;
+                    continue;
+                }
+
+                List<Long> pointOrderIds = pointOrders.stream()
+                        .map(PointOrder::getId)
+                        .toList();
+
+                Subscription subscription = subscriptionRepository
+                        .findByPointOrderIdInAndPlanTypeAndStatus(
+                                pointOrderIds,
+                                SubscriptionPlanType.RECURRING_AUTO,
+                                SubscriptionStatus.ACTIVE
+                        )
+                        .orElse(null);
+
+                if (subscription == null) {
+                    log.warn("[정기충전 스케줄러] 활성 정기 구독 없음 — userId={}", userId);
+                    skipCount++;
+                    continue;
+                }
+
+                cashOrderService.processRecurringCharge(billingKey);
                 successCount++;
+
             } catch (Exception e) {
-                log.error("[정기충전 스케줄러] 실패 — userId={}, subscriptionId={}, 사유={}",
-                                    userId, subscription.getId(), e.getMessage());
+                log.error("[정기충전 스케줄러] 실패 — userId={}, billingKeyId={}, 사유={}",
+                        userId, billingKey.getId(), e.getMessage());
                 failCount++;
             }
         }
 
-        log.info("[정기충전 스케줄러] 완료 — 성공: {}, 실패: {}", successCount, failCount);
+        log.info("[정기충전 스케줄러] 완료 — 성공: {}, 실패: {}, 스킵: {}",
+                successCount, failCount, skipCount);
     }
 }

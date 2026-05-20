@@ -333,7 +333,7 @@ public class CashOrderService {
 
     /**
      * 정기 포인트 자동 충전 (빌링키 청구)
-     * RecurringChargeScheduler에서 매월 1일 오전 8시 호출
+     * RecurringChargeScheduler에서 매월 오전 8시 01분 호출
      *
      * 포트원에 빌링키로 카드 청구 (1,000원)
      * 청구 성공 시 CashOrder(SUCCESS) + Payment 생성
@@ -349,7 +349,7 @@ public class CashOrderService {
      */
     @RedissonLock(key = "'wallet:' + #billingKey.userId")
     @Transactional
-    public void processRecurringCharge(BillingKey billingKey, Subscription subscription) {
+    public void processRecurringCharge(BillingKey billingKey) {
         Long userId = billingKey.getUserId();
         CashProductType productType = resolveRecurringProductType(userId);
         String orderNumber = "REC-" + UUID.randomUUID().toString().substring(0, 8);
@@ -395,7 +395,7 @@ public class CashOrderService {
 
         // 포트원 청구 성공 확정 후 DB 작업만 별도 트랜잭션으로
         cashOrderPersistenceService.saveRecurringChargeResult(
-                billingKey, orderNumber, productType, pgResponse, subscription
+                billingKey, orderNumber, productType, pgResponse
         );
 
         log.info("[정기충전] 완료 — userId={}, orderNumber={}, 충전P={}",
