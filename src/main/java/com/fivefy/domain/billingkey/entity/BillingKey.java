@@ -56,7 +56,7 @@ public class BillingKey extends BaseEntity {
     @Column(nullable = false)
     private boolean active = true;
 
-    @Column(nullable = false)
+    @Column
     private LocalDateTime nextChargeDate;
 
     /**
