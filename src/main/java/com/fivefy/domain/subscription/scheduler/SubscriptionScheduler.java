@@ -31,7 +31,7 @@ public class SubscriptionScheduler {
 
     /**
      * 정기 구독 결제
-     * 매월 1일 09:00
+     * 매일 09:01
      * 대상: RECURRING + ACTIVE + nextBillingDate 지난 구독
      */
     @Transactional

@@ -80,8 +80,8 @@ jobs:
           SPRING_DATASOURCE_VECTOR_JDBC_URL: jdbc:postgresql://localhost:5432/fivefy_vector_test
           SPRING_DATASOURCE_VECTOR_USERNAME: root2
           SPRING_DATASOURCE_VECTOR_PASSWORD: 23456789
-          SCHEDULER_CHARGE_CRON: "0 0 8 1 * *"
-          SCHEDULER_SUBSCRIPTION_CRON: "0 0 9 1 * *"
+          SCHEDULER_CHARGE_CRON: "0 1 8 * * *"
+          SCHEDULER_SUBSCRIPTION_CRON: "0 1 9 * * *"
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v5

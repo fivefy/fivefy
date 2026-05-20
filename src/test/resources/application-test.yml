@@ -67,8 +67,8 @@ portone:
   webhook-secret: test
 
 scheduler:
-  charge-cron: "0 0 8 1 * *"
-  subscription-cron: "0 0 9 1 * *"
+  charge-cron: "0 1 8 * * *"
+  subscription-cron: "0 1 9 * * *"
 
 resilience4j:
   retry:

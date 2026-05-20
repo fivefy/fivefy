@@ -30,7 +30,7 @@ public class CashOrderScheduler {
 
     /**
      * 정기 포인트 자동 충전 (빌링키 카드 청구)
-     * 매월 1일 08:00 — 구독 결제 스케줄러(09:00)보다 1시간 먼저 실행
+     * 매월 08:01 — 구독 결제 스케줄러(09:01)보다 1시간 먼저 실행
      * 대상: RECURRING + ACTIVE + nextBillingDate 지난 구독 보유 유저
      */
     @Scheduled(cron = "${scheduler.charge-cron}")
