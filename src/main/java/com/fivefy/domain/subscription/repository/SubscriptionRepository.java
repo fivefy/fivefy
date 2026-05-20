@@ -32,6 +32,7 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
     );
 
     // pointOrderId 목록 + planType + 상태로 구독 단건 조회
+    // 빌링키 사용자가 현재 활성 정기 구독을 가지고 있는지 확인
     @Query("""
         SELECT s FROM Subscription s
         WHERE s.pointOrderId IN :pointOrderIds
@@ -57,6 +58,21 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
             // SubscriptionStatus status,
             List<SubscriptionStatus> statuses,
             LocalDateTime now
+    );
+
+    @Query("""
+            select s
+            from Subscription s
+            join PointOrder po on po.id = s.pointOrderId
+            where po.userId = :userId
+              and s.planType = :planType
+              and s.status = :status
+              and s.nextBillingDate is not null
+            """)
+    Optional<Subscription> findByUserIdAndPlanTypeAndStatus(
+            @Param("userId") Long userId,
+            @Param("planType") SubscriptionPlanType planType,
+            @Param("status") SubscriptionStatus status
     );
 
     // 테스트 정리용

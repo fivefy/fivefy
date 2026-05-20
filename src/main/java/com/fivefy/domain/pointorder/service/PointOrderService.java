@@ -2,6 +2,9 @@ package com.fivefy.domain.pointorder.service;
 
 import com.fivefy.common.exception.BusinessException;
 import com.fivefy.common.lock.annotation.RedissonLock;
+import com.fivefy.domain.billingkey.entity.BillingKey;
+import com.fivefy.domain.billingkey.enums.BillingKeyErrorCode;
+import com.fivefy.domain.billingkey.repository.BillingKeyRepository;
 import com.fivefy.domain.notification.entity.NotificationOutbox;
 import com.fivefy.domain.notification.enums.NotificationType;
 import com.fivefy.domain.notification.repository.NotificationOutboxRepository;
@@ -41,6 +44,7 @@ public class PointOrderService {
     private final WalletRepository walletRepository;
     private final PointHistoryRepository pointHistoryRepository;
     private final NotificationOutboxRepository outboxRepository;
+    private final BillingKeyRepository billingKeyRepository;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy년 MM월 dd일");
 
@@ -127,6 +131,14 @@ public class PointOrderService {
                 pointOrder.getId(), planType, now
         );
         subscriptionRepository.save(subscription);
+
+        // 7. RECURRING_AUTO 최초 구매 시, 다음 포인트 자동충전 예정일 설정
+        if (planType == SubscriptionPlanType.RECURRING_AUTO) {
+            BillingKey billingKey = billingKeyRepository.findByUserIdAndActiveTrue(userId)
+                    .orElseThrow(() -> new BusinessException(BillingKeyErrorCode.ERR_BILLING_KEY_NOT_FOUND));
+
+            billingKey.scheduleNextCharge(now);
+        }
 
         log.info("구독 구매 완료 — userId={}, planType={}, price={}P, expiryDate={}",
                 userId, planType, price, subscription.getExpiryDate());
