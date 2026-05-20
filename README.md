@@ -448,7 +448,7 @@ sequenceDiagram
 graph LR
     User["👤 User"] -->|충전| CashOrder["💵 cashorder<br/>캐시 주문"]
     CashOrder -->|PortOne 빌링키| BillingKey["🔑 billingkey<br/>카드 등록"]
-    BillingKey -->|매일 09시 1분| BillingAttempt["🔄 billingattempt<br/>결제 시도"]
+    BillingKey -->|매일 08시 1분| BillingAttempt["🔄 billingattempt<br/>결제 시도"]
     BillingAttempt -->|성공| Wallet["💰 wallet<br/>포인트 적립"]
     Wallet -->|구독료 차감| PointOrder["📋 pointorder<br/>포인트 주문"]
     PointOrder --> Subscription["📅 subscription<br/>구독 갱신"]
