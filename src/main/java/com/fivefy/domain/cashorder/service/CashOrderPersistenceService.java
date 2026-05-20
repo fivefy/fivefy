@@ -41,7 +41,6 @@ public class CashOrderPersistenceService {
     private final WalletRepository walletRepository;
     private final PointHistoryRepository pointHistoryRepository;
     private final BillingAttemptPersistenceService billingAttemptPersistenceService;
-    private final SubscriptionRepository subscriptionRepository;
 
     /**
      * 환불은 DB 상태 변경만 담당
@@ -96,8 +95,7 @@ public class CashOrderPersistenceService {
             BillingKey billingKey,    // Long userId → BillingKey billingKey 로 변경
             String orderNumber,
             CashProductType productType,
-            PortoneBillingPaymentResponse pgResponse,
-            Subscription subscription
+            PortoneBillingPaymentResponse pgResponse
     ) {
         Long userId = billingKey.getUserId();  // 내부에서 꺼내서 사용
 
@@ -136,10 +134,9 @@ public class CashOrderPersistenceService {
         // 성공 기록 저장
         billingAttemptPersistenceService.saveSuccess(userId, billingKey.getId());
 
-        // 구독 날짜 갱신
-        subscription.renew();
-        subscriptionRepository.save(subscription);
-                
+        // 구독 날짜 갱신 기능 → CashOrder이니까 다음 포인트 자동충전 예정일 갱신
+        billingKey.extendNextChargeOneMonth();
+
         log.info("[정기충전] DB 저장 완료 userId={}, orderNumber={}", userId, orderNumber);
     }
 }

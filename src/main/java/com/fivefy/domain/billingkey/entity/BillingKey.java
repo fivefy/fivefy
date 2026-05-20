@@ -8,6 +8,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 import static com.fivefy.common.util.ValidationUtils.validateNonNull;
 
 @Entity
@@ -54,6 +56,9 @@ public class BillingKey extends BaseEntity {
     @Column(nullable = false)
     private boolean active = true;
 
+    @Column(nullable = false)
+    private LocalDateTime nextChargeDate;
+
     /**
      * 빌링키 생성
      *
@@ -89,5 +94,18 @@ public class BillingKey extends BaseEntity {
         }
 
         this.active = false;
+    }
+
+    public void scheduleNextCharge(LocalDateTime baseDateTime) {
+        validateNonNull(baseDateTime, "baseDateTime");
+        this.nextChargeDate = baseDateTime.plusMonths(1).toLocalDate().atTime(8, 0);
+    }
+
+    public void extendNextChargeOneMonth() {
+        if (this.nextChargeDate == null) {
+            throw new BusinessException(BillingKeyErrorCode.ERR_BILLING_KEY_NEXT_CHARGE_DATE_NOT_FOUND);
+        }
+
+        this.nextChargeDate = this.nextChargeDate.plusMonths(1).toLocalDate().atTime(8, 0);
     }
 }

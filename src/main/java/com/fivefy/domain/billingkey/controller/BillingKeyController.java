@@ -96,7 +96,7 @@ public class BillingKeyController {
                 .orElseThrow(() -> new BusinessException(
                         SubscriptionErrorCode.ERR_SUBSCRIPTION_NOT_FOUND));
 
-        cashOrderService.processRecurringCharge(billingKey, subscription);
+        cashOrderService.processRecurringCharge(billingKey);
 
         return ResponseEntity.ok("카드 청구 완료 — 지갑을 조회해서 포인트 충전을 확인하세요.");
     }
